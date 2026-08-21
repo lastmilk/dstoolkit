@@ -1,0 +1,54 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/auth/Login.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('@/views/auth/Register.vue'),
+      meta: { public: true },
+    },
+    {
+      path: '/',
+      component: () => import('@/layouts/MainLayout.vue'),
+      children: [
+        { path: '', redirect: '/configs' },
+        { path: 'configs', name: 'configs', component: () => import('@/views/config/Configs.vue') },
+        { path: 'explore', name: 'explore', component: () => import('@/views/explore/Explore.vue') },
+        { path: 'search', redirect: '/explore' },
+        { path: 'timeline', redirect: '/explore' },
+        { path: 'stats', name: 'stats', component: () => import('@/views/stats/Stats.vue') },
+        { path: 'alpaca', name: 'alpaca', component: () => import('@/views/alpaca/Alpaca.vue') },
+        { path: 'balance', name: 'balance', component: () => import('@/views/balance/Balance.vue') },
+        { path: 'market', name: 'market', component: () => import('@/views/market/Market.vue') },
+        { path: 'profile', name: 'profile', component: () => import('@/views/profile/Profile.vue') },
+      ],
+    },
+  ],
+})
+
+router.beforeEach(async (to) => {
+  const auth = useAuthStore()
+  if (to.meta.public) return true
+  if (!auth.isLoggedIn) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (!auth.user) {
+    try {
+      await auth.fetchMe()
+    } catch {
+      /* 401 已由 axios 拦截器处理跳转 */
+    }
+  }
+  return true
+})
+
+export default router

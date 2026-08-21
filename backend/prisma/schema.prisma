@@ -1,0 +1,126 @@
+// dstoolkit Prisma schema (MySQL)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MsgRole {
+  USER
+  ASSISTANT
+}
+
+model User {
+  id               Int              @id @default(autoincrement())
+  username         String           @unique
+  passwordHash     String
+  role             Role             @default(USER)
+  cloudSyncEnabled Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  configs          DeepseekConfig[]
+  apiKeys          ApiKey[]
+  apiTokens        ApiToken[]
+
+  @@index([role])
+}
+
+model DeepseekConfig {
+  id             Int           @id @default(autoincrement())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          Int
+  name           String
+  deepseekUserId String
+  deepseekEmail  String?       @db.Text
+  deepseekMobile String?       @db.Text
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  conversations  Conversation[]
+
+  @@unique([userId, deepseekUserId])
+  @@index([userId])
+}
+
+model Conversation {
+  id             Int       @id @default(autoincrement())
+  config          DeepseekConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  configId        Int
+  deepseekConvId  String
+  title           String    @db.Text
+  insertedAt      DateTime
+  updatedAt       DateTime
+  rawMapping      Json
+  turnCount       Int       @default(0)
+  messages        Message[]
+
+  @@unique([configId, deepseekConvId])
+  @@index([configId])
+  @@index([insertedAt])
+}
+
+model Message {
+  id             Int        @id @default(autoincrement())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId  Int
+  nodeId          String
+  parentId        String?
+  role            MsgRole
+  model           String?
+  content         String     @db.LongText
+  insertedAt      DateTime
+  turnIndex       Int?
+  versionIndex    Int?
+  subTurnIndex    Int?
+
+  @@index([conversationId])
+  @@index([role])
+  @@index([turnIndex])
+}
+
+model ApiKey {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  name      String
+  keyCipher String   @db.Text
+  createdAt DateTime @default(now())
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model AppMarketEntry {
+  id          Int      @id @default(autoincrement())
+  name        String
+  url         String   @db.Text
+  description String?  @db.Text
+  category    String   @default("official")
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+}
+
+// dstoolkit RESTful API 访问令牌（区别于 ApiKey：ApiKey 存储用户的 Deepseek 密钥）
+// 仅存哈希，不存明文；prefix 用于展示与快速定位
+model ApiToken {
+  id         Int       @id @default(autoincrement())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  name       String
+  tokenHash  String    @unique
+  prefix     String
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+
+  @@index([userId])
+}
