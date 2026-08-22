@@ -76,12 +76,12 @@ function icon(Comp: Component, size = 18) {
 
 // ═══════════ 菜单配置 ═══════════
 const menuOptions = computed<MenuOption[]>(() => [
-  { label: '配置管理', key: 'configs', icon: icon(CloudUploadOutline) },
+  { label: '账号配置', key: 'configs', icon: icon(CloudUploadOutline) },
   { label: '对话探索', key: 'explore', icon: icon(SearchOutline) },
   { label: '数据统计', key: 'stats', icon: icon(BarChartOutline) },
-  { label: 'Alpaca 格式', key: 'alpaca', icon: icon(SwapHorizontalOutline) },
-  { label: '余额查询', key: 'balance', icon: icon(WalletOutline) },
-  { label: '应用市场', key: 'market', icon: icon(AppsOutline) },
+  { label: 'Alpaca 导出', key: 'alpaca', icon: icon(SwapHorizontalOutline) },
+  { label: '余额', key: 'balance', icon: icon(WalletOutline) },
+  { label: '模型市场', key: 'market', icon: icon(AppsOutline) },
   { label: '个人中心', key: 'profile', icon: icon(PersonOutline) },
 ])
 
@@ -91,13 +91,13 @@ function onSelect(key: string) {
 }
 
 const MENU_LABELS: Record<string, { title: string; subtitle: string; chrono: string }> = {
-  configs:   { title: '配置管理',     subtitle: '上传与管理你的 Deepseek 数据', chrono: '时间线档案库' },
-  explore:   { title: '对话探索',     subtitle: '搜索、浏览和继续你的对话', chrono: '历史回溯终端' },
-  stats:     { title: '数据统计',     subtitle: '对话量、模型分布、活跃时段', chrono: '时光分析仪' },
-  alpaca:    { title: 'Alpaca 转换',  subtitle: '导出为微调训练数据格式', chrono: '数据重塑实验室' },
-  balance:   { title: '余额查询',     subtitle: 'API Key 余额与用量信息', chrono: '能量储备监控' },
-  market:    { title: '应用市场',     subtitle: '工具生态与官方资源', chrono: '模块扩展中心' },
-  profile:   { title: '个人中心',     subtitle: '账号设置、密钥管理', chrono: '时间特工档案' },
+  configs:   { title: '账号配置',     subtitle: '上传与管理你的 Deepseek 数据', chrono: '数据配置中心' },
+  explore:   { title: '对话探索',     subtitle: '搜索、浏览和继续你的对话', chrono: '对话记录管理' },
+  stats:     { title: '数据统计',     subtitle: '对话量、模型分布、活跃时段', chrono: '数据概览' },
+  alpaca:    { title: 'Alpaca 导出',  subtitle: '导出为微调训练数据格式', chrono: '数据导出' },
+  balance:   { title: '余额',         subtitle: 'API Key 余额与用量信息', chrono: '账户信息' },
+  market:    { title: '模型市场',     subtitle: '工具生态与官方资源', chrono: '资源中心' },
+  profile:   { title: '个人中心',     subtitle: '账号设置、密钥管理', chrono: '账号管理' },
 }
 function menuTitle(key: string): string { return MENU_LABELS[key]?.title || '' }
 function menuSubtitle(key: string): string { return MENU_LABELS[key]?.subtitle || '' }
@@ -151,15 +151,15 @@ const todayStr = computed(() => {
 })
 const greetText = computed(() => {
   const h = new Date(Date.now() + 8 * 3600 * 1000).getUTCHours()
-  if (h < 5) return '深夜值班，时间线正常'
-  if (h < 11) return '早安特工，今天也是拯救时间的一天'
-  if (h < 14) return '午间时光机休息中'
-  if (h < 18) return '下午好，保持时间线稳定'
-  if (h < 22) return '晚间档案整理中'
-  return '夜间模式启动，时间缓冲已加载'
+  if (h < 5) return '夜深了，注意休息'
+  if (h < 11) return '早上好'
+  if (h < 14) return '中午好'
+  if (h < 18) return '下午好'
+  if (h < 22) return '晚上好'
+  return '夜深了'
 })
 const timelineNo = '#' + Math.floor(Math.random() * 900 + 100)
-const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步完成'][Math.floor(Math.random() * 5)]
+const timelineShift = ['正常','运行中','已连接','轻微延迟','同步完成'][Math.floor(Math.random() * 5)]
 </script>
 
 <template>
@@ -187,8 +187,8 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
             <div class="brand-logo-ring"></div>
           </div>
           <div class="brand-text">
-            <div class="brand-name">Chronos · 时间管理局</div>
-            <div class="brand-tag">第 278 号时间线 · 稳定</div>
+            <div class="brand-name">Deepseek Toolkit</div>
+            <div class="brand-tag">对话管理工作台</div>
           </div>
         </div>
       </div>
@@ -197,7 +197,7 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
       <div class="nav-wrap">
         <div class="nav-label">
           <NIcon size="12"><TimeOutline /></NIcon>
-          <span>CHRONOS 导航</span>
+          <span>工作台导航</span>
         </div>
         <NMenu
           :value="activeKey"
@@ -234,9 +234,9 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
             {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
           </NAvatar>
           <div class="sider-user-info">
-            <div class="sider-user-name">{{ auth.user?.username || '时间特工' }}</div>
+            <div class="sider-user-name">{{ auth.user?.username || '用户' }}</div>
             <div class="sider-user-role">
-              {{ auth.isAdmin ? '高级特工 · 管理员' : '时间特工 · 在职' }}
+              {{ auth.isAdmin ? '管理员' : '用户' }}
             </div>
           </div>
         </div>
@@ -255,7 +255,7 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
       show-icon
     >
       <NDrawerContent
-        title="时间管理局导航"
+        title="Deepseek Toolkit 导航"
         :style="{ background: 'linear-gradient(180deg, #0B1430 0%, #070E24 100%)', color: '#E8F7FF' }"
       >
         <template #header>
@@ -263,8 +263,8 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
             <div class="drawer-brand">
               <NIcon size="20" class="brand-logo-icon"><SparklesSharp /></NIcon>
               <div>
-                <div class="drawer-title">Chronos · 时间管理局</div>
-                <div class="drawer-subtitle">第 278 号时间线 · {{ timelineShift }}</div>
+                <div class="drawer-title">Deepseek Toolkit</div>
+                <div class="drawer-subtitle">对话管理工作台</div>
               </div>
             </div>
             <NIcon size="22" class="drawer-close" @click="drawerVisible = false"><CloseOutline /></NIcon>
@@ -303,9 +303,9 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
               {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
             </NAvatar>
             <div class="sider-user-info">
-              <div class="sider-user-name">{{ auth.user?.username || '时间特工' }}</div>
+              <div class="sider-user-name">{{ auth.user?.username || '用户' }}</div>
               <div class="sider-user-role">
-                {{ auth.isAdmin ? '高级特工 · 管理员' : '时间特工 · 在职' }}
+                {{ auth.isAdmin ? '管理员' : '用户' }}
               </div>
             </div>
           </div>
@@ -332,7 +332,7 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
           </button>
           <div class="mobile-mini-brand">
             <NIcon size="16" class="brand-logo-icon mini"><SparklesSharp /></NIcon>
-            <span>时间管理局</span>
+            <span>Deepseek Toolkit</span>
           </div>
         </div>
 
@@ -351,7 +351,7 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
           <NSpace v-if="!isMobile" align="center" :size="10">
             <NTag v-if="auth.isAdmin" size="small" type="warning" round>
               <template #icon><NIcon size="12"><SparklesSharp /></NIcon></template>
-              高级特工
+              管理员
             </NTag>
             <NTag
               size="small"
@@ -390,7 +390,7 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
               </NAvatar>
               <div v-if="!isMobile" class="user-info">
                 <div class="user-name">{{ auth.user?.username }}</div>
-                <div class="user-role">{{ auth.isAdmin ? '管理员' : '时间特工' }}</div>
+                <div class="user-role">{{ auth.isAdmin ? '管理员' : '用户' }}</div>
               </div>
               <NIcon v-if="!isMobile" size="16" class="chevron"><ChevronDownOutline /></NIcon>
             </div>
@@ -412,15 +412,13 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
           <div class="chronos-banner-content">
             <div class="chronos-banner-tag">
               <span class="pulse"></span>
-              <span>时间线状态 · {{ timelineShift }}</span>
+              <span>工作台就绪</span>
             </div>
             <div class="chronos-banner-title">
-              <span>{{ greetText }}</span>
-              <span class="accent">{{ auth.user?.username || '特工' }}</span>
+              <span>你好，{{ auth.user?.username || '用户' }}，开始管理你的对话数据吧。</span>
             </div>
             <div class="chronos-banner-subtitle">
-              你好，欢迎回到 Chronos 时间管理局控制台。当前
-              {{ menuChrono(activeKey) }}已就绪，所有时间戳已同步至 UTC+8 参考系。
+              共 1 个账号 · {{ menuTitle(activeKey) }} 功能可用 · 最近同步：刚刚
             </div>
             <div class="chronos-banner-meta">
               <div class="chronos-meta-item">
@@ -429,11 +427,11 @@ const timelineShift = ['稳定','波动中','已校准','轻微偏差','同步�
               </div>
               <div class="chronos-meta-item">
                 <span class="dot" style="background: var(--accent); box-shadow: 0 0 6px var(--accent);"></span>
-                <span>时间线 {{ timelineNo }}</span>
+                <span>{{ menuTitle(activeKey) }}</span>
               </div>
               <div class="chronos-meta-item">
                 <span class="dot" style="background: var(--chrono-green); box-shadow: 0 0 6px var(--chrono-green);"></span>
-                <span>{{ menuTitle(activeKey) }} 在线</span>
+                <span>{{ auth.cloudSyncEnabled ? '云端已同步' : '本地存储' }}</span>
               </div>
             </div>
           </div>

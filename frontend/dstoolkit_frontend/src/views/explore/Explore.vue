@@ -338,7 +338,7 @@ onMounted(() => {
 
 <template>
   <div class="explore-root page-enter">
-    <!-- ========== Chronos 头部横幅 ========== -->
+    <!-- ========== 头部横幅 ========== -->
     <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
@@ -346,14 +346,14 @@ onMounted(() => {
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
             <NIcon size="12"><RocketOutline /></NIcon>
-            <span>TIMELINE EXPLORER // 时间线探索终端</span>
+            <span>EXPLORER // 对话浏览</span>
           </div>
           <h1 class="chronos-page-title">
-            时空档案检索
-            <span class="title-accent">· v2.84</span>
+            对话探索
+            <span class="title-accent">· 智能搜索</span>
           </h1>
           <p class="chronos-page-sub">
-            跨时间线搜索与回溯你的对话记忆档案，支持正则扫描与多维度全息筛选
+            支持全文搜索、多条件筛选、快速定位历史对话并继续与模型交流
           </p>
         </div>
         <div class="banner-stats">
@@ -361,14 +361,14 @@ onMounted(() => {
             <div class="stat-dot"></div>
             <div class="stat-text">
               <div class="stat-num">{{ conversations.length }}</div>
-              <div class="stat-label">已接入档案</div>
+              <div class="stat-label">已索引对话</div>
             </div>
           </div>
           <div class="stat-chip accent">
             <div class="stat-dot accent"></div>
             <div class="stat-text">
               <div class="stat-num">{{ mode === 'search' ? totalCount : '—' }}</div>
-              <div class="stat-label">{{ mode === 'search' ? '命中结果' : '当前模式' }}</div>
+              <div class="stat-label">{{ mode === 'search' ? '搜索结果' : auth.cloudSyncEnabled ? '云端模式' : '本地模式' }}</div>
             </div>
           </div>
         </div>
@@ -379,11 +379,11 @@ onMounted(() => {
     <div class="explore-status-bar">
       <div v-if="loading" class="status-chip status-chip-loading">
         <NSpin :size="14" />
-        <span>{{ loadProgress || '时间线校准中…' }}</span>
+        <span>{{ loadProgress || '加载中…' }}</span>
       </div>
       <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
-        <NIcon size="14" style="color: var(--chronos-success);"><SparklesOutline /></NIcon>
-        <span>锚点稳定 · 校准耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
+        <NIcon size="14" style="color: var(--success);"><SparklesOutline /></NIcon>
+        <span>就绪 · 加载耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
       </div>
       <div class="flex-spacer"></div>
       <NTag
@@ -393,7 +393,7 @@ onMounted(() => {
         size="small"
       >
         <NIcon size="11" style="margin-right: 4px;"><TimeOutline /></NIcon>
-        {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个时间节点
+        {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个对话 · 搜索服务就绪
       </NTag>
     </div>
 
@@ -411,7 +411,7 @@ onMounted(() => {
           </div>
           <NInput
             :value="query"
-            placeholder="输入关键词扫描时间线…（支持正则表达式检索）"
+            placeholder="输入关键词，搜索历史对话内容…（支持正则表达式）"
             clearable
             class="search-input"
             @update:value="onQueryInput"
@@ -423,14 +423,14 @@ onMounted(() => {
           </div>
         </div>
         <NButton type="primary" size="medium" :loading="loading" @click="doSearch">
-          <template #icon><NIcon size="16"><RocketOutline /></NIcon></template>
-          启动检索
+          <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
+          搜索
         </NButton>
       </div>
 
       <div class="search-options">
         <div class="opt-group">
-          <label class="opt-label">检索引擎</label>
+          <label class="opt-label">搜索模式</label>
           <NRadioGroup
             :value="searchModelStore.model"
             size="small"
@@ -450,11 +450,11 @@ onMounted(() => {
           >
             <NRadioButton value="timeline">
               <NIcon size="14" style="margin-right: 4px;"><TimeOutline /></NIcon>
-              时间线
+              全部对话
             </NRadioButton>
             <NRadioButton value="search">
               <NIcon size="14" style="margin-right: 4px;"><SearchCircleOutline /></NIcon>
-              命中档案
+              搜索结果
             </NRadioButton>
           </NRadioGroup>
         </div>
@@ -466,7 +466,7 @@ onMounted(() => {
             <NIcon size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
             </NIcon>
-            {{ auth.cloudSyncEnabled ? '量子云端' : '本地存储舱' }}
+            {{ auth.cloudSyncEnabled ? '云端模式' : '本地模式' }}
           </span>
         </div>
       </div>
@@ -474,20 +474,20 @@ onMounted(() => {
       <div class="filter-row">
         <div class="filter-label">
           <NIcon size="14"><FilterOutline /></NIcon>
-          <span>检索维度</span>
+          <span>筛选范围</span>
         </div>
         <NSpace align="center" :size="12" wrap>
           <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.title" />
-            <span>档案标题</span>
+            <span>会话标题</span>
           </label>
           <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.user" />
-            <span>指令输入</span>
+            <span>用户消息</span>
           </label>
           <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.assistant" />
-            <span>系统响应</span>
+            <span>模型回复</span>
           </label>
         </NSpace>
       </div>
@@ -504,7 +504,7 @@ onMounted(() => {
         <div class="tree-header">
           <div class="tree-header-title">
             <span class="hud-pulse"></span>
-            {{ mode === 'timeline' ? '全部时间节点' : `命中档案 (${totalCount})` }}
+            {{ mode === 'timeline' ? '全部对话' : `搜索结果 (${totalCount})` }}
           </div>
           <NText depth="3" style="font-size: 12px;">
             {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
@@ -522,7 +522,7 @@ onMounted(() => {
         </div>
         <div class="tree-footer">
           <div class="pager-info">
-            <NIcon size="12" style="color: var(--chronos-primary);"><TimeOutline /></NIcon>
+            <NIcon size="12" style="color: var(--primary);"><TimeOutline /></NIcon>
             第 {{ currentPage }} / {{ pageCount }} 页
           </div>
           <NPagination
@@ -548,7 +548,7 @@ onMounted(() => {
             <template #icon v-if="!loadingMore">
               <NIcon size="13"><ChevronDownOutline /></NIcon>
             </template>
-            跳转下一页
+            加载更多
           </NButton>
         </div>
       </div>
@@ -564,8 +564,8 @@ onMounted(() => {
             <div class="loader-ring"></div>
             <div class="loader-ring delay"></div>
           </div>
-          <NText depth="3" style="margin-top: 20px; font-size: 13px; color: var(--chronos-text-secondary);">
-            正在穿越时间线获取档案详情…
+          <NText depth="3" style="margin-top: 20px; font-size: 13px; color: var(--text-secondary);">
+            正在加载对话详情…
           </NText>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
@@ -582,33 +582,34 @@ onMounted(() => {
   min-height: 100%;
 }
 
-/* ========== Chronos 横幅 ========== */
+/* ========== 横幅 ========== */
 .chronos-page-banner {
   position: relative;
   padding: 22px 24px;
-  border-radius: var(--chronos-radius-lg);
+  border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(255, 90, 140, 0.06) 100%),
-    linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
-  border: 1px solid var(--chronos-border);
+    linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 50%, rgba(255, 90, 140, 0.04) 100%),
+    linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--border);
   overflow: hidden;
+  box-shadow: var(--shadow-xs);
 }
 .banner-glow-1, .banner-glow-2 {
   position: absolute;
   border-radius: 50%;
   pointer-events: none;
   filter: blur(60px);
-  opacity: 0.4;
+  opacity: 0.35;
 }
 .banner-glow-1 {
   width: 260px; height: 260px;
   top: -120px; right: -80px;
-  background: radial-gradient(circle, var(--chronos-primary) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
 }
 .banner-glow-2 {
   width: 200px; height: 200px;
   bottom: -100px; left: 20%;
-  background: radial-gradient(circle, var(--chronos-accent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
 }
 .banner-inner {
   position: relative;
@@ -626,12 +627,12 @@ onMounted(() => {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--chronos-primary);
-  font-family: var(--chronos-mono);
+  color: var(--primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   padding: 4px 10px;
-  background: rgba(0, 212, 255, 0.08);
+  background: var(--primary-soft);
   border-radius: 4px;
-  border: 1px solid rgba(0, 212, 255, 0.18);
+  border: 1px solid var(--border-glow);
   margin-bottom: 10px;
 }
 .chronos-page-title {
@@ -639,11 +640,11 @@ onMounted(() => {
   font-weight: 800;
   letter-spacing: -0.01em;
   margin: 0;
-  color: var(--chronos-text);
+  color: var(--text);
   line-height: 1.2;
 }
 .title-accent {
-  color: var(--chronos-accent);
+  color: var(--accent);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -652,7 +653,7 @@ onMounted(() => {
 .chronos-page-sub {
   margin: 6px 0 0;
   font-size: 13.5px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   line-height: 1.55;
   max-width: 520px;
 }
@@ -666,34 +667,34 @@ onMounted(() => {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  background: var(--chronos-surface-2);
-  border: 1px solid var(--chronos-border-subtle);
-  border-radius: var(--chronos-radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
 }
 .stat-chip.accent {
-  border-color: rgba(168, 85, 247, 0.3);
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 212, 255, 0.06));
+  border-color: var(--border-glow);
+  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
 }
 .stat-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
-  background: var(--chronos-primary);
-  box-shadow: 0 0 8px var(--chronos-primary);
+  background: var(--primary);
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
 }
 .stat-dot.accent {
-  background: var(--chronos-accent);
-  box-shadow: 0 0 8px var(--chronos-accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(14, 165, 233, 0.4);
 }
 .stat-num {
   font-size: 20px;
   font-weight: 800;
-  color: var(--chronos-text);
+  color: var(--text);
   line-height: 1;
-  font-family: var(--chronos-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .stat-label {
   font-size: 11px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   margin-top: 3px;
 }
 
@@ -709,24 +710,24 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 7px 14px;
-  border-radius: var(--chronos-radius-full);
+  border-radius: var(--radius-full);
   font-size: 12.5px;
   font-weight: 500;
 }
 .status-chip-loading {
-  background: var(--chronos-surface);
-  border: 1px solid var(--chronos-border);
-  color: var(--chronos-text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
 }
 .status-chip-ok {
-  background: var(--chronos-success-soft);
-  color: var(--chronos-success);
+  background: var(--success-soft);
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 .chronos-tag {
-  background: rgba(0, 212, 255, 0.08) !important;
-  border: 1px solid rgba(0, 212, 255, 0.25) !important;
-  color: var(--chronos-primary) !important;
+  background: var(--primary-soft) !important;
+  border: 1px solid var(--border-glow) !important;
+  color: var(--primary) !important;
 }
 
 /* ========== 搜索面板 ========== */
@@ -748,20 +749,20 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--chronos-surface-2);
-  border: 1px solid var(--chronos-border-subtle);
-  border-radius: var(--chronos-radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   padding: 0 12px 0 0;
-  transition: all var(--chronos-transition);
+  transition: all var(--transition);
 }
 .search-input-wrap:focus-within {
-  border-color: var(--chronos-primary);
-  background: var(--chronos-surface);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1), 0 0 20px rgba(0, 212, 255, 0.12);
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-focus);
 }
 .search-input-icon {
   padding: 0 12px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   display: flex;
   align-items: center;
 }
@@ -772,14 +773,14 @@ onMounted(() => {
 .search-input :deep(.n-input__input-el) {
   background: transparent !important;
   height: 42px;
-  color: var(--chronos-text) !important;
+  color: var(--text) !important;
 }
 .search-input :deep(.n-input__border),
 .search-input :deep(.n-input__state-border) {
   display: none;
 }
 .search-input :deep(.n-input__placeholder) {
-  color: var(--chronos-text-muted) !important;
+  color: var(--text-muted) !important;
 }
 .search-regex-toggle {
   display: flex;
@@ -787,12 +788,12 @@ onMounted(() => {
   gap: 8px;
   padding-left: 12px;
   margin-left: 8px;
-  border-left: 1px solid var(--chronos-border);
+  border-left: 1px solid var(--border);
   height: 24px;
 }
 .regex-label {
   font-size: 12px;
-  color: var(--chronos-text-secondary);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -810,8 +811,8 @@ onMounted(() => {
 .opt-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--chronos-text-secondary);
-  font-family: var(--chronos-mono);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.03em;
 }
 .opt-mode { margin-left: auto; }
@@ -822,19 +823,19 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border-radius: var(--chronos-radius-full);
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 500;
 }
 .source-cloud {
-  background: var(--chronos-success-soft);
-  color: var(--chronos-success);
+  background: var(--success-soft);
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 .source-local {
-  background: var(--chronos-surface-2);
-  border: 1px solid var(--chronos-border);
-  color: var(--chronos-text-secondary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
 }
 
 .filter-row {
@@ -842,9 +843,9 @@ onMounted(() => {
   align-items: center;
   gap: 14px;
   padding: 10px 14px;
-  background: var(--chronos-surface-2);
-  border: 1px solid var(--chronos-border-subtle);
-  border-radius: var(--chronos-radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
   flex-wrap: wrap;
 }
 .filter-label {
@@ -853,20 +854,20 @@ onMounted(() => {
   gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--chronos-text-secondary);
-  font-family: var(--chronos-mono);
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.03em;
 }
 .chronos-filter {
   padding: 4px 10px;
   border-radius: 6px;
-  transition: all var(--chronos-transition-fast);
+  transition: all var(--transition-fast);
   border: 1px solid transparent;
 }
 .chronos-filter:hover {
-  background: rgba(0, 212, 255, 0.06);
-  border-color: rgba(0, 212, 255, 0.15);
-  color: var(--chronos-text);
+  background: var(--primary-soft);
+  border-color: var(--border-glow);
+  color: var(--text);
 }
 
 /* ========== 分栏主体 ========== */
@@ -890,12 +891,12 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--chronos-border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .tree-header-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--chronos-text);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -903,8 +904,8 @@ onMounted(() => {
 .hud-pulse {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: var(--chronos-primary);
-  box-shadow: 0 0 8px var(--chronos-primary);
+  background: var(--primary);
+  box-shadow: 0 0 8px rgba(79, 70, 229, 0.4);
   animation: pulse 2s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -923,7 +924,7 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  border-top: 1px solid var(--chronos-border-subtle);
+  border-top: 1px solid var(--border-subtle);
   flex-wrap: wrap;
 }
 .pager-info {
@@ -931,9 +932,9 @@ onMounted(() => {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   font-weight: 500;
-  font-family: var(--chronos-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 .tree-footer :deep(.n-pagination) {
   flex: 1;
@@ -963,15 +964,15 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   border: 2px solid transparent;
-  border-top-color: var(--chronos-primary);
-  border-right-color: var(--chronos-primary);
+  border-top-color: var(--primary);
+  border-right-color: var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 .loader-ring.delay {
   inset: 10px;
-  border-top-color: var(--chronos-accent);
-  border-right-color: var(--chronos-accent);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
   animation-duration: 1.5s;
   animation-direction: reverse;
 }
