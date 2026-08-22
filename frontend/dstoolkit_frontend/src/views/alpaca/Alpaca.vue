@@ -11,8 +11,18 @@ import {
   NEmpty,
   NSpin,
   NScrollbar,
-  NTag,
+  NIcon,
 } from 'naive-ui'
+import {
+  CodeSlashOutline,
+  CheckmarkDoneOutline,
+  CloseCircleOutline,
+  DownloadOutline,
+  ChevronDownOutline,
+  EyeOutline,
+  GitNetworkOutline,
+  ListOutline,
+} from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { loadConversationsPage } from '@/utils/db'
 import { request } from '@/utils/request'
@@ -48,7 +58,7 @@ async function load() {
           configId: cfg.id,
           page: 1,
           pageSize: ALPACA_PAGE_SIZE,
-          withMessages: true, // 转换需要 messages 内容
+          withMessages: true,
         })
         all.push(...page.conversations)
         const st = cloudConfigStates.value.find((s) => s.id === cfg.id)
@@ -140,66 +150,189 @@ onMounted(load)
 </script>
 
 <template>
-  <div>
-    <h2 style="margin: 0 0 16px;">Alpaca 数据格式转换</h2>
-    <NSpin :show="loading">
-      <NSpace align="center" :size="12" style="margin-bottom: 16px;">
-        <NSpace align="center" :size="6">
-          <NText depth="3" style="font-size: 13px;">多轮</NText>
-          <NSwitch v-model:value="multiTurn" size="small" />
-        </NSpace>
-        <NButton size="small" @click="selectAll">全选</NButton>
-        <NButton size="small" @click="clearAll">清空</NButton>
-        <NTag size="small" type="info">已选 {{ selected.length }} / {{ convs.length }} 个会话<span v-if="totalConvs != null">（共 {{ totalConvs }}）</span></NTag>
-        <NTag size="small" :type="total ? 'success' : 'default'">将生成 {{ total }} 条</NTag>
-        <NButton type="primary" :disabled="!total" @click="download">下载 JSON</NButton>
+  <div class="page-enter">
+    <!-- 页面头部 -->
+    <div class="page-header" style="margin-bottom: 24px;">
+      <NSpace align="center" :size="14" wrap>
+        <div class="page-header-icon">
+          <NIcon size="22"><CodeSlashOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h2 style="margin: 0 0 4px;">Alpaca 数据格式转换</h2>
+          <p class="page-header-sub">
+            将你的对话数据导出为业界标准的 Alpaca 格式，可直接用于模型微调训练
+          </p>
+        </div>
       </NSpace>
+    </div>
 
-      <NEmpty v-if="!loading && convs.length === 0" description="暂无会话，请先在配置页上传" style="padding: 40px 0;" />
+    <NSpin :show="loading">
+      <!-- 操作工具栏 -->
+      <div class="surface toolbar-surface" style="padding: 14px 18px; margin-bottom: 16px;">
+        <NSpace align="center" :size="12" wrap>
+          <div class="mode-toggle" style="display: flex; align-items: center; gap: 10px; padding: 6px 14px; background: var(--surface-2); border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
+            <NIcon size="14" :style="{ color: multiTurn ? 'var(--primary)' : 'var(--text-muted)' }">
+              <GitNetworkOutline v-if="multiTurn" />
+              <ListOutline v-else />
+            </NIcon>
+            <NText depth="3" style="font-size: 13px;">{{ multiTurn ? '多轮对话' : '单轮问答' }}</NText>
+            <NSwitch v-model:value="multiTurn" size="small" />
+          </div>
+          <NButton size="small" ghost @click="selectAll">
+            <template #icon><NIcon size="14"><CheckmarkDoneOutline /></NIcon></template>
+            全选
+          </NButton>
+          <NButton size="small" ghost @click="clearAll">
+            <template #icon><NIcon size="14"><CloseCircleOutline /></NIcon></template>
+            清空
+          </NButton>
+          <div style="flex: 1;"></div>
+          <span class="pill pill-info" style="font-size: 12px;">
+            已选 {{ selected.length }} / {{ convs.length }} 个会话
+            <span v-if="totalConvs != null" style="opacity: 0.7;">（共 {{ totalConvs }}）</span>
+          </span>
+          <span :class="['pill', total ? 'pill-success' : 'pill-default']" style="font-size: 12px;">
+            将生成 {{ total }} 条
+          </span>
+          <NButton type="primary" :disabled="!total" @click="download">
+            <template #icon><NIcon size="15"><DownloadOutline /></NIcon></template>
+            下载 JSON
+          </NButton>
+        </NSpace>
+      </div>
+
+      <NEmpty
+        v-if="!loading && convs.length === 0"
+        description="暂无会话，请先在配置页上传"
+        style="padding: 60px 0;"
+      />
       <template v-else>
-        <NSpace :size="16" align="start">
-          <div class="neu-card" style="width: 320px; max-height: 60vh; overflow: auto;">
-            <NCheckboxGroup v-model:value="selected">
-              <NSpace vertical :size="8">
-                <NCheckbox v-for="c in convs" :key="c.deepseekConvId" :value="c.deepseekConvId" :label="c.title" />
-              </NSpace>
-            </NCheckboxGroup>
-            <div v-if="hasMore" class="load-more">
-              <NButton
-                size="small"
-                type="primary"
-                ghost
-                :loading="loadingMore"
-                @click="loadMore"
-              >加载更多（已加载 {{ convs.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span>）</NButton>
+        <div style="display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; align-items: start;">
+          <!-- 左侧：会话选择列表 -->
+          <div class="surface page-enter" style="padding: 4px; max-height: 68vh; display: flex; flex-direction: column;">
+            <div
+              style="padding: 12px 16px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;"
+            >
+              <NIcon size="13" style="color: var(--primary);"><ListOutline /></NIcon>
+              会话列表
+            </div>
+            <div style="flex: 1; overflow: hidden;">
+              <NScrollbar style="max-height: calc(68vh - 60px);">
+                <div style="padding: 4px 10px 12px;">
+                  <NCheckboxGroup v-model:value="selected">
+                    <NSpace vertical :size="2">
+                      <div
+                        v-for="c in convs"
+                        :key="c.deepseekConvId"
+                        class="conv-item"
+                        style="padding: 8px 10px; border-radius: 8px; transition: all var(--transition-fast);"
+                      >
+                        <NCheckbox
+                          :value="c.deepseekConvId"
+                          :label="c.title"
+                        />
+                      </div>
+                    </NSpace>
+                  </NCheckboxGroup>
+                  <div v-if="hasMore" class="load-more" style="display: flex; justify-content: center; padding: 14px 0 6px;">
+                    <NButton
+                      size="small"
+                      type="primary"
+                      ghost
+                      :loading="loadingMore"
+                      @click="loadMore"
+                    >
+                      <template #icon v-if="!loadingMore">
+                        <NIcon size="13"><ChevronDownOutline /></NIcon>
+                      </template>
+                      加载更多（已加载 {{ convs.length }}
+                      <span v-if="totalConvs != null"> / {{ totalConvs }}</span>）
+                    </NButton>
+                  </div>
+                </div>
+              </NScrollbar>
             </div>
           </div>
-          <div class="neu-card" style="flex: 1; min-width: 320px;">
-            <NText strong style="display: block; margin-bottom: 12px;">预览（前 {{ preview.length }} 条）</NText>
-            <NScrollbar style="max-height: 56vh;">
-              <NEmpty v-if="preview.length === 0" description="选择会话后预览" />
-              <NSpace vertical :size="12" v-else>
-                <pre class="preview-pre"><NCode :code="JSON.stringify(preview[0], null, 2)" language="json" word-wrap /></pre>
-                <pre v-if="preview[1]" class="preview-pre"><NCode :code="JSON.stringify(preview[1], null, 2)" language="json" word-wrap /></pre>
+
+          <!-- 右侧：预览区 -->
+          <div class="surface page-enter delay-1" style="padding: 20px; min-height: 400px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+              <NIcon size="16" style="color: var(--accent);"><EyeOutline /></NIcon>
+              <h4 style="margin: 0; font-size: 14px;">数据预览</h4>
+              <span class="pill pill-default" style="font-size: 11px; margin-left: 4px;">前 {{ preview.length }} 条</span>
+              <div style="flex: 1;"></div>
+              <span v-if="total" class="pill pill-primary" style="font-size: 11px;">
+                共 {{ total }} 条数据待导出
+              </span>
+            </div>
+            <NScrollbar style="max-height: 62vh;">
+              <NEmpty v-if="preview.length === 0" description="选择会话后预览转换结果" />
+              <NSpace vertical :size="12" v-else style="padding-right: 4px;">
+                <div class="preview-card">
+                  <div class="preview-label" style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px;">
+                    第 1 条
+                  </div>
+                  <pre class="preview-pre"><NCode :code="JSON.stringify(preview[0], null, 2)" language="json" word-wrap /></pre>
+                </div>
+                <div v-if="preview[1]" class="preview-card">
+                  <div class="preview-label" style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px;">
+                    第 2 条
+                  </div>
+                  <pre class="preview-pre"><NCode :code="JSON.stringify(preview[1], null, 2)" language="json" word-wrap /></pre>
+                </div>
               </NSpace>
             </NScrollbar>
           </div>
-        </NSpace>
+        </div>
       </template>
     </NSpin>
   </div>
 </template>
 
 <style scoped>
+.page-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.page-header-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.toolbar-surface {
+  transition: box-shadow var(--transition);
+}
+.toolbar-surface:hover {
+  box-shadow: var(--shadow-sm);
+}
+.conv-item:hover {
+  background: var(--bg-2);
+}
+.preview-card {
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
 .preview-pre {
   margin: 0;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: var(--radius-sm);
 }
-.load-more {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0;
+.preview-pre :deep(pre) {
+  border-radius: var(--radius-sm);
+  background: #0F172A !important;
+  color: #E2E8F0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  padding: 14px 16px;
+  margin: 0;
 }
 </style>
