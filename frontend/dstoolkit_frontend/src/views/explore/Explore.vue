@@ -24,6 +24,8 @@ import {
   TimeOutline,
   SearchCircleOutline,
   ChevronDownOutline,
+  RocketOutline,
+  SparklesOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
@@ -335,41 +337,73 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="explore-root">
-    <!-- ========== 顶部：标题 + 加载/统计 ========== -->
-    <div class="explore-header">
-      <div class="explore-title-block">
-        <div class="page-eyebrow">
-          <NIcon size="12"><SearchOutline /></NIcon>
-          <span>EXPLORER</span>
+  <div class="explore-root page-enter">
+    <!-- ========== Chronos 头部横幅 ========== -->
+    <div class="chronos-page-banner">
+      <div class="banner-glow-1"></div>
+      <div class="banner-glow-2"></div>
+      <div class="banner-inner">
+        <div class="banner-title-block">
+          <div class="chronos-eyebrow">
+            <NIcon size="12"><RocketOutline /></NIcon>
+            <span>TIMELINE EXPLORER // 时间线探索终端</span>
+          </div>
+          <h1 class="chronos-page-title">
+            时空档案检索
+            <span class="title-accent">· v2.84</span>
+          </h1>
+          <p class="chronos-page-sub">
+            跨时间线搜索与回溯你的对话记忆档案，支持正则扫描与多维度全息筛选
+          </p>
         </div>
-        <div class="explore-title-row">
-          <h2 class="explore-title">对话探索</h2>
-          <NTag
-            v-if="totalConvs != null || conversations.length > 0"
-            size="small"
-            type="primary"
-            round
-          >
-            {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个会话
-          </NTag>
-        </div>
-      </div>
-
-      <div class="explore-stats">
-        <div v-if="loading" class="status-chip status-chip-loading">
-          <NSpin :size="14" />
-          <span>{{ loadProgress || '加载中…' }}</span>
-        </div>
-        <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
-          <NIcon size="14" style="color: var(--success);"><SearchCircleOutline /></NIcon>
-          <span>就绪 · 耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
+        <div class="banner-stats">
+          <div class="stat-chip">
+            <div class="stat-dot"></div>
+            <div class="stat-text">
+              <div class="stat-num">{{ conversations.length }}</div>
+              <div class="stat-label">已接入档案</div>
+            </div>
+          </div>
+          <div class="stat-chip accent">
+            <div class="stat-dot accent"></div>
+            <div class="stat-text">
+              <div class="stat-num">{{ mode === 'search' ? totalCount : '—' }}</div>
+              <div class="stat-label">{{ mode === 'search' ? '命中结果' : '当前模式' }}</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- ========== 搜索控制栏：搜索框 + 模式切换 ========== -->
-    <div class="search-panel surface">
+    <!-- ========== 顶部：加载/统计状态 ========== -->
+    <div class="explore-status-bar">
+      <div v-if="loading" class="status-chip status-chip-loading">
+        <NSpin :size="14" />
+        <span>{{ loadProgress || '时间线校准中…' }}</span>
+      </div>
+      <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
+        <NIcon size="14" style="color: var(--chronos-success);"><SparklesOutline /></NIcon>
+        <span>锚点稳定 · 校准耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
+      </div>
+      <div class="flex-spacer"></div>
+      <NTag
+        v-if="totalConvs != null || conversations.length > 0"
+        class="chronos-tag"
+        round
+        size="small"
+      >
+        <NIcon size="11" style="margin-right: 4px;"><TimeOutline /></NIcon>
+        {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个时间节点
+      </NTag>
+    </div>
+
+    <!-- ========== 搜索控制栏 ========== -->
+    <div class="chronos-panel search-panel">
+      <div class="panel-corner tl"></div>
+      <div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div>
+      <div class="panel-corner br"></div>
+
       <div class="search-row">
         <div class="search-input-wrap">
           <div class="search-input-icon">
@@ -377,7 +411,7 @@ onMounted(() => {
           </div>
           <NInput
             :value="query"
-            placeholder="输入关键词搜索对话内容…（支持正则表达式）"
+            placeholder="输入关键词扫描时间线…（支持正则表达式检索）"
             clearable
             class="search-input"
             @update:value="onQueryInput"
@@ -389,15 +423,14 @@ onMounted(() => {
           </div>
         </div>
         <NButton type="primary" size="medium" :loading="loading" @click="doSearch">
-          <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
-          搜索
+          <template #icon><NIcon size="16"><RocketOutline /></NIcon></template>
+          启动检索
         </NButton>
       </div>
 
       <div class="search-options">
-        <!-- 搜索模型 -->
         <div class="opt-group">
-          <label class="opt-label">搜索模型</label>
+          <label class="opt-label">检索引擎</label>
           <NRadioGroup
             :value="searchModelStore.model"
             size="small"
@@ -405,11 +438,10 @@ onMounted(() => {
           >
             <NRadio value="local_v1" size="small">本地 v1</NRadio>
             <NRadio value="cloud_v1" size="small">云端 v1</NRadio>
-            <NRadio :value="'cloud_v2'" :disabled="true" size="small">云端 v2</NRadio>
+            <NRadio :value="'cloud_v2'" :disabled="true" size="small">云端 v2 ⏳</NRadio>
           </NRadioGroup>
         </div>
 
-        <!-- 模式切换 -->
         <div class="opt-group opt-mode">
           <NRadioGroup
             :value="mode"
@@ -422,12 +454,11 @@ onMounted(() => {
             </NRadioButton>
             <NRadioButton value="search">
               <NIcon size="14" style="margin-right: 4px;"><SearchCircleOutline /></NIcon>
-              搜索结果
+              命中档案
             </NRadioButton>
           </NRadioGroup>
         </div>
 
-        <!-- 数据源标签 -->
         <div class="opt-group opt-datasource">
           <span
             :class="['source-pill', auth.cloudSyncEnabled ? 'source-cloud' : 'source-local']"
@@ -435,29 +466,28 @@ onMounted(() => {
             <NIcon size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
             </NIcon>
-            {{ auth.cloudSyncEnabled ? '云端数据源' : '本地 IndexedDB' }}
+            {{ auth.cloudSyncEnabled ? '量子云端' : '本地存储舱' }}
           </span>
         </div>
       </div>
 
-      <!-- 搜索范围筛选 -->
       <div class="filter-row">
         <div class="filter-label">
           <NIcon size="14"><FilterOutline /></NIcon>
-          <span>搜索范围</span>
+          <span>检索维度</span>
         </div>
-        <NSpace align="center" :size="16">
-          <label class="filter-chip">
+        <NSpace align="center" :size="12" wrap>
+          <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.title" />
-            <span>标题</span>
+            <span>档案标题</span>
           </label>
-          <label class="filter-chip">
+          <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.user" />
-            <span>用户消息</span>
+            <span>指令输入</span>
           </label>
-          <label class="filter-chip">
+          <label class="filter-chip chronos-filter">
             <NCheckbox v-model:checked="searchFilters.assistant" />
-            <span>AI 回复</span>
+            <span>系统响应</span>
           </label>
         </NSpace>
       </div>
@@ -466,13 +496,18 @@ onMounted(() => {
     <!-- ========== 主分栏：树 + 对话 ========== -->
     <div class="explore-split">
       <!-- 左侧：树面板 -->
-      <div class="explore-tree surface">
+      <div class="chronos-panel explore-tree">
+        <div class="panel-corner tl"></div>
+        <div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div>
+        <div class="panel-corner br"></div>
         <div class="tree-header">
           <div class="tree-header-title">
-            {{ mode === 'timeline' ? '全部会话' : `命中会话 (${totalCount})` }}
+            <span class="hud-pulse"></span>
+            {{ mode === 'timeline' ? '全部时间节点' : `命中档案 (${totalCount})` }}
           </div>
           <NText depth="3" style="font-size: 12px;">
-            共 {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
+            {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
           </NText>
         </div>
         <div class="tree-body">
@@ -487,6 +522,7 @@ onMounted(() => {
         </div>
         <div class="tree-footer">
           <div class="pager-info">
+            <NIcon size="12" style="color: var(--chronos-primary);"><TimeOutline /></NIcon>
             第 {{ currentPage }} / {{ pageCount }} 页
           </div>
           <NPagination
@@ -508,15 +544,29 @@ onMounted(() => {
             ghost
             :loading="loadingMore"
             @click="loadMore"
-          >加载更多</NButton>
+          >
+            <template #icon v-if="!loadingMore">
+              <NIcon size="13"><ChevronDownOutline /></NIcon>
+            </template>
+            跳转下一页
+          </NButton>
         </div>
       </div>
 
       <!-- 右侧：ChatViewer -->
       <div class="explore-chat">
-        <div v-if="detailLoading" class="detail-loading surface">
-          <NSpin size="large" />
-          <NText depth="3" style="margin-top: 16px; font-size: 13px;">正在加载会话详情…</NText>
+        <div v-if="detailLoading" class="chronos-panel detail-loading">
+          <div class="panel-corner tl"></div>
+          <div class="panel-corner tr"></div>
+          <div class="panel-corner bl"></div>
+          <div class="panel-corner br"></div>
+          <div class="chronos-loader">
+            <div class="loader-ring"></div>
+            <div class="loader-ring delay"></div>
+          </div>
+          <NText depth="3" style="margin-top: 20px; font-size: 13px; color: var(--chronos-text-secondary);">
+            正在穿越时间线获取档案详情…
+          </NText>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
       </div>
@@ -528,63 +578,155 @@ onMounted(() => {
 .explore-root {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
   min-height: 100%;
 }
 
-/* ========== 顶部标题 ========== */
-.explore-header {
+/* ========== Chronos 横幅 ========== */
+.chronos-page-banner {
+  position: relative;
+  padding: 22px 24px;
+  border-radius: var(--chronos-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(255, 90, 140, 0.06) 100%),
+    linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
+  border: 1px solid var(--chronos-border);
+  overflow: hidden;
+}
+.banner-glow-1, .banner-glow-2 {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.4;
+}
+.banner-glow-1 {
+  width: 260px; height: 260px;
+  top: -120px; right: -80px;
+  background: radial-gradient(circle, var(--chronos-primary) 0%, transparent 70%);
+}
+.banner-glow-2 {
+  width: 200px; height: 200px;
+  bottom: -100px; left: 20%;
+  background: radial-gradient(circle, var(--chronos-accent) 0%, transparent 70%);
+}
+.banner-inner {
+  position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+  flex-wrap: wrap;
 }
-.explore-title-block {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.page-eyebrow {
+.chronos-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--primary);
+  letter-spacing: 0.14em;
+  color: var(--chronos-primary);
+  font-family: var(--chronos-mono);
+  padding: 4px 10px;
+  background: rgba(0, 212, 255, 0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(0, 212, 255, 0.18);
+  margin-bottom: 10px;
 }
-.explore-title-row {
+.chronos-page-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--chronos-text);
+  line-height: 1.2;
+}
+.title-accent {
+  color: var(--chronos-accent);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.chronos-page-sub {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--chronos-text-muted);
+  line-height: 1.55;
+  max-width: 520px;
+}
+.banner-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stat-chip {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 16px;
+  background: var(--chronos-surface-2);
+  border: 1px solid var(--chronos-border-subtle);
+  border-radius: var(--chronos-radius);
 }
-.explore-title {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  margin: 0;
+.stat-chip.accent {
+  border-color: rgba(168, 85, 247, 0.3);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 212, 255, 0.06));
+}
+.stat-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--chronos-primary);
+  box-shadow: 0 0 8px var(--chronos-primary);
+}
+.stat-dot.accent {
+  background: var(--chronos-accent);
+  box-shadow: 0 0 8px var(--chronos-accent);
+}
+.stat-num {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--chronos-text);
+  line-height: 1;
+  font-family: var(--chronos-mono);
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--chronos-text-muted);
+  margin-top: 3px;
 }
 
-/* 状态 chip */
-.explore-stats { display: flex; align-items: center; gap: 8px; }
+/* ========== 状态栏 ========== */
+.explore-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.flex-spacer { flex: 1; }
 .status-chip {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 7px 14px;
-  border-radius: var(--radius-full);
+  border-radius: var(--chronos-radius-full);
   font-size: 12.5px;
   font-weight: 500;
 }
 .status-chip-loading {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  background: var(--chronos-surface);
+  border: 1px solid var(--chronos-border);
+  color: var(--chronos-text-secondary);
 }
 .status-chip-ok {
-  background: var(--success-soft);
-  color: var(--success);
+  background: var(--chronos-success-soft);
+  color: var(--chronos-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.chronos-tag {
+  background: rgba(0, 212, 255, 0.08) !important;
+  border: 1px solid rgba(0, 212, 255, 0.25) !important;
+  color: var(--chronos-primary) !important;
 }
 
 /* ========== 搜索面板 ========== */
@@ -594,31 +736,32 @@ onMounted(() => {
   flex-direction: column;
   gap: 14px;
 }
-
 .search-row {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .search-input-wrap {
   flex: 1;
+  min-width: 240px;
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius);
+  background: var(--chronos-surface-2);
+  border: 1px solid var(--chronos-border-subtle);
+  border-radius: var(--chronos-radius);
   padding: 0 12px 0 0;
-  transition: all var(--transition-fast);
+  transition: all var(--chronos-transition);
 }
 .search-input-wrap:focus-within {
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: var(--shadow-focus);
+  border-color: var(--chronos-primary);
+  background: var(--chronos-surface);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1), 0 0 20px rgba(0, 212, 255, 0.12);
 }
 .search-input-icon {
   padding: 0 12px;
-  color: var(--text-muted);
+  color: var(--chronos-text-muted);
   display: flex;
   align-items: center;
 }
@@ -629,10 +772,14 @@ onMounted(() => {
 .search-input :deep(.n-input__input-el) {
   background: transparent !important;
   height: 42px;
+  color: var(--chronos-text) !important;
 }
 .search-input :deep(.n-input__border),
 .search-input :deep(.n-input__state-border) {
   display: none;
+}
+.search-input :deep(.n-input__placeholder) {
+  color: var(--chronos-text-muted) !important;
 }
 .search-regex-toggle {
   display: flex;
@@ -640,20 +787,19 @@ onMounted(() => {
   gap: 8px;
   padding-left: 12px;
   margin-left: 8px;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--chronos-border);
   height: 24px;
 }
 .regex-label {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--chronos-text-secondary);
   font-weight: 500;
 }
 
-/* 搜索选项 */
 .search-options {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
   flex-wrap: wrap;
 }
 .opt-group {
@@ -664,7 +810,9 @@ onMounted(() => {
 .opt-label {
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--chronos-text-secondary);
+  font-family: var(--chronos-mono);
+  letter-spacing: 0.03em;
 }
 .opt-mode { margin-left: auto; }
 .opt-datasource { margin-left: auto; }
@@ -674,29 +822,30 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border-radius: var(--radius-full);
+  border-radius: var(--chronos-radius-full);
   font-size: 12px;
   font-weight: 500;
 }
 .source-cloud {
-  background: var(--success-soft);
-  color: var(--success);
+  background: var(--chronos-success-soft);
+  color: var(--chronos-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 .source-local {
-  background: var(--bg-2);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  background: var(--chronos-surface-2);
+  border: 1px solid var(--chronos-border);
+  color: var(--chronos-text-secondary);
 }
 
-/* 搜索范围 */
 .filter-row {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 10px 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius);
+  background: var(--chronos-surface-2);
+  border: 1px solid var(--chronos-border-subtle);
+  border-radius: var(--chronos-radius);
+  flex-wrap: wrap;
 }
 .filter-label {
   display: inline-flex;
@@ -704,33 +853,30 @@ onMounted(() => {
   gap: 6px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--chronos-text-secondary);
+  font-family: var(--chronos-mono);
+  letter-spacing: 0.03em;
 }
-.filter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 2px 6px;
+.chronos-filter {
+  padding: 4px 10px;
   border-radius: 6px;
-  transition: all var(--transition-fast);
+  transition: all var(--chronos-transition-fast);
+  border: 1px solid transparent;
 }
-.filter-chip:hover {
-  background: var(--bg-2);
-  color: var(--text);
+.chronos-filter:hover {
+  background: rgba(0, 212, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.15);
+  color: var(--chronos-text);
 }
 
 /* ========== 分栏主体 ========== */
 .explore-split {
   display: flex;
-  gap: 20px;
+  gap: 18px;
   min-height: 0;
   flex: 1;
 }
 
-/* 左侧树面板 */
 .explore-tree {
   flex: 0 0 38%;
   min-width: 0;
@@ -744,12 +890,26 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--chronos-border-subtle);
 }
 .tree-header-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text);
+  color: var(--chronos-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hud-pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--chronos-primary);
+  box-shadow: 0 0 8px var(--chronos-primary);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
 .tree-body {
   flex: 1;
@@ -763,20 +923,23 @@ onMounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--chronos-border-subtle);
   flex-wrap: wrap;
 }
 .pager-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--chronos-text-muted);
   font-weight: 500;
+  font-family: var(--chronos-mono);
 }
 .tree-footer :deep(.n-pagination) {
   flex: 1;
   justify-content: center;
 }
 
-/* 右侧 ChatViewer 直接嵌入 */
 .explore-chat {
   flex: 1;
   min-width: 0;
@@ -789,12 +952,51 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
+  min-height: 300px;
+}
+.chronos-loader {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.loader-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid transparent;
+  border-top-color: var(--chronos-primary);
+  border-right-color: var(--chronos-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.loader-ring.delay {
+  inset: 10px;
+  border-top-color: var(--chronos-accent);
+  border-right-color: var(--chronos-accent);
+  animation-duration: 1.5s;
+  animation-direction: reverse;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
+/* ========== 响应式 ========== */
 @media (max-width: 1080px) {
   .explore-tree { flex: 0 0 45%; }
 }
 @media (max-width: 820px) {
+  .chronos-page-banner {
+    padding: 18px 16px;
+  }
+  .chronos-page-title {
+    font-size: 20px;
+  }
+  .banner-stats {
+    width: 100%;
+  }
+  .stat-chip {
+    flex: 1;
+    justify-content: center;
+  }
   .explore-split {
     flex-direction: column;
   }
@@ -803,8 +1005,35 @@ onMounted(() => {
     max-height: 52vh;
   }
   .explore-chat {
-    min-height: 60vh;
+    min-height: 55vh;
   }
   .opt-mode, .opt-datasource { margin-left: 0; }
+  .search-options {
+    gap: 14px;
+  }
+  .tree-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pager-info {
+    justify-content: center;
+  }
+}
+@media (max-width: 480px) {
+  .chronos-page-banner {
+    padding: 16px 14px;
+  }
+  .chronos-page-title {
+    font-size: 18px;
+  }
+  .chronos-page-sub {
+    font-size: 12.5px;
+  }
+  .search-panel {
+    padding: 14px 12px;
+  }
+  .filter-row {
+    padding: 10px 12px;
+  }
 }
 </style>

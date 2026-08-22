@@ -1,112 +1,129 @@
 import type { GlobalThemeOverrides } from 'naive-ui'
 
-// Clarity Design System — NaiveUI 主题对齐
+// Chronos Design System — NaiveUI 主题对齐 · 未来时间管理局
 export const themeOverrides: GlobalThemeOverrides = {
   common: {
-    primaryColor: '#4F46E5',
-    primaryColorHover: '#6366F1',
-    primaryColorPressed: '#4338CA',
-    primaryColorSuppl: '#6366F1',
-    infoColor: '#0EA5E9',
-    successColor: '#10B981',
-    warningColor: '#F59E0B',
-    errorColor: '#EF4444',
+    primaryColor: '#00D4FF',
+    primaryColorHover: '#4DE8FF',
+    primaryColorPressed: '#00A8CC',
+    primaryColorSuppl: '#A855F7',
+    infoColor: '#00D4FF',
+    successColor: '#22FF9A',
+    warningColor: '#FFB547',
+    errorColor: '#FF4D6D',
 
     borderRadius: '12px',
     borderRadiusSmall: '8px',
 
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
+    fontFamily: "'Space Grotesk', 'JetBrains Mono', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif",
     fontSize: '14px',
 
     bodyColor: 'transparent',
-    cardColor: '#FFFFFF',
-    modalColor: '#FFFFFF',
-    popoverColor: '#FFFFFF',
+    cardColor: '#111A35',
+    modalColor: '#111A35',
+    popoverColor: '#111A35',
 
-    textColorBase: '#0F172A',
-    textColor1: '#0F172A',
-    textColor2: '#475569',
-    textColor3: '#94A3B8',
+    textColorBase: '#E8F7FF',
+    textColor1: '#E8F7FF',
+    textColor2: '#8DB3D4',
+    textColor3: '#5A7DA3',
 
-    borderColor: '#E2E8F0',
-    dividerColor: '#E2E8F0',
+    borderColor: 'rgba(0, 212, 255, 0.14)',
+    dividerColor: 'rgba(0, 212, 255, 0.12)',
   },
 
   Card: {
-    color: '#FFFFFF',
-    colorModal: '#FFFFFF',
-    colorPopover: '#FFFFFF',
+    color: '#111A35',
+    colorModal: '#111A35',
+    colorPopover: '#111A35',
     borderRadius: '16px',
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 212, 255, 0.14)',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.5), 0 0 24px rgba(0, 212, 255, 0.05)',
   },
 
   Menu: {
-    itemColorActive: 'rgba(79, 70, 229, 0.08)',
-    itemColorActiveHover: 'rgba(79, 70, 229, 0.12)',
-    itemTextColorActive: '#4F46E5',
-    itemTextColorActiveHover: '#4F46E5',
-    itemIconColorActive: '#4F46E5',
+    itemColorActive: 'rgba(0, 212, 255, 0.12)',
+    itemColorActiveHover: 'rgba(0, 212, 255, 0.18)',
+    itemTextColorActive: '#00D4FF',
+    itemTextColorActiveHover: '#4DE8FF',
+    itemIconColorActive: '#00D4FF',
     itemBorderRadius: '10px',
-    itemHeightMedium: '40px',
+    itemHeightMedium: '42px',
     borderRadius: '12px',
+    color: 'transparent',
+    textColor: '#8DB3D4',
+    textColorHover: '#E8F7FF',
   },
 
   Button: {
-    textColorPrimary: '#ffffff',
-    colorPrimary: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 100%)',
-    colorHoverPrimary: 'linear-gradient(135deg, #6366F1 0%, #7C3AED 100%)',
-    colorPressedPrimary: '#4338CA',
-    colorFocusPrimary: '#4F46E5',
+    textColorPrimary: '#04101F',
+    colorPrimary: 'linear-gradient(135deg, #00D4FF 0%, #A855F7 100%)',
+    colorHoverPrimary: 'linear-gradient(135deg, #4DE8FF 0%, #C084FC 100%)',
+    colorPressedPrimary: '#00A8CC',
+    colorFocusPrimary: '#00D4FF',
     borderPrimary: 'none',
     borderHoverPrimary: 'none',
     borderPressedPrimary: 'none',
     borderFocusPrimary: 'none',
-    shadowPrimary: '0 1px 3px rgba(79, 70, 229, 0.25), 0 1px 2px rgba(79, 70, 229, 0.15)',
-    shadowHoverPrimary: '0 4px 12px rgba(79, 70, 229, 0.30), 0 2px 4px rgba(79, 70, 229, 0.18)',
-    shadowPressedPrimary: '0 1px 2px rgba(79, 70, 229, 0.25)',
+    shadowPrimary:
+      '0 0 0 1px rgba(0, 212, 255, 0.35), 0 2px 10px rgba(0, 212, 255, 0.35), 0 1px 3px rgba(168, 85, 247, 0.25)',
+    shadowHoverPrimary:
+      '0 0 0 1px rgba(0, 212, 255, 0.55), 0 6px 24px rgba(0, 212, 255, 0.45), 0 2px 6px rgba(168, 85, 247, 0.35)',
+    shadowPressedPrimary: '0 1px 2px rgba(0, 212, 255, 0.3)',
+
+    textColorDefault: '#8DB3D4',
+    colorDefault: 'rgba(0, 212, 255, 0.04)',
+    colorHoverDefault: 'rgba(0, 212, 255, 0.1)',
+    borderDefault: '1px solid rgba(0, 212, 255, 0.14)',
+    borderHoverDefault: '1px solid rgba(0, 212, 255, 0.28)',
+
     borderRadius: '12px',
-    fontWeight: '500',
+    fontWeight: '600',
     paddingSmall: '0 14px',
     paddingMedium: '0 18px',
     paddingLarge: '0 22px',
   },
 
   Input: {
-    border: '1px solid #E2E8F0',
-    borderHover: '1px solid #CBD5E1',
-    borderFocus: '1px solid #4F46E5',
-    boxShadowFocus: '0 0 0 3px rgba(79, 70, 229, 0.12)',
+    border: '1px solid rgba(0, 212, 255, 0.14)',
+    borderHover: '1px solid rgba(0, 212, 255, 0.28)',
+    borderFocus: '1px solid rgba(0, 212, 255, 0.55)',
+    boxShadowFocus: '0 0 0 2px rgba(0, 212, 255, 0.35), 0 0 24px rgba(0, 212, 255, 0.15)',
     borderRadius: '10px',
-    color: '#FFFFFF',
-    colorFocus: '#FFFFFF',
-    textColor: '#0F172A',
-    placeholderColor: '#94A3B8',
+    color: '#0D162E',
+    colorFocus: '#0D162E',
+    textColor: '#E8F7FF',
+    placeholderColor: '#5A7DA3',
     heightMedium: '40px',
     paddingMedium: '0 14px',
   },
 
   Select: {
-    border: '1px solid #E2E8F0',
-    borderHover: '1px solid #CBD5E1',
-    borderActive: '1px solid #4F46E5',
-    boxShadowActive: '0 0 0 3px rgba(79, 70, 229, 0.12)',
+    border: '1px solid rgba(0, 212, 255, 0.14)',
+    borderHover: '1px solid rgba(0, 212, 255, 0.28)',
+    borderActive: '1px solid rgba(0, 212, 255, 0.55)',
+    boxShadowActive: '0 0 0 2px rgba(0, 212, 255, 0.35), 0 0 24px rgba(0, 212, 255, 0.15)',
     borderRadius: '10px',
-    color: '#FFFFFF',
+    color: '#0D162E',
     heightMedium: '40px',
+    textColor: '#E8F7FF',
+    placeholderColor: '#5A7DA3',
   },
 
   Switch: {
-    railColorActive: '#4F46E5',
+    railColorActive: '#00D4FF',
+    boxShadowFocus: '0 0 0 2px rgba(0, 212, 255, 0.35)',
   },
 
   DataTable: {
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(0, 212, 255, 0.14)',
     borderRadius: '12px',
-    tdColor: '#FFFFFF',
-    thColor: '#F8FAFC',
-    thTextColor: '#475569',
-    thFontWeight: '600',
-    borderColorHorizontal: '#E2E8F0',
+    tdColor: '#111A35',
+    thColor: '#0D162E',
+    thTextColor: '#00D4FF',
+    thFontWeight: '700',
+    borderColorHorizontal: 'rgba(0, 212, 255, 0.10)',
+    textColor: '#E8F7FF',
   },
 
   Tag: {
@@ -114,13 +131,19 @@ export const themeOverrides: GlobalThemeOverrides = {
   },
 
   Modal: {
-    borderRadius: '16px',
-    boxShadow: '0 16px 48px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08)',
+    borderRadius: '20px',
+    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.65), 0 0 60px rgba(0, 212, 255, 0.15)',
+    color: '#111A35',
+    textColor: '#E8F7FF',
+    headerBorder: '1px solid rgba(0, 212, 255, 0.10)',
+    footerBorder: '1px solid rgba(0, 212, 255, 0.10)',
   },
 
   Drawer: {
     borderRadius: '16px 0 0 16px',
-    boxShadow: '-8px 0 24px rgba(15, 23, 42, 0.08)',
+    boxShadow: '-8px 0 24px rgba(0, 0, 0, 0.55)',
+    color: '#0F1A36',
+    textColor: '#E8F7FF',
   },
 
   Avatar: {
@@ -128,22 +151,104 @@ export const themeOverrides: GlobalThemeOverrides = {
   },
 
   Form: {
-    labelTextColor: '#475569',
-    labelFontWeight: '500',
+    labelTextColor: '#8DB3D4',
+    labelFontWeight: '600',
     labelFontSize: '13px',
     showRequireMark: true,
+    asteriskColor: '#FF4D6D',
   },
 
   Pagination: {
     itemBorderRadius: '8px',
+    color: 'rgba(0, 212, 255, 0.04)',
+    itemTextColor: '#8DB3D4',
+    buttonColor: 'rgba(0, 212, 255, 0.04)',
+    border: '1px solid rgba(0, 212, 255, 0.10)',
+    itemColorActive: 'linear-gradient(135deg, #00D4FF 0%, #A855F7 100%)',
+    itemTextColorActive: '#04101F',
   },
 
   Statistic: {
-    labelTextColor: '#94A3B8',
-    valueFontWeight: '700',
+    labelTextColor: '#5A7DA3',
+    valueFontWeight: '800',
+    valueTextColor: '#E8F7FF',
+    valueFontSize: '26px',
   },
 
   Upload: {
     borderRadius: '12px',
+  },
+
+  Badge: {
+    color: '#FF4D6D',
+  },
+
+  Checkbox: {
+    color: '#00D4FF',
+    colorFocus: '#00D4FF',
+    checkMarkColor: '#04101F',
+    boxShadowFocus: '0 0 0 2px rgba(0, 212, 255, 0.35)',
+  },
+
+  Radio: {
+    buttonColorActive: '#00D4FF',
+    buttonBoxShadowFocus: '0 0 0 2px rgba(0, 212, 255, 0.35)',
+  },
+
+  Scrollbar: {
+    color: 'linear-gradient(180deg, rgba(0, 212, 255, 0.35) 0%, rgba(168, 85, 247, 0.35) 100%)',
+    colorHover: 'linear-gradient(180deg, rgba(0, 212, 255, 0.6) 0%, rgba(168, 85, 247, 0.6) 100%)',
+  },
+
+  Dropdown: {
+    color: '#111A35',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 212, 255, 0.08)',
+    borderColor: 'rgba(0, 212, 255, 0.14)',
+    textColor: '#E8F7FF',
+    textColorHover: '#00D4FF',
+    colorHover: 'rgba(0, 212, 255, 0.10)',
+    prefixColor: '#00D4FF',
+    dividerColor: 'rgba(0, 212, 255, 0.10)',
+  },
+
+  Tabs: {
+    tabColor: '#8DB3D4',
+    tabTextColor: '#8DB3D4',
+    tabTextColorActive: '#00D4FF',
+    tabTextColorHover: '#E8F7FF',
+    barColor: 'linear-gradient(90deg, #00D4FF 0%, #A855F7 100%)',
+  },
+
+  Tooltip: {
+    color: '#0F1A36',
+    textColor: '#E8F7FF',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
+    borderRadius: '10px',
+  },
+
+  Message: {
+    color: '#111A35',
+    textColor: '#E8F7FF',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.55)',
+  },
+
+  Dialog: {
+    color: '#111A35',
+    textColor: '#E8F7FF',
+    borderRadius: '18px',
+    boxShadow: '0 16px 48px rgba(0, 0, 0, 0.65), 0 0 60px rgba(0, 212, 255, 0.1)',
+  },
+
+  DatePicker: {    panelColor: '#111A35',
+    textColor: '#E8F7FF',
+    borderRadius: '14px',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.6)',
+  },
+
+  LoadingBar: {
+    colorLoading: 'linear-gradient(90deg, #00D4FF 0%, #A855F7 50%, #FF4D6D 100%)',
+    height: '3px',
   },
 }
