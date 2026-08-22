@@ -111,7 +111,7 @@ async function submitModal() {
     return
   }
   if (modalMode.value === 'create' && !modalName.value.trim()) {
-    message.error('请给这个时间线起个名字')
+    message.error('请给这个账号起个名字')
     return
   }
   submitting.value = true
@@ -140,8 +140,8 @@ async function submitModal() {
     const count = res.conversations?.length ?? res.conversationCount ?? 0
     message.success(
       res.persisted
-        ? `已${modalMode.value === 'update' ? '校准' : '接入'}云端时间线（${count} 个节点）`
-        : `已${modalMode.value === 'update' ? '校准' : '接入'}本地时间线（${count} 个节点）`,
+        ? `已${modalMode.value === 'update' ? '更新' : '导入'}云端账号（${count} 个对话）`
+        : `已${modalMode.value === 'update' ? '更新' : '导入'}本地账号（${count} 个对话）`,
     )
     modalVisible.value = false
     await reload()
@@ -156,7 +156,7 @@ async function removeConfig(item: ConfigItem) {
   } else {
     await deleteLocalConfig(item.deepseekUserId)
   }
-  message.success('时间线已移除')
+  message.success('账号已移除')
   await reload()
 }
 
@@ -174,7 +174,7 @@ onMounted(reload)
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <!-- Chronos 横幅 -->
+    <!-- 横幅 -->
     <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
@@ -182,14 +182,14 @@ onMounted(reload)
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
             <NIcon size="12"><ServerOutline /></NIcon>
-            <span>TIMELINE ARCHIVE // 时间线档案库</span>
+            <span>ACCOUNT MANAGEMENT // 账号管理</span>
           </div>
           <h1 class="chronos-page-title">
-            时间线配置
-            <span class="title-accent">· 档案管理</span>
+            账号配置
+            <span class="title-accent">· 数据管理</span>
           </h1>
           <p class="chronos-page-sub">
-            管理已接入的 Deepseek 时间线档案，支持本地存储舱与量子云端双模式同步
+            管理已导入的 Deepseek 账号配置，支持本地存储与云端同步两种模式
           </p>
         </div>
         <div class="banner-actions">
@@ -197,11 +197,11 @@ onMounted(reload)
             <NIcon size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
             </NIcon>
-            {{ auth.cloudSyncEnabled ? '量子云端已连接' : '本地存储舱模式' }}
+            {{ auth.cloudSyncEnabled ? '云端同步已开启' : '本地模式' }}
           </span>
           <NButton type="primary" size="medium" @click="openCreate" class="chronos-btn-banner">
             <template #icon><NIcon size="16"><AddOutline /></NIcon></template>
-            接入新时间线
+            导入新账号
           </NButton>
         </div>
       </div>
@@ -211,7 +211,7 @@ onMounted(reload)
     <NSpin :show="loading">
       <NEmpty
         v-if="!loading && configs.length === 0"
-        description="还没有接入的时间线，点击上方接入新档案"
+        description="还没有导入的账号，点击上方导入新账号"
         style="padding: 60px 0;"
       />
       <div
@@ -247,24 +247,24 @@ onMounted(reload)
 
           <div class="config-meta">
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--chronos-primary);"><PersonCircleOutline /></NIcon>
+              <NIcon size="14" style="color: var(--primary);"><PersonCircleOutline /></NIcon>
               <NText depth="3" class="meta-text">用户ID：{{ c.deepseekUserId.slice(0, 13) }}…</NText>
             </div>
             <div v-if="c.deepseekMobile" class="meta-row">
-              <NIcon size="14" style="color: var(--chronos-accent);"><HardwareChipOutline /></NIcon>
+              <NIcon size="14" style="color: var(--accent);"><HardwareChipOutline /></NIcon>
               <NText depth="3" class="meta-text">手机：{{ c.deepseekMobile }}</NText>
             </div>
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--chronos-rose);"><ChatbubbleEllipsesOutline /></NIcon>
-              <NText depth="3" class="meta-text">时间节点：</NText>
+              <NIcon size="14" style="color: var(--accent);"><ChatbubbleEllipsesOutline /></NIcon>
+              <NText depth="3" class="meta-text">对话：</NText>
               <NTag size="small" round class="chronos-count-tag">
                 <RocketOutline style="font-size: 11px; margin-right: 4px;" />
                 {{ c.conversationCount ?? '—' }}
               </NTag>
             </div>
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--chronos-warning);"><CalendarOutline /></NIcon>
-              <NText depth="3" class="meta-text">最近校准：{{ fmtDate(c.updatedAt) }}</NText>
+              <NIcon size="14" style="color: var(--warning);"><CalendarOutline /></NIcon>
+              <NText depth="3" class="meta-text">最近更新：{{ fmtDate(c.updatedAt) }}</NText>
             </div>
           </div>
 
@@ -275,7 +275,7 @@ onMounted(reload)
             </NButton>
             <NButton size="small" type="primary" ghost @click="openUpdate(c)" class="action-btn">
               <template #icon><NIcon size="14"><RefreshOutline /></NIcon></template>
-              校准
+              更新
             </NButton>
             <NButton size="small" type="error" ghost @click="removeConfig(c)" class="action-btn">
               <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
@@ -290,16 +290,16 @@ onMounted(reload)
     <NModal
       v-model:show="modalVisible"
       preset="card"
-      :title="modalMode === 'create' ? '接入新的时间线档案' : '重新校准此时间线（上传新数据包）'"
+      :title="modalMode === 'create' ? '导入新的 Deepseek 账号' : '更新此账号数据（上传新数据包）'"
       class="chronos-modal"
       style="width: 480px; max-width: 92vw;"
       :bordered="false"
     >
       <NForm label-placement="top">
-        <NFormItem label="时间线名称" v-if="modalMode === 'create'">
-          <NInput v-model:value="modalName" placeholder="给这个 Deepseek 时间线起个代号" />
+        <NFormItem label="账号名称" v-if="modalMode === 'create'">
+          <NInput v-model:value="modalName" placeholder="例如：工作主账号、个人账号" />
         </NFormItem>
-        <NFormItem v-else label="时间线名称">
+        <NFormItem v-else label="账号名称">
           <NInput :value="modalName" disabled />
         </NFormItem>
         <NFormItem label="数据包（zip 压缩包）">
@@ -327,7 +327,7 @@ onMounted(reload)
           <NButton @click="modalVisible = false">取消</NButton>
           <NButton type="primary" :loading="submitting" @click="submitModal">
             <template #icon v-if="!submitting"><NIcon size="14"><RocketOutline /></NIcon></template>
-            {{ modalMode === 'create' ? '接入' : '校准' }}
+            {{ modalMode === 'create' ? '导入' : '更新' }}
           </NButton>
         </NSpace>
       </template>
@@ -339,11 +339,11 @@ onMounted(reload)
 .chronos-page-banner {
   position: relative;
   padding: 22px 24px;
-  border-radius: var(--chronos-radius-lg);
+  border-radius: var(--radius-lg);
   background:
-    linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(168, 85, 247, 0.08) 50%, rgba(16, 185, 129, 0.06) 100%),
-    linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
-  border: 1px solid var(--chronos-border);
+    linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(79, 70, 229, 0.08) 50%, rgba(16, 185, 129, 0.06) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 .banner-glow-1, .banner-glow-2 {
@@ -356,12 +356,12 @@ onMounted(reload)
 .banner-glow-1 {
   width: 260px; height: 260px;
   top: -120px; right: -80px;
-  background: radial-gradient(circle, var(--chronos-accent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
 }
 .banner-glow-2 {
   width: 200px; height: 200px;
   bottom: -100px; left: 20%;
-  background: radial-gradient(circle, var(--chronos-primary) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
 }
 .banner-inner {
   position: relative;
@@ -379,10 +379,10 @@ onMounted(reload)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--chronos-success);
-  font-family: var(--chronos-mono);
+  color: var(--success);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   padding: 4px 10px;
-  background: rgba(16, 185, 129, 0.08);
+  background: var(--success-soft);
   border-radius: 4px;
   border: 1px solid rgba(16, 185, 129, 0.18);
   margin-bottom: 10px;
@@ -392,11 +392,11 @@ onMounted(reload)
   font-weight: 800;
   letter-spacing: -0.01em;
   margin: 0;
-  color: var(--chronos-text);
+  color: var(--text);
   line-height: 1.2;
 }
 .title-accent {
-  color: var(--chronos-primary);
+  color: var(--primary);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -405,7 +405,7 @@ onMounted(reload)
 .chronos-page-sub {
   margin: 6px 0 0;
   font-size: 13.5px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   line-height: 1.55;
   max-width: 520px;
 }
@@ -421,24 +421,24 @@ onMounted(reload)
   align-items: center;
   gap: 6px;
   padding: 7px 14px;
-  border-radius: var(--chronos-radius-full);
+  border-radius: var(--radius-full);
   font-size: 12px;
   font-weight: 600;
-  font-family: var(--chronos-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.03em;
 }
 .mode-pill.cloud {
-  background: var(--chronos-success-soft);
-  color: var(--chronos-success);
+  background: var(--success-soft);
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.25);
 }
 .mode-pill.local {
-  background: var(--chronos-surface-2);
-  color: var(--chronos-text-secondary);
-  border: 1px solid var(--chronos-border);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 .chronos-btn-banner {
-  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.25);
 }
 
 .config-grid {
@@ -450,20 +450,20 @@ onMounted(reload)
   padding: 20px;
   position: relative;
   overflow: hidden;
-  transition: all var(--chronos-transition);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .config-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 212, 255, 0.3);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2), 0 0 20px rgba(0, 212, 255, 0.06);
+  border-color: rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08), 0 0 20px rgba(79, 70, 229, 0.06);
 }
 .card-glow {
   position: absolute;
   top: -40px; right: -40px;
   width: 140px; height: 140px;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.15) 0%, transparent 65%);
   pointer-events: none;
-  transition: all var(--chronos-transition);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .config-card:hover .card-glow {
   transform: scale(1.15);
@@ -486,33 +486,33 @@ onMounted(reload)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(168, 85, 247, 0.2));
-  color: var(--chronos-primary);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(79, 70, 229, 0.2));
+  color: var(--primary);
   position: relative;
 }
 .avatar-ring {
   position: absolute;
   inset: -3px;
   border-radius: 14px;
-  border: 1px solid rgba(0, 212, 255, 0.35);
+  border: 1px solid rgba(79, 70, 229, 0.35);
   opacity: 0.7;
 }
 .config-head-text h3 {
   margin: 0 0 4px;
   font-size: 16px;
   font-weight: 700;
-  color: var(--chronos-text);
+  color: var(--text);
 }
 .config-id-tag {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  border-radius: var(--chronos-radius-full);
-  background: var(--chronos-surface-2);
-  color: var(--chronos-text-muted);
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  color: var(--text-muted);
   font-size: 11px;
   font-weight: 500;
-  border: 1px solid var(--chronos-border-subtle);
+  border: 1px solid var(--border-subtle);
 }
 
 .config-meta {
@@ -531,14 +531,14 @@ onMounted(reload)
 }
 .meta-text {
   font-size: 13px;
-  color: var(--chronos-text-secondary);
+  color: var(--text-secondary);
 }
 .chronos-count-tag {
-  background: rgba(0, 212, 255, 0.1) !important;
-  color: var(--chronos-primary) !important;
-  border: 1px solid rgba(0, 212, 255, 0.2) !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  border: 1px solid rgba(79, 70, 229, 0.2) !important;
   font-weight: 600;
-  font-family: var(--chronos-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   display: inline-flex;
   align-items: center;
 }
@@ -547,7 +547,7 @@ onMounted(reload)
   display: flex;
   gap: 8px;
   padding-top: 14px;
-  border-top: 1px solid var(--chronos-border-subtle);
+  border-top: 1px solid var(--border-subtle);
   flex-wrap: wrap;
   position: relative;
   z-index: 1;
@@ -561,12 +561,12 @@ onMounted(reload)
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
-  background: rgba(0, 212, 255, 0.1);
-  color: var(--chronos-primary);
-  border-radius: var(--chronos-radius);
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: var(--radius);
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid rgba(0, 212, 255, 0.2);
+  border: 1px solid rgba(79, 70, 229, 0.2);
 }
 
 /* 响应式 */

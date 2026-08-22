@@ -73,22 +73,21 @@ async function load() {
   }
 }
 
-// ═══════════ Chronos 色板 ═══════════
-const chronosCyan = '#00D4FF'
-const chronosPurple = '#A855F7'
-const chronosGreen = '#22FF9A'
-const chronosAmber = '#FFB547'
-const chronosPink = '#FF4D6D'
+// ═══════════ 浅色办公风色板 ═══════════
+const chronosCyan = '#4F46E5'
+const chronosPurple = '#0EA5E9'
+const chronosGreen = '#10B981'
+const chronosAmber = '#F59E0B'
+const chronosPink = '#EF4444'
 const chronosTeal = '#14B8A6'
 
-// 图表通用暗色调性
-const axisText = '#5A7DA3'
-const axisLine = 'rgba(0, 212, 255, 0.12)'
-const splitLine = 'rgba(0, 212, 255, 0.06)'
-const tooltipBg = '#0F1A36'
-const tooltipBorder = 'rgba(0, 212, 255, 0.22)'
-const tooltipText = '#E8F7FF'
-const legendText = '#8DB3D4'
+const axisText = '#94A3B8'
+const axisLine = '#E2E8F0'
+const splitLine = '#E2E8F0'
+const tooltipBg = '#FFFFFF'
+const tooltipBorder = '#E2E8F0'
+const tooltipText = '#0F172A'
+const legendText = '#64748B'
 
 const sharedTooltip = {
   trigger: 'axis' as const,
@@ -96,7 +95,7 @@ const sharedTooltip = {
   borderColor: tooltipBorder,
   borderWidth: 1,
   textStyle: { color: tooltipText, fontSize: 12 },
-  extraCssText: 'backdrop-filter: blur(8px); box-shadow: 0 8px 24px rgba(0,0,0,0.5);',
+  extraCssText: 'box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0;',
 }
 
 const msgLineOption = computed(() => ({
@@ -133,8 +132,8 @@ const msgLineOption = computed(() => ({
       symbol: 'circle',
       symbolSize: 5,
       data: (stats.value.dailyMessages || []).map((d: any) => d.user),
-      itemStyle: { color: chronosCyan, borderColor: '#04101F', borderWidth: 1 },
-      lineStyle: { width: 2.5, color: chronosCyan, shadowColor: 'rgba(0,212,255,0.3)', shadowBlur: 8 },
+      itemStyle: { color: chronosCyan, borderColor: '#FFFFFF', borderWidth: 1 },
+      lineStyle: { width: 2.5, color: chronosCyan, shadowColor: 'rgba(79, 70, 229, 0.18)', shadowBlur: 6 },
     },
     {
       name: 'AI 响应',
@@ -146,14 +145,14 @@ const msgLineOption = computed(() => ({
         color: {
           type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1,
           colorStops: [
-            { offset: 0, color: 'rgba(168, 85, 247, 0.35)' },
-            { offset: 1, color: 'rgba(168, 85, 247, 0.02)' },
+            { offset: 0, color: 'rgba(14, 165, 233, 0.28)' },
+            { offset: 1, color: 'rgba(14, 165, 233, 0.02)' },
           ],
         },
       },
       data: (stats.value.dailyMessages || []).map((d: any) => d.assistant),
-      itemStyle: { color: chronosPurple, borderColor: '#04101F', borderWidth: 1 },
-      lineStyle: { width: 2.5, color: chronosPurple, shadowColor: 'rgba(168,85,247,0.3)', shadowBlur: 8 },
+      itemStyle: { color: chronosPurple, borderColor: '#FFFFFF', borderWidth: 1 },
+      lineStyle: { width: 2.5, color: chronosPurple, shadowColor: 'rgba(14, 165, 233, 0.18)', shadowBlur: 6 },
     },
   ],
 }))
@@ -185,19 +184,19 @@ const convLineOption = computed(() => ({
       color: {
         type: 'linear' as const, x: 0, y: 0, x2: 0, y2: 1,
         colorStops: [
-          { offset: 0, color: 'rgba(0, 212, 255, 0.35)' },
-          { offset: 1, color: 'rgba(0, 212, 255, 0.02)' },
+          { offset: 0, color: 'rgba(79, 70, 229, 0.28)' },
+          { offset: 1, color: 'rgba(79, 70, 229, 0.02)' },
         ],
       },
     },
     data: (stats.value.dailyConversations || []).map((d: any) => d.count),
-    itemStyle: { color: chronosCyan, borderColor: '#04101F', borderWidth: 1 },
-    lineStyle: { width: 2.5, color: chronosCyan, shadowColor: 'rgba(0,212,255,0.35)', shadowBlur: 10 },
+    itemStyle: { color: chronosCyan, borderColor: '#FFFFFF', borderWidth: 1 },
+    lineStyle: { width: 2.5, color: chronosCyan, shadowColor: 'rgba(79, 70, 229, 0.2)', shadowBlur: 8 },
   }],
 }))
 
 const pieOption = computed(() => {
-  const palette = [chronosCyan, chronosPurple, chronosGreen, '#0EA5E9', chronosAmber, chronosPink, chronosTeal, '#60A5FA']
+  const palette = [chronosCyan, chronosPurple, chronosGreen, chronosAmber, chronosPink, chronosTeal]
   return {
     tooltip: {
       trigger: 'item' as const,
@@ -205,7 +204,7 @@ const pieOption = computed(() => {
       borderColor: tooltipBorder,
       borderWidth: 1,
       textStyle: { color: tooltipText, fontSize: 12 },
-      extraCssText: 'backdrop-filter: blur(8px); box-shadow: 0 8px 24px rgba(0,0,0,0.5);',
+      extraCssText: 'box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08); border: 1px solid #E2E8F0;',
     },
     legend: {
       bottom: 0,
@@ -223,15 +222,15 @@ const pieOption = computed(() => {
         avoidLabelOverlap: true,
         itemStyle: {
           borderRadius: 6,
-          borderColor: '#0F1A36',
+          borderColor: '#FFFFFF',
           borderWidth: 2,
-          shadowColor: 'rgba(0, 212, 255, 0.15)',
-          shadowBlur: 20,
+          shadowColor: 'rgba(15, 23, 42, 0.06)',
+          shadowBlur: 12,
         },
         label: { show: false },
         emphasis: {
-          label: { show: true, fontSize: 12, fontWeight: 700, color: '#E8F7FF' },
-          itemStyle: { shadowBlur: 24, shadowColor: 'rgba(0,212,255,0.35)' },
+          label: { show: true, fontSize: 12, fontWeight: 700, color: '#0F172A' },
+          itemStyle: { shadowBlur: 16, shadowColor: 'rgba(15, 23, 42, 0.12)' },
         },
         data: (stats.value.modelDistribution || []).map((d: any, i: number) => ({
           name: d.model,
@@ -272,11 +271,11 @@ const barOption = computed(() => ({
         colorStops: [
           { offset: 0, color: chronosCyan },
           { offset: 0.6, color: chronosPurple },
-          { offset: 1, color: chronosPink },
+          { offset: 1, color: chronosTeal },
         ],
       },
-      shadowColor: 'rgba(0,212,255,0.3)',
-      shadowBlur: 10,
+      shadowColor: 'rgba(79, 70, 229, 0.18)',
+      shadowBlur: 8,
     },
   }],
 }))
@@ -294,11 +293,11 @@ onMounted(load)
         </div>
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
-            <h2 style="margin: 0;">时光分析仪 · 数据报告</h2>
-            <span class="chrono-stamp good">在线</span>
+            <span class="chrono-stamp">ANALYTICS // 数据分析</span>
           </div>
+          <h2 style="margin: 0 0 4px 0;">数据统计 · 使用分析</h2>
           <p class="stats-header-sub">
-            扫描时间线中的对话记录、模型分布与活跃时段，确保时间流稳定运行
+            全景掌握对话数据、模型使用情况与活跃时段趋势
           </p>
         </div>
       </NSpace>
@@ -325,7 +324,7 @@ onMounted(load)
                 <div style="min-width: 0;">
                   <div class="stat-label">对话总数</div>
                   <NStatistic :value="stats.totalConversations || 0" style="--n-value-font-size: 28px;" />
-                  <div class="stat-foot">时间线档案总数</div>
+                  <div class="stat-foot">共导入对话数</div>
                 </div>
                 <div class="stat-icon stat-1">
                   <NIcon size="18"><ChatbubblesOutline /></NIcon>
@@ -343,7 +342,7 @@ onMounted(load)
                 <div style="min-width: 0;">
                   <div class="stat-label">消息总数</div>
                   <NStatistic :value="stats.totalMessages || 0" style="--n-value-font-size: 28px;" />
-                  <div class="stat-foot">用户+AI 交互总和</div>
+                  <div class="stat-foot">全部对话消息数</div>
                 </div>
                 <div class="stat-icon stat-2">
                   <NIcon size="18"><ChatbubbleOutline /></NIcon>
@@ -361,7 +360,7 @@ onMounted(load)
                 <div style="min-width: 0;">
                   <div class="stat-label">模型种类</div>
                   <NStatistic :value="(stats.modelDistribution || []).length" style="--n-value-font-size: 28px;" />
-                  <div class="stat-foot">接入的时间线分支</div>
+                  <div class="stat-foot">已使用的模型数</div>
                 </div>
                 <div class="stat-icon stat-3">
                   <NIcon size="18"><ColorPaletteOutline /></NIcon>
@@ -377,16 +376,16 @@ onMounted(load)
             <div class="surface stat-card surface-hover" style="padding: 16px 16px 18px;">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
                 <div style="min-width: 0;">
-                  <div class="stat-label">活跃时段峰值</div>
-                  <NStatistic :value="Math.max(0, ...(stats.activeHours || []).map((d:any)=>d.count))" style="--n-value-font-size: 28px;" />
-                  <div class="stat-foot">小时交互峰值 / 次</div>
+                  <div class="stat-label">对话总天数</div>
+                  <NStatistic :value="(stats.dailyConversations || []).length" style="--n-value-font-size: 28px;" />
+                  <div class="stat-foot">有对话的天数</div>
                 </div>
                 <div class="stat-icon stat-4">
                   <NIcon size="18"><TrendingUpOutline /></NIcon>
                 </div>
               </div>
               <div class="chronos-progress" style="margin-top: 14px;">
-                <div class="chronos-progress-bar" :style="{ width: Math.min(100, Math.max(0, ...(stats.activeHours || []).map((d:any)=>d.count)) * 3) + '%' }"></div>
+                <div class="chronos-progress-bar" :style="{ width: Math.min(100, (stats.dailyConversations || []).length * 3) + '%' }"></div>
               </div>
             </div>
           </NGridItem>
@@ -396,7 +395,7 @@ onMounted(load)
         <NSpace vertical :size="14">
           <div class="surface chart-card page-enter surface-hover" style="padding: 16px 16px 8px;">
             <div class="chart-header">
-              <NIcon size="16" style="color: chronosCyan;"><TrendingUpOutline /></NIcon>
+              <NIcon size="16" :style="{ color: chronosCyan }"><TrendingUpOutline /></NIcon>
               <div class="chart-title">每日消息量趋势</div>
               <span class="chrono-stamp">MSG-STREAM</span>
             </div>
@@ -407,7 +406,7 @@ onMounted(load)
           <div class="stats-grid-2">
             <div class="surface chart-card page-enter delay-1 surface-hover" style="padding: 16px 16px 8px;">
               <div class="chart-header">
-                <NIcon size="16" style="color: chronosPurple;"><ChatbubblesOutline /></NIcon>
+                <NIcon size="16" :style="{ color: chronosPurple }"><ChatbubblesOutline /></NIcon>
                 <div class="chart-title">每日对话数</div>
                 <span class="chrono-stamp">CONV-LINE</span>
               </div>
@@ -415,7 +414,7 @@ onMounted(load)
             </div>
             <div class="surface chart-card page-enter delay-2 surface-hover" style="padding: 16px 16px 8px;">
               <div class="chart-header">
-                <NIcon size="16" style="color: chronosGreen;"><ColorPaletteOutline /></NIcon>
+                <NIcon size="16" :style="{ color: chronosGreen }"><ColorPaletteOutline /></NIcon>
                 <div class="chart-title">模型使用分布</div>
                 <span class="chrono-stamp">MODEL-DIST</span>
               </div>
@@ -425,7 +424,7 @@ onMounted(load)
 
           <div class="surface chart-card page-enter delay-3 surface-hover" style="padding: 16px 16px 8px;">
             <div class="chart-header">
-              <NIcon size="16" style="color: chronosAmber;"><TimeOutline /></NIcon>
+              <NIcon size="16" :style="{ color: chronosAmber }"><TimeOutline /></NIcon>
               <div class="chart-title">24 小时活跃分布</div>
               <span class="chrono-stamp warn">HOUR-HEAT</span>
             </div>
@@ -445,11 +444,11 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.18) 0%, rgba(168, 85, 247, 0.15) 100%);
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(14, 165, 233, 0.1) 100%);
   color: var(--primary);
   flex-shrink: 0;
-  border: 1px solid rgba(0, 212, 255, 0.22);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
 }
 .stats-header-sub {
   margin: 0;
@@ -465,22 +464,21 @@ onMounted(load)
   font-family: 'JetBrains Mono', 'SF Mono', monospace;
   font-size: 10.5px;
   font-weight: 600;
-  color: var(--primary);
-  background: var(--primary-soft);
-  border: 1px solid rgba(0, 212, 255, 0.18);
+  color: #4F46E5;
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.15);
   border-radius: 6px;
   letter-spacing: 0.06em;
 }
 .chrono-stamp.warn {
-  color: var(--chrono-amber);
-  background: var(--chrono-amber-soft);
-  border-color: rgba(255, 181, 71, 0.2);
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.2);
 }
 .chrono-stamp.good {
-  color: var(--chrono-green);
-  background: var(--chrono-green-soft);
-  border-color: rgba(34, 255, 154, 0.2);
-  text-shadow: 0 0 8px rgba(34, 255, 154, 0.35);
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.2);
 }
 
 .stat-card {
@@ -539,14 +537,14 @@ onMounted(load)
   opacity: 0.5;
   filter: blur(14px);
 }
-.stat-1 { background: var(--primary-soft); color: var(--primary); }
-.stat-1::after { background: var(--primary); }
-.stat-2 { background: var(--accent-soft); color: var(--accent); }
-.stat-2::after { background: var(--accent); }
-.stat-3 { background: var(--chrono-green-soft); color: var(--chrono-green); }
-.stat-3::after { background: var(--chrono-green); }
-.stat-4 { background: var(--info-soft); color: var(--primary); }
-.stat-4::after { background: chronosAmber; opacity: 0.4; }
+.stat-1 { background: rgba(79, 70, 229, 0.08); color: #4F46E5; }
+.stat-1::after { background: #4F46E5; }
+.stat-2 { background: rgba(14, 165, 233, 0.08); color: #0EA5E9; }
+.stat-2::after { background: #0EA5E9; }
+.stat-3 { background: rgba(16, 185, 129, 0.08); color: #10B981; }
+.stat-3::after { background: #10B981; }
+.stat-4 { background: rgba(245, 158, 11, 0.08); color: #F59E0B; }
+.stat-4::after { background: #F59E0B; opacity: 0.3; }
 
 .chart-card {
   transition: box-shadow var(--transition), border-color var(--transition);
@@ -558,12 +556,12 @@ onMounted(load)
   gap: 8px;
   margin-bottom: 4px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.06);
+  border-bottom: 1px solid #F1F5F9;
 }
 .chart-title {
   font-size: 14px;
   font-weight: 700;
-  color: #D5ECFF;
+  color: #0F172A;
   flex: 1;
   letter-spacing: 0.01em;
 }

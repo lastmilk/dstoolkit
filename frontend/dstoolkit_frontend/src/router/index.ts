@@ -5,6 +5,22 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: () => {
+        const auth = useAuthStore()
+        if (auth.isLoggedIn) {
+          return '/configs'
+        }
+        return '/portal'
+      },
+    },
+    {
+      path: '/portal',
+      name: 'portal',
+      component: () => import('@/views/portal/Portal.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/views/auth/Login.vue'),
@@ -20,7 +36,6 @@ const router = createRouter({
       path: '/',
       component: () => import('@/layouts/MainLayout.vue'),
       children: [
-        { path: '', redirect: '/configs' },
         { path: 'configs', name: 'configs', component: () => import('@/views/config/Configs.vue') },
         { path: 'explore', name: 'explore', component: () => import('@/views/explore/Explore.vue') },
         { path: 'search', redirect: '/explore' },

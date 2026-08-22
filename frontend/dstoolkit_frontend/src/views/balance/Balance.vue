@@ -52,7 +52,6 @@ onMounted(loadKeys)
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <!-- Chronos 横幅 -->
     <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
@@ -60,14 +59,14 @@ onMounted(loadKeys)
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
             <NIcon size="12"><SparklesOutline /></NIcon>
-            <span>CREDIT VAULT // 时空能量站</span>
+            <span>BALANCE // 余额信息</span>
           </div>
           <h1 class="chronos-page-title">
-            能量余额查询
-            <span class="title-accent">· Credit 系统</span>
+            余额
+            <span class="title-accent">· 费用信息</span>
           </h1>
           <p class="chronos-page-sub">
-            实时监测你的穿越能量储备，追踪赠款额度与充值能量池，保持时间跃迁稳定运行
+            查看当前余额、消费记录与用量信息
           </p>
         </div>
         <div class="banner-visual">
@@ -75,14 +74,13 @@ onMounted(loadKeys)
             <div class="orbit-ring r1"></div>
             <div class="orbit-ring r2"></div>
             <div class="orbit-core">
-              <NIcon size="28" style="color: var(--chronos-primary);"><WalletOutline /></NIcon>
+              <NIcon size="28" style="color: var(--primary);"><WalletOutline /></NIcon>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 查询工具栏 -->
     <div class="chronos-panel query-toolbar">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
@@ -90,32 +88,31 @@ onMounted(loadKeys)
       <div class="panel-corner br"></div>
       <NSpace align="center" :size="12" wrap class="query-wrap">
         <div class="key-picker-label">
-          <NIcon size="16" style="color: var(--chronos-primary);"><KeyOutline /></NIcon>
-          <span>密钥舱选择</span>
+          <NIcon size="16" style="color: var(--primary);"><KeyOutline /></NIcon>
+          <span>密钥选择</span>
         </div>
         <NSelect
           v-model:value="keyId"
           :options="apiKeys.map((k) => ({ label: `${k.name} (${k.masked})`, value: k.id }))"
-          placeholder="从密钥舱中选择 API Key"
+          placeholder="选择 API Key"
           class="key-select"
           clearable
         />
         <NButton type="primary" :loading="loading" :disabled="!keyId" @click="query">
           <template #icon><NIcon size="15"><RefreshOutline /></NIcon></template>
-          同步能量读数
+          查询余额
         </NButton>
       </NSpace>
     </div>
 
     <NEmpty
       v-if="apiKeys.length === 0"
-      description="密钥舱为空，请到个人中心安装 API Key"
+      description="暂无密钥，请到个人中心添加 API Key"
       style="padding: 60px 0;"
     />
 
     <NSpin :show="loading">
       <template v-if="result">
-        <!-- 状态卡片 -->
         <div
           class="chronos-panel status-card page-enter"
           :class="result.isAvailable ? 'available' : 'unavailable'"
@@ -133,19 +130,18 @@ onMounted(loadKeys)
             </div>
             <div class="status-text">
               <div class="status-title">
-                密钥舱 {{ result.isAvailable ? '运行中' : '能量枯竭' }}
+                密钥 {{ result.isAvailable ? '正常' : '余额不足' }}
                 <span :class="['hud-tag', result.isAvailable ? 'ok' : 'bad']">
-                  {{ result.isAvailable ? 'STABLE' : 'CRITICAL' }}
+                  {{ result.isAvailable ? 'NORMAL' : 'LOW' }}
                 </span>
               </div>
-              <NText depth="3" style="font-size: 13px; color: var(--chronos-text-muted);">
-                同步时间：{{ new Date().toLocaleString() }} · 时间线锚点正常
+              <NText depth="3" style="font-size: 13px; color: var(--text-muted);">
+                更新时间：{{ new Date().toLocaleString() }} · 数据正常
               </NText>
             </div>
           </NSpace>
         </div>
 
-        <!-- 余额卡片网格 -->
         <div class="balance-grid">
           <div
             v-for="(b, i) in result.balanceInfos || []"
@@ -162,10 +158,10 @@ onMounted(loadKeys)
             <div class="balance-head">
               <div>
                 <div class="balance-eyebrow">
-                  <NIcon size="12" style="color: var(--chronos-primary);"><RocketOutline /></NIcon>
-                  CURRENT ENERGY POOL
+                  <NIcon size="12" style="color: var(--primary);"><RocketOutline /></NIcon>
+                  CURRENT BALANCE
                 </div>
-                <div class="balance-label">能量总储备</div>
+                <div class="balance-label">当前余额</div>
                 <div class="balance-amount">
                   <span class="amount-num">
                     <NStatistic :value="b.totalBalance" :precision="2" />
@@ -187,15 +183,15 @@ onMounted(loadKeys)
             <div class="balance-rows">
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--chronos-success);"><GiftOutline /></NIcon>
-                  <span>赠款能量池</span>
+                  <NIcon size="14" style="color: var(--success);"><GiftOutline /></NIcon>
+                  <span>赠款余额</span>
                 </div>
                 <span class="row-val success">{{ b.grantedBalance }}</span>
               </div>
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--chronos-primary);"><CardOutline /></NIcon>
-                  <span>充值能量池</span>
+                  <NIcon size="14" style="color: var(--primary);"><CardOutline /></NIcon>
+                  <span>充值余额</span>
                 </div>
                 <span class="row-val primary">{{ b.toppedUpBalance }}</span>
               </div>
@@ -211,11 +207,11 @@ onMounted(loadKeys)
 .chronos-page-banner {
   position: relative;
   padding: 22px 24px;
-  border-radius: var(--chronos-radius-lg);
+  border-radius: var(--radius-lg);
   background:
     linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(255, 90, 140, 0.07) 50%, rgba(168, 85, 247, 0.08) 100%),
     linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
-  border: 1px solid var(--chronos-border);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 .banner-glow-1, .banner-glow-2 {
@@ -228,12 +224,12 @@ onMounted(loadKeys)
 .banner-glow-1 {
   width: 260px; height: 260px;
   top: -120px; right: -80px;
-  background: radial-gradient(circle, var(--chronos-rose) 0%, transparent 70%);
+  background: radial-gradient(circle, #EC4899 0%, transparent 70%);
 }
 .banner-glow-2 {
   width: 200px; height: 200px;
   bottom: -100px; left: 20%;
-  background: radial-gradient(circle, var(--chronos-primary) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
 }
 .banner-inner {
   position: relative;
@@ -251,8 +247,8 @@ onMounted(loadKeys)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--chronos-rose);
-  font-family: var(--chronos-mono);
+  color: #EC4899;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   padding: 4px 10px;
   background: rgba(255, 90, 140, 0.08);
   border-radius: 4px;
@@ -264,11 +260,11 @@ onMounted(loadKeys)
   font-weight: 800;
   letter-spacing: -0.01em;
   margin: 0;
-  color: var(--chronos-text);
+  color: var(--text);
   line-height: 1.2;
 }
 .title-accent {
-  color: var(--chronos-accent);
+  color: var(--accent);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -277,7 +273,7 @@ onMounted(loadKeys)
 .chronos-page-sub {
   margin: 6px 0 0;
   font-size: 13.5px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   line-height: 1.55;
   max-width: 520px;
 }
@@ -321,7 +317,6 @@ onMounted(loadKeys)
 }
 @keyframes orbit-spin { to { transform: rotate(360deg); } }
 
-/* 查询工具栏 */
 .query-toolbar { padding: 18px 20px; }
 .query-wrap { width: 100%; }
 .key-picker-label {
@@ -334,21 +329,20 @@ onMounted(loadKeys)
   border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--chronos-primary);
-  font-family: var(--chronos-mono);
+  color: var(--primary);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.03em;
 }
 .key-select { width: 360px; min-width: 240px; flex: 1; }
 
-/* 状态卡片 */
 .status-card {
   padding: 22px 24px;
   margin-bottom: 16px;
-  border-left: 4px solid var(--chronos-success);
+  border-left: 4px solid var(--success);
   overflow: hidden;
   position: relative;
 }
-.status-card.unavailable { border-left-color: var(--chronos-danger); }
+.status-card.unavailable { border-left-color: var(--danger); }
 .status-card::before {
   content: '';
   position: absolute;
@@ -377,19 +371,19 @@ onMounted(loadKeys)
   opacity: 0.4;
 }
 .icon-success {
-  background: var(--chronos-success-soft);
-  color: var(--chronos-success);
+  background: var(--success-soft);
+  color: var(--success);
 }
-.icon-success::after { background: var(--chronos-success); }
+.icon-success::after { background: var(--success); }
 .icon-danger {
-  background: var(--chronos-danger-soft);
-  color: var(--chronos-danger);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
-.icon-danger::after { background: var(--chronos-danger); }
+.icon-danger::after { background: var(--danger); }
 .status-title {
   font-size: 17px;
   font-weight: 700;
-  color: var(--chronos-text);
+  color: var(--text);
   margin-bottom: 2px;
   display: flex;
   align-items: center;
@@ -401,20 +395,19 @@ onMounted(loadKeys)
   letter-spacing: 0.1em;
   padding: 2px 8px;
   border-radius: 4px;
-  font-family: var(--chronos-mono);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .hud-tag.ok {
   background: rgba(16, 185, 129, 0.15);
-  color: var(--chronos-success);
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 .hud-tag.bad {
   background: rgba(239, 68, 68, 0.15);
-  color: var(--chronos-danger);
+  color: var(--danger);
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* 余额网格 */
 .balance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -424,7 +417,7 @@ onMounted(loadKeys)
   padding: 22px;
   position: relative;
   overflow: hidden;
-  transition: all var(--chronos-transition);
+  transition: all var(--transition);
 }
 .balance-card:hover {
   transform: translateY(-3px);
@@ -452,17 +445,17 @@ onMounted(loadKeys)
   align-items: center;
   gap: 5px;
   font-size: 10px;
-  color: var(--chronos-primary);
+  color: var(--primary);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-family: var(--chronos-mono);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   margin-bottom: 6px;
   opacity: 0.9;
 }
 .balance-label {
   font-size: 12px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   font-weight: 500;
   margin-bottom: 6px;
 }
@@ -476,16 +469,16 @@ onMounted(loadKeys)
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1;
-  background: linear-gradient(135deg, var(--chronos-primary) 0%, var(--chronos-accent) 60%, var(--chronos-rose) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 60%, #EC4899 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-family: var(--chronos-mono);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .amount-unit {
   font-size: 14px;
   font-weight: 500;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
 }
 .balance-icon {
   width: 42px; height: 42px;
@@ -494,7 +487,7 @@ onMounted(loadKeys)
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(168, 85, 247, 0.15));
-  color: var(--chronos-primary);
+  color: var(--primary);
   border: 1px solid rgba(0, 212, 255, 0.2);
 }
 
@@ -507,14 +500,14 @@ onMounted(loadKeys)
 .divider-dot {
   width: 4px; height: 4px;
   border-radius: 50%;
-  background: var(--chronos-primary);
-  box-shadow: 0 0 4px var(--chronos-primary);
+  background: var(--primary);
+  box-shadow: 0 0 4px var(--primary);
 }
-.divider-dot.accent { background: var(--chronos-accent); box-shadow: 0 0 4px var(--chronos-accent); }
+.divider-dot.accent { background: var(--accent); box-shadow: 0 0 4px var(--accent); }
 .divider-line {
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, var(--chronos-primary) 0%, var(--chronos-border-subtle) 50%, var(--chronos-accent) 100%);
+  background: linear-gradient(90deg, var(--primary) 0%, var(--border-subtle) 50%, var(--accent) 100%);
   opacity: 0.4;
 }
 
@@ -524,22 +517,21 @@ onMounted(loadKeys)
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  background: var(--chronos-surface-2);
-  border-radius: var(--chronos-radius-sm);
-  border: 1px solid var(--chronos-border-subtle);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
 }
 .row-left {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--chronos-text-secondary);
+  color: var(--text-secondary);
 }
-.row-val { font-weight: 700; font-size: 14px; font-family: var(--chronos-mono); }
-.row-val.success { color: var(--chronos-success); }
-.row-val.primary { color: var(--chronos-primary); }
+.row-val { font-weight: 700; font-size: 14px; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+.row-val.success { color: var(--success); }
+.row-val.primary { color: var(--primary); }
 
-/* 响应式 */
 @media (max-width: 720px) {
   .chronos-page-banner { padding: 18px 16px; }
   .chronos-page-title { font-size: 20px; }

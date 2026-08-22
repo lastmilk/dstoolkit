@@ -54,7 +54,6 @@ onMounted(load)
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <!-- Chronos 横幅 -->
     <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
@@ -62,21 +61,21 @@ onMounted(load)
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
             <NIcon size="12"><RocketOutline /></NIcon>
-            <span>CHRONOS BAZAAR // 时空装备市场</span>
+            <span>MODEL MARKET // 模型市场</span>
           </div>
           <h1 class="chronos-page-title">
-            应用装备库
-            <span class="title-accent">· 精选集市</span>
+            模型市场
+            <span class="title-accent">· 应用资源</span>
           </h1>
           <p class="chronos-page-sub">
-            跨维度收集的优质生态工具、学习资源与社区推荐，为你的时间之旅装载最佳装备
+            浏览并使用各类模型资源，扩展对话能力
           </p>
         </div>
         <div class="banner-badge">
           <div class="badge-ring"></div>
           <div class="badge-text">
             <div class="badge-num">{{ entries.length }}</div>
-            <div class="badge-label">装备就位</div>
+            <div class="badge-label">资源可用</div>
           </div>
         </div>
       </div>
@@ -85,7 +84,7 @@ onMounted(load)
     <NSpin :show="loading">
       <NEmpty
         v-if="!loading && entries.length === 0"
-        description="暂无收录，等待跨时空传送中…"
+        description="暂无收录资源"
         style="padding: 60px 0;"
       />
       <div
@@ -117,7 +116,7 @@ onMounted(load)
             <div class="card-head-text">
               <h3>
                 {{ e.name }}
-                <NIcon size="14" style="color: var(--chronos-text-muted);"><OpenOutline /></NIcon>
+                <NIcon size="14" style="color: var(--text-muted);"><OpenOutline /></NIcon>
               </h3>
               <span
                 class="category-tag"
@@ -130,17 +129,17 @@ onMounted(load)
           </div>
 
           <NText depth="3" class="card-desc">
-            {{ e.description || '暂无描述，点击前往探索更多' }}
+            {{ e.description || '暂无描述，点击查看更多' }}
           </NText>
 
           <div class="card-foot">
             <div class="foot-tag">
               <SparklesOutline style="font-size: 14px;" />
-              <span>时空精选</span>
+              <span>推荐</span>
             </div>
             <NButton size="small" type="primary" round>
               <template #icon><NIcon size="13"><OpenOutline /></NIcon></template>
-              装备
+              使用
             </NButton>
           </div>
         </a>
@@ -150,15 +149,14 @@ onMounted(load)
 </template>
 
 <style scoped>
-/* Chronos 横幅 */
 .chronos-page-banner {
   position: relative;
   padding: 22px 24px;
-  border-radius: var(--chronos-radius-lg);
+  border-radius: var(--radius-lg);
   background:
     linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(0, 212, 255, 0.08) 50%, rgba(255, 90, 140, 0.06) 100%),
     linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
-  border: 1px solid var(--chronos-border);
+  border: 1px solid var(--border);
   overflow: hidden;
 }
 .banner-glow-1, .banner-glow-2 {
@@ -171,12 +169,12 @@ onMounted(load)
 .banner-glow-1 {
   width: 260px; height: 260px;
   top: -120px; right: -80px;
-  background: radial-gradient(circle, var(--chronos-accent) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
 }
 .banner-glow-2 {
   width: 200px; height: 200px;
   bottom: -100px; left: 20%;
-  background: radial-gradient(circle, var(--chronos-primary) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
 }
 .banner-inner {
   position: relative;
@@ -194,8 +192,8 @@ onMounted(load)
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: var(--chronos-accent);
-  font-family: var(--chronos-mono);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   padding: 4px 10px;
   background: rgba(168, 85, 247, 0.08);
   border-radius: 4px;
@@ -207,11 +205,11 @@ onMounted(load)
   font-weight: 800;
   letter-spacing: -0.01em;
   margin: 0;
-  color: var(--chronos-text);
+  color: var(--text);
   line-height: 1.2;
 }
 .title-accent {
-  color: var(--chronos-primary);
+  color: var(--primary);
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -220,7 +218,7 @@ onMounted(load)
 .chronos-page-sub {
   margin: 6px 0 0;
   font-size: 13.5px;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   line-height: 1.55;
   max-width: 520px;
 }
@@ -236,7 +234,7 @@ onMounted(load)
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--chronos-primary), var(--chronos-accent), var(--chronos-rose), var(--chronos-primary));
+  background: conic-gradient(from 0deg, var(--primary), var(--accent), #EC4899, var(--primary));
   padding: 2px;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
@@ -254,22 +252,21 @@ onMounted(load)
   font-size: 28px;
   font-weight: 800;
   line-height: 1;
-  background: linear-gradient(135deg, var(--chronos-primary), var(--chronos-accent));
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  font-family: var(--chronos-mono);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 .badge-label {
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--chronos-text-muted);
+  color: var(--text-muted);
   margin-top: 4px;
   font-weight: 600;
 }
 
-/* 市场网格 */
 .market-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -281,7 +278,7 @@ onMounted(load)
   display: block;
   position: relative;
   overflow: hidden;
-  transition: all var(--chronos-transition);
+  transition: all var(--transition);
   cursor: pointer;
 }
 .market-card:hover {
@@ -295,7 +292,7 @@ onMounted(load)
   width: 140px; height: 140px;
   background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.15) 0%, transparent 65%);
   pointer-events: none;
-  transition: all var(--chronos-transition);
+  transition: all var(--transition);
 }
 .market-card:hover .card-glow {
   opacity: 0.9;
@@ -317,7 +314,7 @@ onMounted(load)
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform var(--chronos-transition);
+  transition: transform var(--transition);
   position: relative;
 }
 .market-icon::after {
@@ -340,7 +337,7 @@ onMounted(load)
 .card-head-text h3 {
   margin: 0 0 6px;
   font-size: 16px;
-  color: var(--chronos-text);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -350,10 +347,10 @@ onMounted(load)
   display: inline-flex;
   align-items: center;
   padding: 3px 10px;
-  border-radius: var(--chronos-radius-full);
+  border-radius: var(--radius-full);
   font-size: 11px;
   font-weight: 600;
-  font-family: var(--chronos-mono);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.03em;
 }
 
@@ -361,7 +358,7 @@ onMounted(load)
   display: block;
   font-size: 13px;
   line-height: 1.65;
-  color: var(--chronos-text-secondary);
+  color: var(--text-secondary);
   min-height: 44px;
   margin-bottom: 16px;
   position: relative;
@@ -373,7 +370,7 @@ onMounted(load)
   align-items: center;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid var(--chronos-border-subtle);
+  border-top: 1px solid var(--border-subtle);
   position: relative;
   z-index: 1;
 }
@@ -382,11 +379,10 @@ onMounted(load)
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--chronos-accent);
+  color: var(--accent);
   font-weight: 500;
 }
 
-/* 响应式 */
 @media (max-width: 720px) {
   .chronos-page-banner { padding: 18px 16px; }
   .chronos-page-title { font-size: 20px; }
