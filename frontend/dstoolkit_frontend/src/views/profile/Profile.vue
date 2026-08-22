@@ -37,6 +37,8 @@ import {
   CreateOutline,
   CheckmarkCircleOutline,
   CloseCircleOutline,
+  RocketOutline,
+  FingerPrintOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
@@ -45,31 +47,28 @@ import type { ApiKeyItem, ApiTokenItem, CreatedApiToken } from '@/types'
 
 const auth = useAuthStore()
 
-// 用户名
 const newUsername = ref(auth.user?.username || '')
 async function saveUsername() {
   if (!newUsername.value) return
   await auth.updateProfile(newUsername.value)
-  message.success('用户名已更新')
+  message.success('身份信息已更新')
 }
 
-// 密码
 const oldPwd = ref('')
 const newPwd = ref('')
 const confirmPwd = ref('')
 async function savePassword() {
   if (newPwd.value !== confirmPwd.value) {
-    message.error('两次新密码不一致')
+    message.error('两次新密钥不一致')
     return
   }
   await auth.changePassword(oldPwd.value, newPwd.value)
-  message.success('密码已更新')
+  message.success('访问密钥已更新')
   oldPwd.value = ''
   newPwd.value = ''
   confirmPwd.value = ''
 }
 
-// API Key
 const apiKeys = ref<ApiKeyItem[]>([])
 const keyName = ref('')
 const keyValue = ref('')
@@ -86,28 +85,26 @@ async function addKey() {
   keyName.value = ''
   keyValue.value = ''
   await loadApiKeys()
-  message.success('API Key 已保存')
+  message.success('密钥已存入密钥舱')
 }
 async function deleteKey(id: number) {
   await request.delete(`/apikeys/${id}`)
   await loadApiKeys()
-  message.success('已删除')
+  message.success('已销毁密钥')
 }
 
 const columns: DataTableColumns<ApiKeyItem> = [
   { title: '名称', key: 'name' },
-  { title: 'Key（掩码）', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
-  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+  { title: '密钥（掩码）', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
+  { title: '创建锚点', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
   {
     title: '操作',
     key: 'actions',
     render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteKey(r.id) }, { default: () => '确认删除？', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '删除' }) }),
+      h(NPopconfirm, { onPositiveClick: () => deleteKey(r.id) }, { default: () => '确认销毁此密钥？', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '销毁' }) }),
   },
 ]
 
-// RESTful API 访问令牌（区别于上面的 Deepseek API Key）
-// 令牌明文仅在创建时返回一次，服务端只存 SHA-256 哈希
 const apiTokens = ref<ApiTokenItem[]>([])
 const tokenName = ref('')
 const tokenExpiry = ref<number>(30)
@@ -116,11 +113,11 @@ const newlyCreated = ref<CreatedApiToken | null>(null)
 const showTokenModal = ref(false)
 
 const expiryOptions: SelectOption[] = [
-  { label: '7 天', value: 7 },
-  { label: '30 天', value: 30 },
-  { label: '90 天', value: 90 },
-  { label: '365 天', value: 365 },
-  { label: '永不过期', value: 0 },
+  { label: '7 跃迁日', value: 7 },
+  { label: '30 跃迁日', value: 30 },
+  { label: '90 跃迁日', value: 90 },
+  { label: '365 跃迁日', value: 365 },
+  { label: '永久锚点', value: 0 },
 ]
 
 async function loadApiTokens() {
@@ -130,7 +127,7 @@ async function loadApiTokens() {
 
 async function createToken() {
   if (!tokenName.value.trim()) {
-    message.error('请填写令牌名称')
+    message.error('请填写令牌代号')
     return
   }
   tokenCreating.value = true
@@ -143,7 +140,7 @@ async function createToken() {
     showTokenModal.value = true
     tokenName.value = ''
     await loadApiTokens()
-    message.success('令牌已创建，请立即复制保存')
+    message.success('访问令牌已生成，请立即保存')
   } finally {
     tokenCreating.value = false
   }
@@ -152,21 +149,21 @@ async function createToken() {
 async function deleteToken(id: number) {
   await request.delete(`/tokens/${id}`)
   await loadApiTokens()
-  message.success('已删除')
+  message.success('令牌已失效')
 }
 
 async function copyNewToken() {
   if (!newlyCreated.value) return
   try {
     await navigator.clipboard.writeText(newlyCreated.value.token)
-    message.success('已复制到剪贴板')
+    message.success('已复制到终端剪贴板')
   } catch {
     message.error('复制失败，请手动选择文本复制')
   }
 }
 
 const tokenColumns: DataTableColumns<ApiTokenItem> = [
-  { title: '名称', key: 'name', width: 160 },
+  { title: '代号', key: 'name', width: 160 },
   { title: '令牌前缀', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
   {
     title: '状态',
@@ -179,15 +176,15 @@ const tokenColumns: DataTableColumns<ApiTokenItem> = [
       return h(NTag, { type: 'success', size: 'small' }, { default: () => '有效' })
     },
   },
-  { title: '创建时间', key: 'createdAt', width: 170, render: (r) => new Date(r.createdAt).toLocaleString() },
+  { title: '创建锚点', key: 'createdAt', width: 170, render: (r) => new Date(r.createdAt).toLocaleString() },
   { title: '最后使用', key: 'lastUsedAt', width: 170, render: (r) => (r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleString() : '—') },
-  { title: '过期时间', key: 'expiresAt', width: 170, render: (r) => (r.expiresAt ? new Date(r.expiresAt).toLocaleString() : '永不') },
+  { title: '过期锚点', key: 'expiresAt', width: 170, render: (r) => (r.expiresAt ? new Date(r.expiresAt).toLocaleString() : '永久') },
   {
     title: '操作',
     key: 'actions',
     width: 90,
     render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteToken(r.id) }, { default: () => '确认删除该令牌？删除后立即失效。', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '删除' }) }),
+      h(NPopconfirm, { onPositiveClick: () => deleteToken(r.id) }, { default: () => '确认吊销该令牌？吊销后立即失效。', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '吊销' }) }),
   },
 ]
 
@@ -198,77 +195,98 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="page-enter" style="display: flex; flex-direction: column; gap: 20px;">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <NSpace align="center" :size="14" wrap>
-        <div class="page-header-icon">
-          <NIcon size="22"><PersonCircleOutline /></NIcon>
-        </div>
-        <div style="flex: 1;">
-          <h2 style="margin: 0 0 4px;">个人中心</h2>
-          <p class="page-header-sub">
-            管理你的账号信息、API Key 以及 RESTful API 访问令牌
+  <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
+    <!-- Chronos 横幅 -->
+    <div class="chronos-page-banner">
+      <div class="banner-glow-1"></div>
+      <div class="banner-glow-2"></div>
+      <div class="banner-inner">
+        <div class="banner-title-block">
+          <div class="chronos-eyebrow">
+            <NIcon size="12"><FingerPrintOutline /></NIcon>
+            <span>AGENT PROFILE // 特工身份终端</span>
+          </div>
+          <h1 class="chronos-page-title">
+            个人身份中心
+            <span class="title-accent">· 档案管理</span>
+          </h1>
+          <p class="chronos-page-sub">
+            管理你的特工身份信息、API 密钥舱以及 RESTful 跨时空访问令牌
           </p>
         </div>
-      </NSpace>
+        <div class="banner-id">
+          <div class="id-avatar">
+            <NIcon size="32" style="color: var(--chronos-primary);"><PersonCircleOutline /></NIcon>
+            <div class="id-ring r1"></div>
+            <div class="id-ring r2"></div>
+          </div>
+          <div class="id-info">
+            <div class="id-name">{{ auth.user?.username || '未命名特工' }}</div>
+            <div class="id-tags">
+              <NTag v-if="auth.isAdmin" size="small" round class="tag-admin">
+                <NIcon size="11" style="margin-right: 2px;"><RibbonOutline /></NIcon>
+                主管级
+              </NTag>
+              <span :class="['id-mode-tag', auth.cloudSyncEnabled ? 'cloud' : 'local']">
+                <NIcon size="10" style="margin-right: 3px;">
+                  <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
+                </NIcon>
+                云端{{ auth.cloudSyncEnabled ? '已连接' : '离线' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 账号信息 -->
-    <div class="surface section-card page-enter" style="padding: 24px;">
-      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--primary-soft); color: var(--primary); flex-shrink: 0;">
+    <div class="chronos-panel section-card page-enter">
+      <div class="panel-corner tl"></div>
+      <div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div>
+      <div class="panel-corner br"></div>
+
+      <div class="section-header">
+        <div class="section-icon">
           <NIcon size="19"><PersonCircleOutline /></NIcon>
         </div>
         <div style="flex: 1;">
-          <h3 style="margin: 0 0 2px; font-size: 16px;">账号信息</h3>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <NTag v-if="auth.isAdmin" type="warning" size="small" round>
-              <NIcon size="11" style="margin-right: 2px;"><RibbonOutline /></NIcon>
-              管理员
-            </NTag>
-            <span :class="['pill', auth.cloudSyncEnabled ? 'pill-success' : 'pill-default']" style="font-size: 11px;">
-              <NIcon size="10" style="margin-right: 3px;">
-                <CloudOutline v-if="auth.cloudSyncEnabled" />
-                <CloudOfflineOutline v-else />
-              </NIcon>
-              云端存储{{ auth.cloudSyncEnabled ? '已开启' : '已关闭' }}
-            </span>
+          <h3>身份档案</h3>
+          <div class="section-sub">
+            维护你的特工身份凭证与访问密钥，确保跨时间线行动安全
           </div>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px;" class="account-grid">
-        <!-- 用户名 -->
+      <div class="account-grid">
         <div>
-          <div class="sub-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px;">
-            <NIcon size="14" style="color: var(--primary);"><CreateOutline /></NIcon>
-            修改用户名
+          <div class="sub-section-title">
+            <NIcon size="14" style="color: var(--chronos-primary);"><CreateOutline /></NIcon>
+            更新代号
           </div>
           <NForm label-placement="top">
-            <NFormItem label="用户名">
-              <NInput v-model:value="newUsername" placeholder="用户名" />
+            <NFormItem label="特工代号">
+              <NInput v-model:value="newUsername" placeholder="代号" />
             </NFormItem>
             <NButton type="primary" @click="saveUsername">
               <template #icon><NIcon size="14"><SaveOutline /></NIcon></template>
-              保存用户名
+              保存档案
             </NButton>
           </NForm>
         </div>
 
-        <!-- 密码 -->
         <div>
-          <div class="sub-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px;">
-            <NIcon size="14" style="color: var(--accent);"><LockClosedOutline /></NIcon>
-            修改密码
+          <div class="sub-section-title">
+            <NIcon size="14" style="color: var(--chronos-accent);"><LockClosedOutline /></NIcon>
+            修改访问密钥
           </div>
           <NForm label-placement="top">
-            <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="确认密码"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
+            <NFormItem label="原密钥"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
+            <NFormItem label="新密钥"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
+            <NFormItem label="确认新密钥"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
             <NButton type="primary" @click="savePassword">
               <template #icon><NIcon size="14"><LockClosedOutline /></NIcon></template>
-              修改密码
+              更新密钥
             </NButton>
           </NForm>
         </div>
@@ -276,30 +294,35 @@ onMounted(() => {
     </div>
 
     <!-- API Key 管理 -->
-    <div class="surface section-card page-enter delay-1" style="padding: 24px;">
-      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); flex-shrink: 0;">
+    <div class="chronos-panel section-card page-enter delay-1">
+      <div class="panel-corner tl"></div>
+      <div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div>
+      <div class="panel-corner br"></div>
+
+      <div class="section-header">
+        <div class="section-icon accent">
           <NIcon size="19"><KeyOutline /></NIcon>
         </div>
         <div style="flex: 1;">
-          <h3 style="margin: 0 0 2px; font-size: 16px;">API Key 管理</h3>
-          <NText depth="3" style="font-size: 13px;">
-            在此保存你的 Deepseek API Key，余额查询等功能会用到。Key 加密存储于云端，列表仅显示掩码。
-          </NText>
+          <h3>API 密钥舱</h3>
+          <div class="section-sub">
+            存入 Deepseek API Key 供功能调用，密钥加密存储于量子云端，列表仅显示掩码
+          </div>
         </div>
       </div>
 
-      <div class="add-row" style="background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;">
+      <div class="add-row">
         <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="keyName" placeholder="如：工作 Key" style="width: 200px;" />
+          <NFormItem label="代号" :show-feedback="false" style="margin-bottom: 0;">
+            <NInput v-model:value="keyName" placeholder="如：工作密钥" style="width: 200px;" />
           </NFormItem>
-          <NFormItem label="Key" :show-feedback="false" style="margin-bottom: 0;">
+          <NFormItem label="密钥内容" :show-feedback="false" style="margin-bottom: 0;">
             <NInput v-model:value="keyValue" placeholder="sk-..." style="width: 320px;" />
           </NFormItem>
           <NButton type="primary" @click="addKey">
             <template #icon><NIcon size="14"><AddOutline /></NIcon></template>
-            新增
+            存入
           </NButton>
         </NSpace>
       </div>
@@ -308,32 +331,37 @@ onMounted(() => {
     </div>
 
     <!-- RESTful API 访问令牌 -->
-    <div class="surface section-card page-enter delay-2" style="padding: 24px;">
-      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--success-soft); color: var(--success); flex-shrink: 0;">
+    <div class="chronos-panel section-card page-enter delay-2">
+      <div class="panel-corner tl"></div>
+      <div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div>
+      <div class="panel-corner br"></div>
+
+      <div class="section-header">
+        <div class="section-icon success">
           <NIcon size="19"><ShieldOutline /></NIcon>
         </div>
         <div style="flex: 1;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
-            <h3 style="margin: 0; font-size: 16px;">RESTful API 访问令牌</h3>
-            <span class="pill pill-info" style="font-size: 11px;">v1</span>
+          <div class="section-title-row">
+            <h3>跨时空访问令牌</h3>
+            <span class="version-tag">v1</span>
           </div>
-          <NText depth="3" style="font-size: 13px;">
-            生成访问令牌后，可通过 RESTful API（/api/v1/*）访问你的数据。令牌明文仅在此创建时显示一次，服务端只存哈希，请立即复制保存。
-          </NText>
+          <div class="section-sub">
+            生成访问令牌后，可通过 RESTful API（/api/v1/*）跨维度访问数据。明文仅在创建时显示一次，服务端仅存哈希，请立即保存。
+          </div>
         </div>
       </div>
 
-      <div class="add-row" style="background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;">
+      <div class="add-row">
         <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
+          <NFormItem label="代号" :show-feedback="false" style="margin-bottom: 0;">
             <NInput v-model:value="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
           </NFormItem>
           <NFormItem label="有效期" :show-feedback="false" style="margin-bottom: 0;">
             <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
           </NFormItem>
           <NButton type="primary" :loading="tokenCreating" @click="createToken">
-            <template #icon><NIcon size="14"><ShieldOutline /></NIcon></template>
+            <template #icon><NIcon size="14"><RocketOutline /></NIcon></template>
             生成令牌
           </NButton>
         </NSpace>
@@ -346,25 +374,25 @@ onMounted(() => {
     <NModal
       v-model:show="showTokenModal"
       preset="card"
-      title="令牌已创建（明文仅此一次）"
+      title="令牌已生成（明文仅此一次）"
       style="width: 620px; max-width: 92vw;"
       :mask-closable="false"
       :bordered="false"
+      class="chronos-modal"
     >
       <NSpace vertical :size="14">
-        <div
-          style="display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--warning-soft); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius);"
-        >
-          <NIcon size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></NIcon>
-          <div style="font-size: 13px; color: #92400E; line-height: 1.6;">
-            请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新创建。
+        <div class="token-warning">
+          <NIcon size="20" style="color: var(--chronos-warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></NIcon>
+          <div>
+            请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新生成新令牌。
           </div>
         </div>
-        <div style="padding: 14px 16px; background: #0F172A; border-radius: var(--radius); border: 1px solid #1E293B;">
-          <div style="font-size: 11px; color: #94A3B8; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.02em; text-transform: uppercase;">
-            Bearer Token
+        <div class="token-display">
+          <div class="token-label">
+            <TimeOutline style="font-size: 11px; margin-right: 5px;" />
+            BEARER TOKEN
           </div>
-          <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap style="color: #E2E8F0; font-size: 13px; background: transparent; padding: 0;" />
+          <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap class="token-code" />
         </div>
         <NSpace justify="end" style="padding-top: 6px;">
           <NButton @click="showTokenModal = false">
@@ -382,33 +410,282 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.page-header-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius);
+.chronos-page-banner {
+  position: relative;
+  padding: 22px 24px;
+  border-radius: var(--chronos-radius-lg);
+  background:
+    linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(255, 90, 140, 0.07) 50%, rgba(0, 212, 255, 0.08) 100%),
+    linear-gradient(180deg, rgba(17, 26, 53, 0.95) 0%, rgba(11, 18, 38, 0.98) 100%);
+  border: 1px solid var(--chronos-border);
+  overflow: hidden;
+}
+.banner-glow-1, .banner-glow-2 {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.4;
+}
+.banner-glow-1 {
+  width: 260px; height: 260px;
+  top: -120px; right: -80px;
+  background: radial-gradient(circle, var(--chronos-rose) 0%, transparent 70%);
+}
+.banner-glow-2 {
+  width: 200px; height: 200px;
+  bottom: -100px; left: 20%;
+  background: radial-gradient(circle, var(--chronos-accent) 0%, transparent 70%);
+}
+.banner-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.chronos-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--chronos-accent);
+  font-family: var(--chronos-mono);
+  padding: 4px 10px;
+  background: rgba(168, 85, 247, 0.08);
+  border-radius: 4px;
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  margin-bottom: 10px;
+}
+.chronos-page-title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--chronos-text);
+  line-height: 1.2;
+}
+.title-accent {
+  color: var(--chronos-rose);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+.chronos-page-sub {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--chronos-text-muted);
+  line-height: 1.55;
+  max-width: 520px;
+}
+
+.banner-id {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.id-avatar {
+  position: relative;
+  width: 72px; height: 72px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%);
-  color: var(--primary);
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.18), rgba(168, 85, 247, 0.18));
   flex-shrink: 0;
 }
-.page-header-sub {
-  margin: 0;
+.id-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+.id-ring.r1 {
+  inset: -4px;
+  border-top-color: rgba(0, 212, 255, 0.5);
+  border-right-color: rgba(0, 212, 255, 0.3);
+  animation: spin 4s linear infinite;
+}
+.id-ring.r2 {
+  inset: -10px;
+  border-bottom-color: rgba(168, 85, 247, 0.5);
+  border-left-color: rgba(168, 85, 247, 0.3);
+  animation: spin 6s linear infinite reverse;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.id-name {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--chronos-text);
+  margin-bottom: 8px;
+}
+.id-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag-admin {
+  background: rgba(245, 158, 11, 0.12) !important;
+  color: var(--chronos-warning) !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+}
+.id-mode-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--chronos-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--chronos-mono);
+  letter-spacing: 0.03em;
+}
+.id-mode-tag.cloud {
+  background: var(--chronos-success-soft);
+  color: var(--chronos-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.id-mode-tag.local {
+  background: var(--chronos-surface-2);
+  color: var(--chronos-text-secondary);
+  border: 1px solid var(--chronos-border);
+}
+
+/* 章节卡片 */
+.section-card { padding: 24px; position: relative; overflow: hidden; }
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.section-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--chronos-primary);
+  flex-shrink: 0;
+  position: relative;
+}
+.section-icon.accent {
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--chronos-accent);
+}
+.section-icon.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--chronos-success);
+}
+.section-header h3 {
+  margin: 0 0 2px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--chronos-text);
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.section-title-row h3 { margin: 0; }
+.version-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 212, 255, 0.1);
+  color: var(--chronos-primary);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  font-family: var(--chronos-mono);
+}
+.section-sub {
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--chronos-text-muted);
   line-height: 1.5;
 }
-.section-card {
-  transition: box-shadow var(--transition);
+
+.account-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 32px;
 }
-.section-card:hover {
-  box-shadow: var(--shadow-sm);
+.sub-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--chronos-text-secondary);
+  margin-bottom: 14px;
+  font-family: var(--chronos-mono);
+  letter-spacing: 0.03em;
 }
+
+.add-row {
+  background: var(--chronos-surface-2);
+  border: 1px solid var(--chronos-border-subtle);
+  border-radius: var(--chronos-radius);
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+
+.token-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--chronos-radius);
+  font-size: 13px;
+  color: #92400E;
+  line-height: 1.6;
+}
+.token-display {
+  padding: 14px 16px;
+  background: #0F172A;
+  border-radius: var(--chronos-radius);
+  border: 1px solid #1E293B;
+}
+.token-label {
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+.token-code {
+  color: #E2E8F0;
+  font-size: 13px;
+  background: transparent;
+  padding: 0;
+}
+
+/* 响应式 */
 @media (max-width: 800px) {
   .account-grid {
     grid-template-columns: 1fr !important;
     gap: 24px !important;
   }
+}
+@media (max-width: 720px) {
+  .chronos-page-banner { padding: 18px 16px; }
+  .chronos-page-title { font-size: 20px; }
+  .banner-id { order: -1; }
+  .id-avatar { width: 60px; height: 60px; }
+  .section-card { padding: 18px 16px; }
+}
+@media (max-width: 480px) {
+  .chronos-page-banner { padding: 16px 14px; }
+  .chronos-page-title { font-size: 18px; }
+  .chronos-page-sub { font-size: 12.5px; }
+  .id-name { font-size: 16px; }
 }
 </style>
