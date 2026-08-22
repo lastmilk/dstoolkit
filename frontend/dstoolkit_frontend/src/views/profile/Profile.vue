@@ -14,9 +14,30 @@ import {
   NCode,
   NSelect,
   NModal,
+  NIcon,
   type DataTableColumns,
   type SelectOption,
 } from 'naive-ui'
+import { h } from 'vue'
+import {
+  PersonCircleOutline,
+  KeyOutline,
+  ShieldOutline,
+  CloudOutline,
+  CloudOfflineOutline,
+  SaveOutline,
+  LockClosedOutline,
+  AddOutline,
+  TrashOutline,
+  CopyOutline,
+  RibbonOutline,
+  CalendarOutline,
+  TimeOutline,
+  HourglassOutline,
+  CreateOutline,
+  CheckmarkCircleOutline,
+  CloseCircleOutline,
+} from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
 import { message } from '@/utils/naive'
@@ -170,8 +191,6 @@ const tokenColumns: DataTableColumns<ApiTokenItem> = [
   },
 ]
 
-import { h } from 'vue'
-
 onMounted(() => {
   loadApiKeys()
   loadApiTokens()
@@ -179,73 +198,217 @@ onMounted(() => {
 </script>
 
 <template>
-  <NSpace vertical :size="20">
-    <div class="neu-card">
-      <NSpace align="center" :size="12" style="margin-bottom: 12px;">
-        <h3 style="margin: 0;">账号信息</h3>
-        <NTag v-if="auth.isAdmin" type="warning" size="small">管理员</NTag>
-        <NTag :type="auth.cloudSyncEnabled ? 'success' : 'default'" size="small">
-          云端存储{{ auth.cloudSyncEnabled ? '已开启' : '已关闭' }}
-        </NTag>
+  <div class="page-enter" style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <NSpace align="center" :size="14" wrap>
+        <div class="page-header-icon">
+          <NIcon size="22"><PersonCircleOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h2 style="margin: 0 0 4px;">个人中心</h2>
+          <p class="page-header-sub">
+            管理你的账号信息、API Key 以及 RESTful API 访问令牌
+          </p>
+        </div>
       </NSpace>
-      <NSpace :size="40" align="start">
-        <NForm label-placement="left" style="min-width: 320px;">
-          <NFormItem label="用户名">
-            <NInput v-model:value="newUsername" placeholder="用户名" />
+    </div>
+
+    <!-- 账号信息 -->
+    <div class="surface section-card page-enter" style="padding: 24px;">
+      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--primary-soft); color: var(--primary); flex-shrink: 0;">
+          <NIcon size="19"><PersonCircleOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 2px; font-size: 16px;">账号信息</h3>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <NTag v-if="auth.isAdmin" type="warning" size="small" round>
+              <NIcon size="11" style="margin-right: 2px;"><RibbonOutline /></NIcon>
+              管理员
+            </NTag>
+            <span :class="['pill', auth.cloudSyncEnabled ? 'pill-success' : 'pill-default']" style="font-size: 11px;">
+              <NIcon size="10" style="margin-right: 3px;">
+                <CloudOutline v-if="auth.cloudSyncEnabled" />
+                <CloudOfflineOutline v-else />
+              </NIcon>
+              云端存储{{ auth.cloudSyncEnabled ? '已开启' : '已关闭' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px;" class="account-grid">
+        <!-- 用户名 -->
+        <div>
+          <div class="sub-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px;">
+            <NIcon size="14" style="color: var(--primary);"><CreateOutline /></NIcon>
+            修改用户名
+          </div>
+          <NForm label-placement="top">
+            <NFormItem label="用户名">
+              <NInput v-model:value="newUsername" placeholder="用户名" />
+            </NFormItem>
+            <NButton type="primary" @click="saveUsername">
+              <template #icon><NIcon size="14"><SaveOutline /></NIcon></template>
+              保存用户名
+            </NButton>
+          </NForm>
+        </div>
+
+        <!-- 密码 -->
+        <div>
+          <div class="sub-section-title" style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 14px;">
+            <NIcon size="14" style="color: var(--accent);"><LockClosedOutline /></NIcon>
+            修改密码
+          </div>
+          <NForm label-placement="top">
+            <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
+            <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
+            <NFormItem label="确认密码"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
+            <NButton type="primary" @click="savePassword">
+              <template #icon><NIcon size="14"><LockClosedOutline /></NIcon></template>
+              修改密码
+            </NButton>
+          </NForm>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key 管理 -->
+    <div class="surface section-card page-enter delay-1" style="padding: 24px;">
+      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--accent-soft); color: var(--accent); flex-shrink: 0;">
+          <NIcon size="19"><KeyOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 2px; font-size: 16px;">API Key 管理</h3>
+          <NText depth="3" style="font-size: 13px;">
+            在此保存你的 Deepseek API Key，余额查询等功能会用到。Key 加密存储于云端，列表仅显示掩码。
+          </NText>
+        </div>
+      </div>
+
+      <div class="add-row" style="background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;">
+        <NSpace :size="12" align="end" wrap>
+          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
+            <NInput v-model:value="keyName" placeholder="如：工作 Key" style="width: 200px;" />
           </NFormItem>
-          <NButton type="primary" @click="saveUsername">保存用户名</NButton>
-        </NForm>
-        <NForm label-placement="left" style="min-width: 360px;">
-          <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" /></NFormItem>
-          <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" /></NFormItem>
-          <NFormItem label="确认密码"><NInput v-model:value="confirmPwd" type="password" /></NFormItem>
-          <NButton type="primary" @click="savePassword">修改密码</NButton>
-        </NForm>
-      </NSpace>
+          <NFormItem label="Key" :show-feedback="false" style="margin-bottom: 0;">
+            <NInput v-model:value="keyValue" placeholder="sk-..." style="width: 320px;" />
+          </NFormItem>
+          <NButton type="primary" @click="addKey">
+            <template #icon><NIcon size="14"><AddOutline /></NIcon></template>
+            新增
+          </NButton>
+        </NSpace>
+      </div>
+
+      <NDataTable :columns="columns" :data="apiKeys" :bordered="false" size="small" :single-line="false" />
     </div>
 
-    <div class="neu-card">
-      <h3 style="margin: 0 0 12px;">API Key 管理</h3>
-      <NText depth="3" style="font-size: 13px; display: block; margin-bottom: 12px;">
-        在此保存你的 Deepseek API Key，余额查询等功能会用到。Key 加密存储于云端，列表仅显示掩码。
-      </NText>
-      <NSpace :size="12" align="end" style="margin-bottom: 16px;">
-        <NFormItem label="名称" :show-feedback="false"><NInput v-model:value="keyName" placeholder="如：工作 Key" style="width: 200px;" /></NFormItem>
-        <NFormItem label="Key" :show-feedback="false"><NInput v-model:value="keyValue" placeholder="sk-..." style="width: 280px;" /></NFormItem>
-        <NButton type="primary" @click="addKey">新增</NButton>
-      </NSpace>
-      <NDataTable :columns="columns" :data="apiKeys" :bordered="false" size="small" />
-    </div>
+    <!-- RESTful API 访问令牌 -->
+    <div class="surface section-card page-enter delay-2" style="padding: 24px;">
+      <div class="section-header" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <div class="section-icon" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--success-soft); color: var(--success); flex-shrink: 0;">
+          <NIcon size="19"><ShieldOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+            <h3 style="margin: 0; font-size: 16px;">RESTful API 访问令牌</h3>
+            <span class="pill pill-info" style="font-size: 11px;">v1</span>
+          </div>
+          <NText depth="3" style="font-size: 13px;">
+            生成访问令牌后，可通过 RESTful API（/api/v1/*）访问你的数据。令牌明文仅在此创建时显示一次，服务端只存哈希，请立即复制保存。
+          </NText>
+        </div>
+      </div>
 
-    <div class="neu-card">
-      <NSpace align="center" :size="12" style="margin-bottom: 12px;">
-        <h3 style="margin: 0;">RESTful API 访问令牌</h3>
-        <NTag type="info" size="small">v1</NTag>
-      </NSpace>
-      <NText depth="3" style="font-size: 13px; display: block; margin-bottom: 12px;">
-        生成访问令牌后，可通过 RESTful API（/api/v1/*）访问你的数据。令牌明文仅在此创建时显示一次，服务端只存哈希，请立即复制保存。了解接口细节请查阅 API 文档。
-      </NText>
-      <NSpace :size="12" align="end" style="margin-bottom: 16px;">
-        <NFormItem label="名称" :show-feedback="false"><NInput v-model:value="tokenName" placeholder="如：脚本采集" style="width: 200px;" /></NFormItem>
-        <NFormItem label="有效期" :show-feedback="false">
-          <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 140px;" />
-        </NFormItem>
-        <NButton type="primary" :loading="tokenCreating" @click="createToken">生成令牌</NButton>
-      </NSpace>
+      <div class="add-row" style="background: var(--surface-2); border: 1px solid var(--border-subtle); border-radius: var(--radius); padding: 14px 16px; margin: 16px 0;">
+        <NSpace :size="12" align="end" wrap>
+          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
+            <NInput v-model:value="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
+          </NFormItem>
+          <NFormItem label="有效期" :show-feedback="false" style="margin-bottom: 0;">
+            <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
+          </NFormItem>
+          <NButton type="primary" :loading="tokenCreating" @click="createToken">
+            <template #icon><NIcon size="14"><ShieldOutline /></NIcon></template>
+            生成令牌
+          </NButton>
+        </NSpace>
+      </div>
+
       <NDataTable :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" :scroll-x="900" />
     </div>
 
-    <NModal v-model:show="showTokenModal" preset="card" title="令牌已创建（明文仅此一次）" style="width: 600px;" :mask-closable="false">
-      <NSpace vertical :size="12">
-        <NText type="warning" style="font-size: 13px;">
-          请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新创建。
-        </NText>
-        <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap />
-        <NSpace justify="end">
-          <NButton @click="showTokenModal = false">我已保存</NButton>
-          <NButton type="primary" @click="copyNewToken">复制令牌</NButton>
+    <!-- 新建令牌弹窗 -->
+    <NModal
+      v-model:show="showTokenModal"
+      preset="card"
+      title="令牌已创建（明文仅此一次）"
+      style="width: 620px; max-width: 92vw;"
+      :mask-closable="false"
+      :bordered="false"
+    >
+      <NSpace vertical :size="14">
+        <div
+          style="display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; background: var(--warning-soft); border: 1px solid rgba(245,158,11,0.2); border-radius: var(--radius);"
+        >
+          <NIcon size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></NIcon>
+          <div style="font-size: 13px; color: #92400E; line-height: 1.6;">
+            请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新创建。
+          </div>
+        </div>
+        <div style="padding: 14px 16px; background: #0F172A; border-radius: var(--radius); border: 1px solid #1E293B;">
+          <div style="font-size: 11px; color: #94A3B8; font-weight: 600; margin-bottom: 8px; letter-spacing: 0.02em; text-transform: uppercase;">
+            Bearer Token
+          </div>
+          <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap style="color: #E2E8F0; font-size: 13px; background: transparent; padding: 0;" />
+        </div>
+        <NSpace justify="end" style="padding-top: 6px;">
+          <NButton @click="showTokenModal = false">
+            <template #icon><NIcon size="15"><CheckmarkCircleOutline /></NIcon></template>
+            我已保存
+          </NButton>
+          <NButton type="primary" @click="copyNewToken">
+            <template #icon><NIcon size="15"><CopyOutline /></NIcon></template>
+            复制令牌
+          </NButton>
         </NSpace>
       </NSpace>
     </NModal>
-  </NSpace>
+  </div>
 </template>
+
+<style scoped>
+.page-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.page-header-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.section-card {
+  transition: box-shadow var(--transition);
+}
+.section-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+@media (max-width: 800px) {
+  .account-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+</style>

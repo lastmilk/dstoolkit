@@ -5,7 +5,6 @@ import {
   NInput,
   NSwitch,
   NText,
-  NTag,
   NSpin,
   NButton,
   NCheckbox,
@@ -13,8 +12,19 @@ import {
   NRadio,
   NRadioButton,
   NPagination,
+  NIcon,
+  NTag,
 } from 'naive-ui'
 import dayjs from 'dayjs'
+import {
+  SearchOutline,
+  CloudOutline,
+  CloudOfflineOutline,
+  FilterOutline,
+  TimeOutline,
+  SearchCircleOutline,
+  ChevronDownOutline,
+} from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
 import {
@@ -29,7 +39,6 @@ import {
   loadConversationDetail,
   type CloudSearchResult,
   type SearchFilters,
-  type SearchResult,
 } from '@/utils/db'
 import { request } from '@/utils/request'
 import { message } from '@/utils/naive'
@@ -41,45 +50,40 @@ const auth = useAuthStore()
 const searchModelStore = useSearchModelStore()
 
 const loading = ref(false)
-const loadProgress = ref('')  // 当前加载步骤描述
-const loadTime = ref<number | null>(null)  // 上次加载耗时（毫秒）
+const loadProgress = ref('')
+const loadTime = ref<number | null>(null)
 const conversations = ref<ParsedConversation[]>([])
 const query = ref('')
 const useRegex = ref(false)
 const searchHits = ref<Set<string>>(new Set())
-const searchConvIds = ref<Set<string>>(new Set())  // 云端搜索命中的会话 ID
+const searchConvIds = ref<Set<string>>(new Set())
 const autoExpandPaths = ref<string[]>([])
 const mode = ref<'timeline' | 'search'>('timeline')
 
 const activeConv = ref<ParsedConversation | null>(null)
 const apiKeys = ref<Array<{ id: number; name: string }>>([])
 
-// 搜索范围筛选
 const searchFilters = ref<SearchFilters>({ user: true, assistant: true, title: true })
 
 const localUserId = ref<string | undefined>(undefined)
-const detailLoading = ref(false)  // 按需加载会话详情时的 loading 状态
+const detailLoading = ref(false)
 
-// 分页加载状态（云端模式按配置分页；本地模式全量加载以保留 FlexSearch 全文检索）
 const EXPLORE_PAGE_SIZE = 50
 const hasMore = ref(false)
 const loadingMore = ref(false)
 const totalConvs = ref<number | undefined>(undefined)
 const cloudConfigStates = ref<Array<{ id: number; name: string; page: number; hasMore: boolean }>>([])
 
-// In search mode, only show conversations that contain hits.
 const treeConversations = computed<ParsedConversation[]>(() => {
   if (mode.value === 'timeline') return conversations.value
   const hits = searchHits.value
   const convIds = searchConvIds.value
   if (hits.size === 0 && convIds.size === 0) return []
-  // 云端 lite 模式下 messages 为空，用 convIds 过滤；本地模式用 nodeId 匹配
   return conversations.value.filter((c) =>
     convIds.has(c.deepseekConvId) || c.messages.some((m) => hits.has(m.nodeId)),
   )
 })
 
-// 真正的分页：1 2 3 4 5 ... 页码导航
 const currentPage = ref(1)
 const pageSize = ref(20)
 const totalCount = computed(() => treeConversations.value.length)
@@ -92,7 +96,6 @@ const pagedTreeConversations = computed<ParsedConversation[]>(() => {
   return treeConversations.value.slice(start, start + pageSize.value)
 })
 
-// 列表变化（搜索/筛选/加载更多）时回到第一页，避免越界空页
 watch([treeConversations, pageSize], () => {
   if (currentPage.value > pageCount.value) currentPage.value = 1
   else if (currentPage.value !== 1 && treeConversations.value.length === 0) {
@@ -102,7 +105,6 @@ watch([treeConversations, pageSize], () => {
 
 async function onPageChange(p: number) {
   currentPage.value = p
-  // 云端模式：翻到最后一页且云端仍有未加载数据时，自动拉取下一批
   if (
     auth.cloudSyncEnabled &&
     hasMore.value &&
@@ -156,8 +158,6 @@ async function doSearch() {
   mode.value = 'search'
   loading.value = true
   try {
-    // 云端模式：conversations 为 lite 加载（messages 为空），本地搜索无法工作，
-    // 必须走后端 /api/search（SQL LIKE fallback 或 Meilisearch）。
     if (auth.cloudSyncEnabled) {
       const results = await cloudSearch(q, undefined, 200)
       const hits = new Set<string>()
@@ -173,12 +173,10 @@ async function doSearch() {
       searchConvIds.value = convIds
       autoExpandPaths.value = Array.from(paths)
     } else if (searchModelStore.isLocalV1) {
-      // 本地模式：确保索引已就绪（处理与后台预加载的竞态：用户在预加载完成前搜索）
       searchConvIds.value = new Set()
       if (localUserId.value && !isIndexReady(localUserId.value)) {
         await preloadIndex(localUserId.value, conversations.value)
       }
-      // 优先使用 FlexSearch 索引（<100ms）；无索引时回退到 includes 扫描
       const results = useRegex.value
         ? await searchConversations(q, true, 200, searchFilters.value, conversations.value)
         : localUserId.value
@@ -230,14 +228,12 @@ function onSelectSubturn(payload: {
 }) {
   const conv = payload.conv
   activeConv.value = conv
-  // 云端 lite 模式：messages 为空时按需从服务器加载
   if (conv.configId && conv.messages.length === 0) {
     detailLoading.value = true
     loadConversationDetail(conv.configId, conv.deepseekConvId)
       .then(({ messages, turns }) => {
         conv.messages = messages
         conv.turns = turns
-        // 触发响应式更新：替换数组中的对象
         const idx = conversations.value.findIndex((c) => c.deepseekConvId === conv.deepseekConvId)
         if (idx >= 0) {
           const updated = { ...conv, messages, turns }
@@ -256,15 +252,10 @@ async function init() {
   const t0 = performance.now()
   try {
     if (auth.cloudSyncEnabled) {
-      // 云端：分片分页加载。先取配置列表，再逐个配置加载第一页（lite，不含 messages），
-      // 首屏秒级显示；点击会话时按需 loadConversationDetail 加载 messages。
       loadProgress.value = '正在获取配置列表…'
       const { configs } = (await request.get('/configs')) as any
       cloudConfigStates.value = configs.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        page: 0,
-        hasMore: true,
+        id: c.id, name: c.name, page: 0, hasMore: true,
       }))
       const all: ParsedConversation[] = []
       for (let i = 0; i < configs.length; i++) {
@@ -272,19 +263,14 @@ async function init() {
         loadProgress.value = `正在加载配置 ${i + 1}/${configs.length}: ${cfg.name}…`
         try {
           const page = await loadConversationsPage({
-            cloudSync: true,
-            configId: cfg.id,
-            page: 1,
-            pageSize: EXPLORE_PAGE_SIZE,
-            withMessages: false,
+            cloudSync: true, configId: cfg.id, page: 1,
+            pageSize: EXPLORE_PAGE_SIZE, withMessages: false,
           })
           all.push(...page.conversations)
           const st = cloudConfigStates.value.find((s) => s.id === cfg.id)
           if (st) { st.page = 1; st.hasMore = page.hasMore }
-          conversations.value = [...all] // 增量显示：每个配置首页加载完即刷新
-          if (page.total != null) {
-            totalConvs.value = (totalConvs.value ?? 0) + page.total
-          }
+          conversations.value = [...all]
+          if (page.total != null) totalConvs.value = (totalConvs.value ?? 0) + page.total
         } catch (e) {
           console.warn(`Failed to load config ${cfg.name}:`, e)
           loadProgress.value = `配置 ${cfg.name} 加载失败`
@@ -292,7 +278,6 @@ async function init() {
       }
       hasMore.value = cloudConfigStates.value.some((s) => s.hasMore)
     } else {
-      // 本地：全量加载（FlexSearch 全文检索需完整语料；本地磁盘读取快）
       loadProgress.value = '正在加载本地会话数据…'
       conversations.value = await loadAllConversations(false, (msg) => { loadProgress.value = msg })
       hasMore.value = false
@@ -301,21 +286,14 @@ async function init() {
       if (configs.length > 0 && configs[0]) {
         localUserId.value = configs[0].deepseekUserId
         loadProgress.value = '正在预构建搜索索引…'
-        // 后台预加载 FlexSearch 索引（非阻塞）：首屏只等 loadAllConversations，
-        // 索引在后台加载/构建，用户实际搜索时通常已就绪
-        void preloadIndex(localUserId.value, conversations.value).catch(() => {
-          /* 索引预加载失败不阻断；搜索时会重试 */
-        })
+        void preloadIndex(localUserId.value, conversations.value).catch(() => {})
       }
     }
-    // 加载用户 API Key 列表（供 ChatViewer 续聊使用）
     loadProgress.value = '正在加载 API Key 列表…'
     try {
       const { apiKeys: keys } = (await request.get('/apikeys')) as any
       apiKeys.value = keys
-    } catch {
-      /* API Key 加载失败不阻断 */
-    }
+    } catch {}
     loadTime.value = Math.round(performance.now() - t0)
   } finally {
     loading.value = false
@@ -323,10 +301,9 @@ async function init() {
   }
 }
 
-/** 云端分页：为每个仍有未加载页的配置加载下一页，追加到树。 */
 async function loadMore() {
   if (loadingMore.value || !hasMore.value) return
-  if (!auth.cloudSyncEnabled) return // 本地已全量加载
+  if (!auth.cloudSyncEnabled) return
   loadingMore.value = true
   try {
     const toLoad = cloudConfigStates.value.filter((s) => s.hasMore)
@@ -334,11 +311,8 @@ async function loadMore() {
     for (const s of toLoad) {
       const nextPage = s.page + 1
       const page = await loadConversationsPage({
-        cloudSync: true,
-        configId: s.id,
-        page: nextPage,
-        pageSize: EXPLORE_PAGE_SIZE,
-        withMessages: false,
+        cloudSync: true, configId: s.id, page: nextPage,
+        pageSize: EXPLORE_PAGE_SIZE, withMessages: false,
       })
       more.push(...page.conversations)
       s.page = nextPage
@@ -362,87 +336,159 @@ onMounted(() => {
 
 <template>
   <div class="explore-root">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-      <h2 style="margin: 0;">探索</h2>
-      <NSpace v-if="loading" align="center" :size="8">
-        <NSpin :size="16" />
-        <NText depth="3" style="font-size: 13px;">{{ loadProgress || '加载中…' }}</NText>
-      </NSpace>
-      <NText v-else-if="loadTime !== null" depth="3" style="font-size: 13px;">
-        加载完成，耗时 {{ (loadTime / 1000).toFixed(2) }}s · 已加载 {{ conversations.length }} 个会话<span v-if="totalConvs != null"> / 共 {{ totalConvs }}</span>
-      </NText>
+    <!-- ========== 顶部：标题 + 加载/统计 ========== -->
+    <div class="explore-header">
+      <div class="explore-title-block">
+        <div class="page-eyebrow">
+          <NIcon size="12"><SearchOutline /></NIcon>
+          <span>EXPLORER</span>
+        </div>
+        <div class="explore-title-row">
+          <h2 class="explore-title">对话探索</h2>
+          <NTag
+            v-if="totalConvs != null || conversations.length > 0"
+            size="small"
+            type="primary"
+            round
+          >
+            {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个会话
+          </NTag>
+        </div>
+      </div>
+
+      <div class="explore-stats">
+        <div v-if="loading" class="status-chip status-chip-loading">
+          <NSpin :size="14" />
+          <span>{{ loadProgress || '加载中…' }}</span>
+        </div>
+        <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
+          <NIcon size="14" style="color: var(--success);"><SearchCircleOutline /></NIcon>
+          <span>就绪 · 耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
+        </div>
+      </div>
     </div>
 
-    <div
-      class="neu-inset"
-      style="margin-bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;"
-    >
-      <NInput
-        :value="query"
-        placeholder="搜索对话内容…（开启正则后按正则表达式匹配）"
-        clearable
-        style="flex: 1; min-width: 260px;"
-        @update:value="onQueryInput"
-        @keyup.enter="debounceTimer = null; doSearch()"
-      />
-      <NSpace align="center" :size="6">
-        <NText depth="3" style="font-size: 13px;">正则</NText>
-        <NSwitch v-model:value="useRegex" size="small" />
-      </NSpace>
-      <NButton type="primary" @click="doSearch">搜索</NButton>
-    </div>
-
-    <NSpace align="center" :size="16" style="margin-bottom: 12px; flex-wrap: wrap;">
-      <NSpace align="center" :size="8">
-        <NText depth="3" style="font-size: 13px;">搜索模型</NText>
-        <NRadioGroup
-          :value="searchModelStore.model"
-          size="small"
-          @update:value="onModelChange"
-        >
-          <NRadio value="local_v1" size="small">local v1（免费 · 不上传数据）</NRadio>
-          <NRadio value="cloud_v1" size="small">cloud v1（Meilisearch 混合 · 有限流）</NRadio>
-          <NRadio :value="'cloud_v2'" :disabled="true" size="small">
-            cloud v2（即将推出 · Elasticsearch）
-          </NRadio>
-        </NRadioGroup>
-      </NSpace>
-      <NSpace align="center" :size="8">
-        <NText depth="3" style="font-size: 13px;">模式</NText>
-        <NRadioGroup
-          :value="mode"
-          size="small"
-          @update:value="(v: string | number) => onModeChange(v as 'timeline' | 'search')"
-        >
-          <NRadioButton value="timeline">时间线</NRadioButton>
-          <NRadioButton value="search">搜索</NRadioButton>
-        </NRadioGroup>
-      </NSpace>
-      <NTag size="small" :type="auth.cloudSyncEnabled ? 'success' : 'default'">
-        {{ auth.cloudSyncEnabled ? '数据源：云端' : '数据源：本地 IndexedDB' }}
-      </NTag>
-    </NSpace>
-
-    <!-- 搜索范围筛选 -->
-    <NSpace align="center" :size="16" style="margin-bottom: 12px;">
-      <NText depth="3" style="font-size: 13px;">搜索范围</NText>
-      <NCheckbox v-model:checked="searchFilters.user">用户消息</NCheckbox>
-      <NCheckbox v-model:checked="searchFilters.assistant">AI 回复</NCheckbox>
-      <NCheckbox v-model:checked="searchFilters.title">标题</NCheckbox>
-    </NSpace>
-
-    <!-- 左右分栏：树 + 对话查看器 -->
-    <div class="explore-split">
-      <div class="explore-tree">
-        <NSpin :show="loading">
-          <TurnTree
-            :conversations="pagedTreeConversations"
-            :search-hits="searchHits"
-            :auto-expand-paths="autoExpandPaths"
-            @select-subturn="onSelectSubturn"
+    <!-- ========== 搜索控制栏：搜索框 + 模式切换 ========== -->
+    <div class="search-panel surface">
+      <div class="search-row">
+        <div class="search-input-wrap">
+          <div class="search-input-icon">
+            <NIcon size="18"><SearchOutline /></NIcon>
+          </div>
+          <NInput
+            :value="query"
+            placeholder="输入关键词搜索对话内容…（支持正则表达式）"
+            clearable
+            class="search-input"
+            @update:value="onQueryInput"
+            @keyup.enter="debounceTimer = null; doSearch()"
           />
-        </NSpin>
-        <div class="pager-bar">
+          <div class="search-regex-toggle">
+            <span class="regex-label">正则</span>
+            <NSwitch v-model:value="useRegex" size="small" />
+          </div>
+        </div>
+        <NButton type="primary" size="medium" :loading="loading" @click="doSearch">
+          <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
+          搜索
+        </NButton>
+      </div>
+
+      <div class="search-options">
+        <!-- 搜索模型 -->
+        <div class="opt-group">
+          <label class="opt-label">搜索模型</label>
+          <NRadioGroup
+            :value="searchModelStore.model"
+            size="small"
+            @update:value="onModelChange"
+          >
+            <NRadio value="local_v1" size="small">本地 v1</NRadio>
+            <NRadio value="cloud_v1" size="small">云端 v1</NRadio>
+            <NRadio :value="'cloud_v2'" :disabled="true" size="small">云端 v2</NRadio>
+          </NRadioGroup>
+        </div>
+
+        <!-- 模式切换 -->
+        <div class="opt-group opt-mode">
+          <NRadioGroup
+            :value="mode"
+            size="small"
+            @update:value="(v: string | number) => onModeChange(v as 'timeline' | 'search')"
+          >
+            <NRadioButton value="timeline">
+              <NIcon size="14" style="margin-right: 4px;"><TimeOutline /></NIcon>
+              时间线
+            </NRadioButton>
+            <NRadioButton value="search">
+              <NIcon size="14" style="margin-right: 4px;"><SearchCircleOutline /></NIcon>
+              搜索结果
+            </NRadioButton>
+          </NRadioGroup>
+        </div>
+
+        <!-- 数据源标签 -->
+        <div class="opt-group opt-datasource">
+          <span
+            :class="['source-pill', auth.cloudSyncEnabled ? 'source-cloud' : 'source-local']"
+          >
+            <NIcon size="12">
+              <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
+            </NIcon>
+            {{ auth.cloudSyncEnabled ? '云端数据源' : '本地 IndexedDB' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 搜索范围筛选 -->
+      <div class="filter-row">
+        <div class="filter-label">
+          <NIcon size="14"><FilterOutline /></NIcon>
+          <span>搜索范围</span>
+        </div>
+        <NSpace align="center" :size="16">
+          <label class="filter-chip">
+            <NCheckbox v-model:checked="searchFilters.title" />
+            <span>标题</span>
+          </label>
+          <label class="filter-chip">
+            <NCheckbox v-model:checked="searchFilters.user" />
+            <span>用户消息</span>
+          </label>
+          <label class="filter-chip">
+            <NCheckbox v-model:checked="searchFilters.assistant" />
+            <span>AI 回复</span>
+          </label>
+        </NSpace>
+      </div>
+    </div>
+
+    <!-- ========== 主分栏：树 + 对话 ========== -->
+    <div class="explore-split">
+      <!-- 左侧：树面板 -->
+      <div class="explore-tree surface">
+        <div class="tree-header">
+          <div class="tree-header-title">
+            {{ mode === 'timeline' ? '全部会话' : `命中会话 (${totalCount})` }}
+          </div>
+          <NText depth="3" style="font-size: 12px;">
+            共 {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
+          </NText>
+        </div>
+        <div class="tree-body">
+          <NSpin :show="loading" style="height: 100%;">
+            <TurnTree
+              :conversations="pagedTreeConversations"
+              :search-hits="searchHits"
+              :auto-expand-paths="autoExpandPaths"
+              @select-subturn="onSelectSubturn"
+            />
+          </NSpin>
+        </div>
+        <div class="tree-footer">
+          <div class="pager-info">
+            第 {{ currentPage }} / {{ pageCount }} 页
+          </div>
           <NPagination
             :page="currentPage"
             :page-size="pageSize"
@@ -450,14 +496,11 @@ onMounted(() => {
             :page-count="pageCount"
             :page-sizes="[20, 50, 100, 200]"
             show-size-picker
-            show-quick-jumper
             :disabled="loading"
+            size="small"
             @update:page="onPageChange"
             @update:page-size="(s: number) => { pageSize = s; currentPage = 1 }"
           />
-          <NText depth="3" style="font-size: 12px; white-space: nowrap;">
-            已加载 {{ conversations.length }}<span v-if="totalConvs != null"> / 云端共 {{ totalConvs }}</span> 个会话
-          </NText>
           <NButton
             v-if="hasMore"
             size="tiny"
@@ -465,13 +508,15 @@ onMounted(() => {
             ghost
             :loading="loadingMore"
             @click="loadMore"
-          >从云端加载更多</NButton>
+          >加载更多</NButton>
         </div>
       </div>
+
+      <!-- 右侧：ChatViewer -->
       <div class="explore-chat">
-        <div v-if="detailLoading" class="detail-loading">
-          <NSpin size="medium" />
-          <NText depth="3" style="margin-top: 8px;">正在加载会话消息…</NText>
+        <div v-if="detailLoading" class="detail-loading surface">
+          <NSpin size="large" />
+          <NText depth="3" style="margin-top: 16px; font-size: 13px;">正在加载会话详情…</NText>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
       </div>
@@ -483,47 +528,283 @@ onMounted(() => {
 .explore-root {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  gap: 20px;
+  min-height: 100%;
 }
-.detail-loading {
+
+/* ========== 顶部标题 ========== */
+.explore-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.explore-title-block {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  gap: 6px;
 }
+.page-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+}
+.explore-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.explore-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* 状态 chip */
+.explore-stats { display: flex; align-items: center; gap: 8px; }
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-full);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.status-chip-loading {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.status-chip-ok {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+/* ========== 搜索面板 ========== */
+.search-panel {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.search-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 0 12px 0 0;
+  transition: all var(--transition-fast);
+}
+.search-input-wrap:focus-within {
+  border-color: var(--primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-focus);
+}
+.search-input-icon {
+  padding: 0 12px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+.search-input {
+  flex: 1;
+  background: transparent !important;
+}
+.search-input :deep(.n-input__input-el) {
+  background: transparent !important;
+  height: 42px;
+}
+.search-input :deep(.n-input__border),
+.search-input :deep(.n-input__state-border) {
+  display: none;
+}
+.search-regex-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  margin-left: 8px;
+  border-left: 1px solid var(--border);
+  height: 24px;
+}
+.regex-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* 搜索选项 */
+.search-options {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.opt-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.opt-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.opt-mode { margin-left: auto; }
+.opt-datasource { margin-left: auto; }
+
+.source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 500;
+}
+.source-cloud {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.source-local {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+/* 搜索范围 */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+.filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+.filter-chip:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+/* ========== 分栏主体 ========== */
 .explore-split {
   display: flex;
-  gap: 16px;
+  gap: 20px;
+  min-height: 0;
+  flex: 1;
+}
+
+/* 左侧树面板 */
+.explore-tree {
+  flex: 0 0 38%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tree-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.tree-body {
   flex: 1;
   min-height: 0;
-}
-.explore-tree {
-  flex: 0 0 40%;
   overflow: auto;
+  padding: 8px 10px;
 }
-.pager-bar {
+.tree-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 8px 4px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
   flex-wrap: wrap;
 }
-.pager-bar :deep(.n-pagination) {
-  flex: 1;
+.pager-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
 }
+.tree-footer :deep(.n-pagination) {
+  flex: 1;
+  justify-content: center;
+}
+
+/* 右侧 ChatViewer 直接嵌入 */
 .explore-chat {
   flex: 1;
   min-width: 0;
+  display: flex;
 }
-@media (max-width: 768px) {
+.detail-loading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+@media (max-width: 1080px) {
+  .explore-tree { flex: 0 0 45%; }
+}
+@media (max-width: 820px) {
   .explore-split {
     flex-direction: column;
   }
-  .explore-tree,
-  .explore-chat {
-    flex: 1;
+  .explore-tree {
+    flex: none;
+    max-height: 52vh;
   }
+  .explore-chat {
+    min-height: 60vh;
+  }
+  .opt-mode, .opt-datasource { margin-left: 0; }
 }
 </style>

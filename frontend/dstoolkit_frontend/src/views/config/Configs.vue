@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { h } from 'vue'
 import {
   NButton,
   NSpace,
@@ -14,8 +15,22 @@ import {
   NText,
   NEmpty,
   NSpin,
+  NIcon,
   type UploadFileInfo,
 } from 'naive-ui'
+import {
+  CloudOutline,
+  CloudOfflineOutline,
+  AddOutline,
+  FolderOpenOutline,
+  EyeOutline,
+  RefreshOutline,
+  TrashOutline,
+  PersonCircleOutline,
+  ChatbubbleEllipsesOutline,
+  CalendarOutline,
+  HardwareChipOutline,
+} from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
 import { message } from '@/utils/naive'
@@ -105,9 +120,7 @@ async function submitModal() {
     fd.append('name', modalName.value.trim())
     const res = (await request.post('/configs', fd)) as UploadResult
     if (!res.persisted) {
-      // cloud off：保存到本地 IndexedDB（saveLocalConfig 会按 deepseekUserId 增量 upsert）
       await saveLocalConfig(res.config, res.conversations ?? [])
-      // 本地模式：导入时一次构建 FlexSearch 索引并持久化到 IndexedDB
       try {
         if (modalMode.value === 'update' && modalTarget.value) {
           const changedConvIds = (res.conversations ?? []).map((c) => c.deepseekConvId)
@@ -159,50 +172,120 @@ onMounted(reload)
 </script>
 
 <template>
-  <div>
-    <NSpace justify="space-between" align="center" style="margin-bottom: 16px;">
-      <h2 style="margin: 0;">Deepseek 配置</h2>
-      <NSpace align="center" :size="12">
-        <NTag :type="auth.cloudSyncEnabled ? 'success' : 'default'" size="small">
-          {{ auth.cloudSyncEnabled ? '云端存储' : '仅本地' }}
-        </NTag>
-        <NButton type="primary" @click="openCreate">新增配置</NButton>
+  <div class="page-enter">
+    <!-- 页面头部 -->
+    <div class="page-header" style="margin-bottom: 24px;">
+      <NSpace align="center" :size="14" wrap>
+        <div class="page-header-icon">
+          <NIcon size="22"><FolderOpenOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h2 style="margin: 0 0 4px;">Deepseek 配置</h2>
+          <p class="page-header-sub">
+            管理你导入的 Deepseek 账号配置，支持本地存储与云端同步两种模式
+          </p>
+        </div>
+        <NSpace align="center" :size="10">
+          <span v-if="auth.cloudSyncEnabled" class="pill pill-success">
+            <NIcon size="12"><CloudOutline /></NIcon>
+            云端存储
+          </span>
+          <span v-else class="pill pill-default">
+            <NIcon size="12"><CloudOfflineOutline /></NIcon>
+            仅本地
+          </span>
+          <NButton type="primary" @click="openCreate">
+            <template #icon><NIcon size="16"><AddOutline /></NIcon></template>
+            新增配置
+          </NButton>
+        </NSpace>
       </NSpace>
-    </NSpace>
+    </div>
 
+    <!-- 配置列表 -->
     <NSpin :show="loading">
-      <NEmpty v-if="!loading && configs.length === 0" description="还没有配置，点击右上角新增" style="padding: 40px 0;" />
-      <NSpace v-else :size="16" wrap>
-        <NCard
+      <NEmpty
+        v-if="!loading && configs.length === 0"
+        description="还没有配置，点击右上角新增"
+        style="padding: 60px 0;"
+      />
+      <div
+        v-else
+        class="config-grid"
+        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;"
+      >
+        <div
           v-for="c in configs"
           :key="c.deepseekUserId"
-          class="neu-card"
-          style="width: 360px;"
-          :bordered="false"
+          class="surface surface-hover config-card page-enter"
+          style="padding: 20px;"
         >
-          <h3 style="margin: 0 0 8px;">{{ c.name }}</h3>
-          <NSpace vertical :size="4" style="font-size: 13px; color: var(--text-muted);">
-            <NText depth="3">Deepseek 用户：{{ c.deepseekUserId.slice(0, 13) }}…</NText>
-            <NText depth="3" v-if="c.deepseekMobile">手机：{{ c.deepseekMobile }}</NText>
-            <NText depth="3">会话数：{{ c.conversationCount ?? '—' }}</NText>
-            <NText depth="3">更新时间：{{ fmtDate(c.updatedAt) }}</NText>
-          </NSpace>
-          <template #action>
-            <NSpace justify="end" :size="8">
-              <NButton size="small" @click="viewConversations">查看</NButton>
-              <NButton size="small" type="primary" ghost @click="openUpdate(c)">更新</NButton>
-              <NButton size="small" type="error" ghost @click="removeConfig(c)">删除</NButton>
-            </NSpace>
-          </template>
-        </NCard>
-      </NSpace>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div
+                class="config-avatar"
+                style="width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%); color: var(--primary);"
+              >
+                <NIcon size="20"><PersonCircleOutline /></NIcon>
+              </div>
+              <div>
+                <h3 style="margin: 0 0 2px; font-size: 16px;">{{ c.name }}</h3>
+                <span class="pill pill-default" style="font-size: 11px;">
+                  <NIcon size="10" style="margin-right: 2px;"><HardwareChipOutline /></NIcon>
+                  {{ c.deepseekUserId.slice(0, 10) }}…
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-meta" style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 18px;">
+            <div class="meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <NIcon size="14" style="color: var(--text-muted);"><PersonCircleOutline /></NIcon>
+              <NText depth="3" style="font-size: 13px;">用户ID：{{ c.deepseekUserId.slice(0, 13) }}…</NText>
+            </div>
+            <div v-if="c.deepseekMobile" class="meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <NIcon size="14" style="color: var(--text-muted);"><HardwareChipOutline /></NIcon>
+              <NText depth="3" style="font-size: 13px;">手机：{{ c.deepseekMobile }}</NText>
+            </div>
+            <div class="meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <NIcon size="14" style="color: var(--text-muted);"><ChatbubbleEllipsesOutline /></NIcon>
+              <NText depth="3" style="font-size: 13px;">会话数：</NText>
+              <NTag size="small" type="info" round>{{ c.conversationCount ?? '—' }}</NTag>
+            </div>
+            <div class="meta-row" style="display: flex; align-items: center; gap: 8px; font-size: 13px;">
+              <NIcon size="14" style="color: var(--text-muted);"><CalendarOutline /></NIcon>
+              <NText depth="3" style="font-size: 13px;">更新：{{ fmtDate(c.updatedAt) }}</NText>
+            </div>
+          </div>
+
+          <div
+            class="card-actions"
+            style="display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid var(--border-subtle);"
+          >
+            <NButton size="small" @click="viewConversations">
+              <template #icon><NIcon size="14"><EyeOutline /></NIcon></template>
+              查看
+            </NButton>
+            <NButton size="small" type="primary" ghost @click="openUpdate(c)">
+              <template #icon><NIcon size="14"><RefreshOutline /></NIcon></template>
+              更新
+            </NButton>
+            <NButton size="small" type="error" ghost @click="removeConfig(c)">
+              <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
+              删除
+            </NButton>
+          </div>
+        </div>
+      </div>
     </NSpin>
 
+    <!-- 模态框 -->
     <NModal
       v-model:show="modalVisible"
       preset="card"
       :title="modalMode === 'create' ? '新增 Deepseek 配置' : '更新配置（上传新数据包）'"
-      style="width: 460px; max-width: 92vw;"
+      style="width: 480px; max-width: 92vw;"
+      :bordered="false"
     >
       <NForm label-placement="top">
         <NFormItem label="配置名称" v-if="modalMode === 'create'">
@@ -219,9 +302,16 @@ onMounted(reload)
             @change="onFileChange"
             :file-list="[]"
           >
-            <NButton>选择 zip 文件</NButton>
+            <NButton>
+              <template #icon><NIcon size="14"><FolderOpenOutline /></NIcon></template>
+              选择 zip 文件
+            </NButton>
           </NUpload>
-          <NText v-if="modalFile" depth="3" style="margin-left: 8px;">{{ modalFile.name }}</NText>
+          <div v-if="modalFile" style="margin-top: 10px;">
+            <span class="pill pill-primary" style="font-size: 12px;">
+              📎 {{ modalFile.name }}
+            </span>
+          </div>
         </NFormItem>
       </NForm>
       <template #footer>
@@ -233,3 +323,23 @@ onMounted(reload)
     </NModal>
   </div>
 </template>
+
+<style scoped>
+.page-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--accent-soft) 100%);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.page-header-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+</style>
