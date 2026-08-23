@@ -1764,5 +1764,5 @@ onUnmounted(stopTimer)
   text-align: center;
   padding: 24px;
   margin-top: auto;
-}
+}}
 </style>
