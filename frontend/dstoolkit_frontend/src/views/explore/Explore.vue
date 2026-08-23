@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   NSpace,
   NInput,
@@ -26,6 +26,7 @@ import {
   ChevronDownOutline,
   RocketOutline,
   SparklesOutline,
+  ChevronBackOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
@@ -51,6 +52,12 @@ import type { ParsedConversation } from '@/types'
 const auth = useAuthStore()
 const searchModelStore = useSearchModelStore()
 
+// 响应式：是否移动端（用于精简分页等组件）
+const isMobile = ref(false)
+function checkViewport() {
+  isMobile.value = window.innerWidth < 820
+}
+
 const loading = ref(false)
 const loadProgress = ref('')
 const loadTime = ref<number | null>(null)
@@ -64,6 +71,13 @@ const mode = ref<'timeline' | 'search'>('timeline')
 
 const activeConv = ref<ParsedConversation | null>(null)
 const apiKeys = ref<Array<{ id: number; name: string }>>([])
+
+// 移动端：是否进入对话详情视图（列表/详情二选一）
+const showDetail = ref(false)
+
+watch(isMobile, (mobile) => {
+  if (!mobile) showDetail.value = false
+})
 
 const searchFilters = ref<SearchFilters>({ user: true, assistant: true, title: true })
 
@@ -230,6 +244,7 @@ function onSelectSubturn(payload: {
 }) {
   const conv = payload.conv
   activeConv.value = conv
+  if (isMobile.value) showDetail.value = true
   if (conv.configId && conv.messages.length === 0) {
     detailLoading.value = true
     loadConversationDetail(conv.configId, conv.deepseekConvId)
@@ -331,8 +346,14 @@ async function loadMore() {
 }
 
 onMounted(() => {
+  checkViewport()
+  window.addEventListener('resize', checkViewport)
   searchModelStore.syncFromAuth()
   void init()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkViewport)
 })
 </script>
 
@@ -398,7 +419,7 @@ onMounted(() => {
     </div>
 
     <!-- ========== 搜索控制栏 ========== -->
-    <div class="chronos-panel search-panel">
+    <div v-show="!isMobile || !showDetail" class="chronos-panel search-panel">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
@@ -422,7 +443,7 @@ onMounted(() => {
             <NSwitch v-model:value="useRegex" size="small" />
           </div>
         </div>
-        <NButton type="primary" size="medium" :loading="loading" @click="doSearch">
+        <NButton type="tertiary" size="medium" :loading="loading" @click="doSearch">
           <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
           搜索
         </NButton>
@@ -496,7 +517,7 @@ onMounted(() => {
     <!-- ========== 主分栏：树 + 对话 ========== -->
     <div class="explore-split">
       <!-- 左侧：树面板 -->
-      <div class="chronos-panel explore-tree">
+      <div v-show="!isMobile || !showDetail" class="chronos-panel explore-tree">
         <div class="panel-corner tl"></div>
         <div class="panel-corner tr"></div>
         <div class="panel-corner bl"></div>
@@ -531,7 +552,7 @@ onMounted(() => {
             :item-count="totalCount"
             :page-count="pageCount"
             :page-sizes="[20, 50, 100, 200]"
-            show-size-picker
+            :show-size-picker="!isMobile"
             :disabled="loading"
             size="small"
             @update:page="onPageChange"
@@ -554,7 +575,19 @@ onMounted(() => {
       </div>
 
       <!-- 右侧：ChatViewer -->
-      <div class="explore-chat">
+      <div
+        v-show="!isMobile || showDetail"
+        class="explore-chat"
+        :class="{ 'mobile-detail-chat': isMobile && showDetail }"
+      >
+        <!-- 移动端详情返回栏 -->
+        <div v-if="isMobile && showDetail" class="mobile-detail-bar">
+          <button class="detail-back-btn" type="button" @click="showDetail = false">
+            <NIcon size="18"><ChevronBackOutline /></NIcon>
+            <span>返回列表</span>
+          </button>
+          <div class="detail-bar-title">{{ activeConv?.title || '对话详情' }}</div>
+        </div>
         <div v-if="detailLoading" class="chronos-panel detail-loading">
           <div class="panel-corner tl"></div>
           <div class="panel-corner tr"></div>
@@ -984,12 +1017,20 @@ onMounted(() => {
 @media (max-width: 1080px) {
   .explore-tree { flex: 0 0 45%; }
 }
+
+/* 中等屏：分栏改纵向，平衡树与对话高度 */
 @media (max-width: 820px) {
+  /* —— 横幅精简 —— */
   .chronos-page-banner {
-    padding: 18px 16px;
+    padding: 16px 14px;
   }
   .chronos-page-title {
-    font-size: 20px;
+    font-size: 19px;
+  }
+  .banner-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
   .banner-stats {
     width: 100%;
@@ -997,44 +1038,186 @@ onMounted(() => {
   .stat-chip {
     flex: 1;
     justify-content: center;
+    padding: 8px 12px;
   }
+  .stat-num { font-size: 17px; }
+
+  /* —— 状态栏换行 —— */
+  .explore-status-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .explore-status-bar .flex-spacer { display: none; }
+  .explore-status-bar .chronos-tag {
+    width: 100%;
+  }
+
+  /* —— 搜索面板 —— */
+  .search-panel {
+    padding: 14px;
+    gap: 12px;
+  }
+  .search-row {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .search-input-wrap {
+    min-width: 0;
+    flex: 1;
+  }
+  .search-regex-toggle {
+    padding-left: 8px;
+    margin-left: 4px;
+  }
+
+  /* 搜索选项：垂直堆叠，避免横向拥挤 */
+  .search-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .opt-mode,
+  .opt-datasource {
+    margin-left: 0;
+  }
+  .opt-group {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* 筛选行：标签与筹码纵向排列 */
+  .filter-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  /* —— 分栏改纵向，移动端列表/详情二选一填充 —— */
   .explore-split {
     flex-direction: column;
   }
   .explore-tree {
-    flex: none;
-    max-height: 52vh;
+    flex: 1 1 auto;
+    max-height: none;
+    min-height: 260px;
   }
   .explore-chat {
-    min-height: 55vh;
+    flex: 1 1 auto;
+    min-height: 0;
   }
-  .opt-mode, .opt-datasource { margin-left: 0; }
-  .search-options {
-    gap: 14px;
-  }
-  .tree-footer {
+
+  /* —— 移动端详情返回栏 —— */
+  .mobile-detail-chat {
     flex-direction: column;
-    align-items: stretch;
   }
-  .pager-info {
+  .mobile-detail-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    flex-shrink: 0;
+  }
+  .detail-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 5px 14px 5px 9px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+  }
+  .detail-back-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--primary-soft);
+  }
+  .detail-back-btn:active { transform: scale(0.97); }
+  .detail-bar-title {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* —— 树底栏：信息+加载更多一行，分页独占一行 —— */
+  .tree-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+  .tree-footer .pager-info { order: 0; }
+  .tree-footer :deep(.n-button) { order: 1; }
+  .tree-footer :deep(.n-pagination) {
+    order: 2;
+    flex: 1 1 100%;
+    width: 100%;
     justify-content: center;
   }
 }
+
+/* 手机：进一步收紧 */
 @media (max-width: 480px) {
+  .explore-root { gap: 14px; }
   .chronos-page-banner {
-    padding: 16px 14px;
-  }
-  .chronos-page-title {
-    font-size: 18px;
-  }
-  .chronos-page-sub {
-    font-size: 12.5px;
-  }
-  .search-panel {
     padding: 14px 12px;
   }
-  .filter-row {
-    padding: 10px 12px;
+  .chronos-page-title {
+    font-size: 17px;
   }
+  .title-accent { font-size: 13px; }
+  .chronos-page-sub {
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .chronos-eyebrow {
+    margin-bottom: 6px;
+    font-size: 9.5px;
+    padding: 3px 8px;
+  }
+  .banner-stats { gap: 8px; }
+  .stat-chip { padding: 8px 10px; gap: 8px; }
+  .stat-num { font-size: 16px; }
+
+  .search-panel { padding: 12px 10px; }
+  /* 极窄屏：搜索框整行，按钮整行 */
+  .search-row {
+    flex-wrap: wrap;
+  }
+  .search-input-wrap {
+    flex: 1 1 100%;
+  }
+  .search-row :deep(.n-button) {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .tree-header { padding: 12px; }
+  .tree-body { padding: 6px 4px; }
+}
+
+/* 超窄屏：统计卡片纵向 */
+@media (max-width: 360px) {
+  .banner-stats { flex-direction: column; }
+  .stat-chip { flex: none; }
 }
 </style>

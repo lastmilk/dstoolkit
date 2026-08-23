@@ -39,13 +39,22 @@ import {
   CloseCircleOutline,
   RocketOutline,
   FingerPrintOutline,
+  LogOutOutline,
 } from '@vicons/ionicons5'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
 import { message } from '@/utils/naive'
 import type { ApiKeyItem, ApiTokenItem, CreatedApiToken } from '@/types'
 
 const auth = useAuthStore()
+const router = useRouter()
+
+function handleLogout() {
+  auth.logout()
+  message.success('已退出登录')
+  router.push('/login')
+}
 
 const newUsername = ref(auth.user?.username || '')
 async function saveUsername() {
@@ -196,7 +205,6 @@ onMounted(() => {
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
       <div class="banner-inner">
@@ -236,7 +244,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </div>
+ 
 
     <div class="chronos-panel section-card page-enter">
       <div class="panel-corner tl"></div>
@@ -266,7 +274,7 @@ onMounted(() => {
             <NFormItem label="用户名">
               <NInput v-model:value="newUsername" placeholder="请输入用户名" />
             </NFormItem>
-            <NButton type="primary" @click="saveUsername">
+            <NButton type="tertiary" @click="saveUsername">
               <template #icon><NIcon size="14"><SaveOutline /></NIcon></template>
               保存
             </NButton>
@@ -282,7 +290,7 @@ onMounted(() => {
             <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
             <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
             <NFormItem label="确认新密码"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
-            <NButton type="primary" @click="savePassword">
+            <NButton type="tertiary" @click="savePassword">
               <template #icon><NIcon size="14"><LockClosedOutline /></NIcon></template>
               更新密码
             </NButton>
@@ -317,7 +325,7 @@ onMounted(() => {
           <NFormItem label="密钥内容" :show-feedback="false" style="margin-bottom: 0;">
             <NInput v-model:value="keyValue" placeholder="sk-..." style="width: 320px;" />
           </NFormItem>
-          <NButton type="primary" @click="addKey">
+          <NButton type="tertiary" @click="addKey">
             <template #icon><NIcon size="14"><AddOutline /></NIcon></template>
             添加
           </NButton>
@@ -356,7 +364,7 @@ onMounted(() => {
           <NFormItem label="有效期" :show-feedback="false" style="margin-bottom: 0;">
             <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
           </NFormItem>
-          <NButton type="primary" :loading="tokenCreating" @click="createToken">
+          <NButton type="tertiary" :loading="tokenCreating" @click="createToken">
             <template #icon><NIcon size="14"><RocketOutline /></NIcon></template>
             生成令牌
           </NButton>
@@ -364,6 +372,13 @@ onMounted(() => {
       </div>
 
       <NDataTable :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" :scroll-x="900" />
+    </div>
+
+    <div class="logout-row">
+      <NButton size="large" type="error" ghost @click="handleLogout">
+        <template #icon><NIcon size="16"><LogOutOutline /></NIcon></template>
+        退出登录
+      </NButton>
     </div>
 
     <NModal
@@ -680,5 +695,11 @@ onMounted(() => {
   .chronos-page-title { font-size: 18px; }
   .chronos-page-sub { font-size: 12.5px; }
   .id-name { font-size: 16px; }
+}
+
+.logout-row {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
 }
 </style>

@@ -54,7 +54,6 @@ onMounted(load)
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
       <div class="banner-inner">
@@ -78,7 +77,6 @@ onMounted(load)
             <div class="badge-label">资源可用</div>
           </div>
         </div>
-      </div>
     </div>
 
     <NSpin :show="loading">

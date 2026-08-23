@@ -52,15 +52,10 @@ onMounted(loadKeys)
 
 <template>
   <div class="page-enter" style="display: flex; flex-direction: column; gap: 18px;">
-    <div class="chronos-page-banner">
       <div class="banner-glow-1"></div>
       <div class="banner-glow-2"></div>
       <div class="banner-inner">
         <div class="banner-title-block">
-          <div class="chronos-eyebrow">
-            <NIcon size="12"><SparklesOutline /></NIcon>
-            <span>BALANCE // 余额信息</span>
-          </div>
           <h1 class="chronos-page-title">
             余额
             <span class="title-accent">· 费用信息</span>
@@ -68,16 +63,6 @@ onMounted(loadKeys)
           <p class="chronos-page-sub">
             查看当前余额、消费记录与用量信息
           </p>
-        </div>
-        <div class="banner-visual">
-          <div class="energy-orbit">
-            <div class="orbit-ring r1"></div>
-            <div class="orbit-ring r2"></div>
-            <div class="orbit-core">
-              <NIcon size="28" style="color: var(--primary);"><WalletOutline /></NIcon>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
