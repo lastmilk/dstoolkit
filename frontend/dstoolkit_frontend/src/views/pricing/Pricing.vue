@@ -1655,5 +1655,114 @@ onUnmounted(stopTimer)
   .checkout-btn { width: 100%; }
   .pay-modal { width: 100%; max-width: 100%; border-radius: 0; }
   .pay-summary { flex-wrap: wrap; }
+.pricing-root {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.pricing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+.pricing-hero {
+  text-align: center;
+  padding: 48px 24px 24px;
+}
+.pricing-hero h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+.pricing-hero p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.plan-card.highlighted {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.plan-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.price {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.price-note {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.permanent-price {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  flex: 1;
+}
+.plan-features li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text);
+}
+.plan-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+.current-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+.pricing-footer {
+  text-align: center;
+  padding: 24px;
+  margin-top: auto;
 }
 </style>

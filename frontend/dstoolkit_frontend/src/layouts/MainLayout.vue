@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import logo from '@/assets/logo.png'
 import { computed, h, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -9,7 +10,6 @@ import {
   NLayoutFooter,
   NMenu,
   NSwitch,
-  NDropdown,
   NSpace,
   NIcon,
   NText,
@@ -29,8 +29,6 @@ import {
   DiamondOutline,
   AppsOutline,
   PersonOutline,
-  LogOutOutline,
-  ChevronDownOutline,
   SparklesSharp,
   CloudOutline,
   CloudOfflineOutline,
@@ -130,22 +128,6 @@ async function onCloudSync(value: boolean) {
   }
 }
 
-// ═══════════ 用户菜单 ═══════════
-const userOptions = [
-  { label: '个人中心', key: 'profile', icon: icon(PersonOutline) },
-  { label: '退出登录', key: 'logout', icon: icon(LogOutOutline) },
-]
-function onUserSelect(key: string) {
-  if (key === 'profile') router.push('/profile')
-  else if (key === 'logout') onLogout()
-}
-
-async function onLogout() {
-  await clearLocalData()
-  auth.logout()
-  router.push('/login')
-}
-
 // ═══════════ Chronos Banner 动态数据 ═══════════
 const todayStr = computed(() => {
   const d = new Date(Date.now() + 8 * 3600 * 1000)
@@ -175,25 +157,16 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
       v-if="!isMobile"
       :width="272"
       :collapsed-width="84"
-      content-style="display: flex; flex-direction: column; background: linear-gradient(180deg, #0B1430 0%, #070E24 100%); border-right: 1px solid rgba(0, 212, 255, 0.14); position: relative; overflow: hidden;"
+      content-style="display: flex; flex-direction: column; background: linear-gradient(180deg, #ffffffff 0%, #ffffffff 100%); border-right: 1px solid rgba(255, 255, 255, 0.14); position: relative; overflow: hidden;"
       show-trigger="bar"
-      trigger-style="color: rgba(0, 212, 255, 0.4); background: #08112A;"
+      trigger-style="color: rgba(255, 255, 255, 0.4); background: #ffffffff;"
     >
       <!-- 侧边栏装饰：流光网格 -->
       <div class="sider-bg-deco" aria-hidden="true"></div>
 
       <!-- 品牌卡片：时间管理局徽章 -->
       <div class="brand-wrap">
-        <div class="brand-card">
-          <div class="brand-logo">
-            <NIcon size="22" class="brand-logo-icon"><SparklesSharp /></NIcon>
-            <div class="brand-logo-ring"></div>
-          </div>
-          <div class="brand-text">
-            <div class="brand-name">Deepseek Toolkit</div>
-            <div class="brand-tag">对话管理工作台</div>
-          </div>
-        </div>
+            <img :src="logo" alt="Logo">
       </div>
 
       <!-- 导航菜单 -->
@@ -259,7 +232,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
     >
       <NDrawerContent
         title="Deepseek Toolkit 导航"
-        :style="{ background: 'linear-gradient(180deg, #0B1430 0%, #070E24 100%)', color: '#E8F7FF' }"
+        :style="{ background: 'linear-gradient(180deg, #ffffffff 0%, #ffffffff 100%)', color: '#E8F7FF' }"
       >
         <template #header>
           <div class="drawer-header">
@@ -325,7 +298,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
       <NLayoutHeader
         :bordered="false"
         :style="isMobile
-          ? 'height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(10, 17, 40, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(0, 212, 255, 0.12); position: sticky; top: 0; z-index: 10;'
+          ? 'height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04); position: sticky; top: 0; z-index: 10;'
           : 'height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background: transparent; border-bottom: 1px solid rgba(0, 212, 255, 0.08); z-index: 10;'"
       >
         <!-- 移动端左侧：汉堡按钮 + 品牌迷你Logo -->
@@ -338,16 +311,6 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
             <span>Deepseek Toolkit</span>
           </div>
         </div>
-
-        <!-- 桌面端左侧：页面标题 -->
-        <div v-else class="page-identity">
-          <div class="page-title-row">
-            <div class="page-title">{{ menuTitle(activeKey) }}</div>
-            <span class="chrono-stamp">{{ menuChrono(activeKey) }}</span>
-          </div>
-          <div class="page-subtitle">{{ menuSubtitle(activeKey) }}</div>
-        </div>
-
         <!-- 右侧：状态 + 用户 -->
         <NSpace align="center" :size="isMobile ? 10 : 20">
           <!-- 状态标签组（桌面端完整 / 移动端精简） -->
@@ -384,20 +347,6 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
               </NIcon>
             </template>
           </NTag>
-
-          <!-- 用户下拉 -->
-          <NDropdown :options="userOptions" trigger="click" @select="onUserSelect">
-            <div class="user-chip" :class="{ mobile: isMobile }">
-              <NAvatar round :size="isMobile ? 34 : 36" class="user-avatar">
-                {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
-              </NAvatar>
-              <div v-if="!isMobile" class="user-info">
-                <div class="user-name">{{ auth.user?.username }}</div>
-                <div class="user-role">{{ auth.isAdmin ? '管理员' : '用户' }}</div>
-              </div>
-              <NIcon v-if="!isMobile" size="16" class="chevron"><ChevronDownOutline /></NIcon>
-            </div>
-          </NDropdown>
         </NSpace>
       </NLayoutHeader>
 
@@ -458,7 +407,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
       <!-- ======== 移动端：底部 Tab 栏 ======== -->
       <NLayoutFooter
         v-if="isMobile"
-        :style="'position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(10, 17, 40, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(0, 212, 255, 0.14); height: 66px; padding: 0;'"
+        :style="'position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05); height: 66px; padding: 0;'"
         class="chronos-tabbar"
       >
         <div class="tabbar-inner">
@@ -501,8 +450,8 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   position: absolute;
   inset: 0;
   background-image:
-    radial-gradient(circle at 0% 0%, rgba(0, 212, 255, 0.07) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
     linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px);
   background-size: auto, auto, 36px 36px, 36px 36px;
@@ -516,20 +465,6 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   position: relative;
   z-index: 2;
 }
-.brand-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 14px;
-  border-radius: 14px;
-  background:
-    linear-gradient(135deg, rgba(0, 212, 255, 0.14) 0%, rgba(168, 85, 247, 0.10) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.22);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  position: relative;
-  overflow: hidden;
-}
 .brand-card::after {
   content: '';
   position: absolute;
@@ -537,7 +472,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   right: -25%;
   width: 140px;
   height: 140px;
-  background: radial-gradient(circle, rgba(0, 212, 255, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
   pointer-events: none;
   animation: chronos-slow-spin 30s linear infinite;
 }
@@ -550,19 +485,13 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.22), rgba(168, 85, 247, 0.22));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(168, 85, 247, 0.22));
   border-radius: 11px;
   flex-shrink: 0;
   border: 1px solid rgba(0, 212, 255, 0.3);
   position: relative;
 }
-.brand-logo-icon {
-  background: linear-gradient(135deg, #00D4FF 0%, #A855F7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.5));
-}
+
 .brand-logo.mini { font-size: 16px; }
 .brand-logo-ring {
   position: absolute;
@@ -581,7 +510,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: linear-gradient(135deg, #FFFFFF 0%, #00D4FF 60%, #A855F7 100%);
+  background: linear-gradient(135deg, #000000ff 0%, #000000ff 60%, #000000ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -695,7 +624,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
 .sider-user-name {
   font-size: 13.5px;
   font-weight: 700;
-  color: #E8F7FF;
+  color: #5A7DA3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -743,52 +672,6 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   color: #5A7DA3;
 }
 
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 8px 5px 5px;
-  background: rgba(0, 212, 255, 0.04);
-  border: 1px solid rgba(0, 212, 255, 0.12);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.user-chip:hover {
-  background: rgba(0, 212, 255, 0.09);
-  border-color: rgba(0, 212, 255, 0.22);
-  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.1), var(--shadow-xs);
-}
-.user-chip.mobile {
-  padding: 3px;
-  background: transparent;
-  border: none;
-}
-.user-avatar {
-  background: linear-gradient(135deg, #00D4FF 0%, #A855F7 100%) !important;
-  color: #04101F !important;
-  font-weight: 800 !important;
-  box-shadow: 0 0 14px rgba(0, 212, 255, 0.32);
-}
-.user-info {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.user-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #E8F7FF;
-}
-.user-role {
-  font-size: 11.5px;
-  color: #5A7DA3;
-}
-.chevron {
-  color: #5A7DA3;
-  margin-right: 4px;
-}
-
 /* ============================================================
    移动端专项样式
    ============================================================ */
@@ -800,15 +683,17 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 212, 255, 0.07);
-  border: 1px solid rgba(0, 212, 255, 0.15);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  color: #00D4FF;
+  color: #1F3A5F;
   cursor: pointer;
   transition: all 0.2s var(--ease-out);
 }
 .chronos-hamburger:active {
-  background: rgba(0, 212, 255, 0.14);
+  background: rgba(0, 212, 255, 0.12);
+  border-color: rgba(0, 212, 255, 0.3);
+  color: #00A8D4;
   transform: scale(0.96);
 }
 
@@ -819,10 +704,11 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   gap: 7px;
   font-size: 14.5px;
   font-weight: 800;
-  background: linear-gradient(135deg, #FFFFFF 0%, #00D4FF 55%, #A855F7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #1F3A5F;
+  letter-spacing: -0.01em;
+}
+.mobile-mini-brand :deep(.n-icon) {
+  color: #00A8D4;
 }
 .mobile-topbar-left {
   display: flex;
@@ -898,7 +784,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
    ============================================================ */
 
 .chronos-tabbar {
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
 }
 .tabbar-inner {
   display: grid;
@@ -916,7 +802,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   border: none;
   cursor: pointer;
   position: relative;
-  color: #5A7DA3;
+  color: #8A9BA8;
   transition: all 0.25s var(--ease-out);
   padding: 0;
 }
@@ -937,16 +823,15 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   transition: all 0.25s;
 }
 .tabbar-item.active {
-  color: var(--primary);
+  color: #00A8D4;
 }
 .tabbar-item.active .tabbar-icon {
-  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.6));
+  filter: drop-shadow(0 2px 6px rgba(0, 212, 255, 0.35));
   transform: translateY(-2px) scale(1.08);
 }
 .tabbar-item.active .tabbar-label {
   font-weight: 700;
-  color: var(--primary);
-  text-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  color: #00A8D4;
 }
 .tabbar-active-dot {
   position: absolute;
@@ -957,7 +842,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   height: 5px;
   border-radius: 50%;
   background: linear-gradient(135deg, #00D4FF, #A855F7);
-  box-shadow: 0 0 8px var(--primary);
+  box-shadow: 0 0 6px rgba(0, 212, 255, 0.55);
 }
 .tabbar-safearea {
   height: env(safe-area-inset-bottom, 0);

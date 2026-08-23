@@ -3,12 +3,15 @@ import { request } from '@/utils/request'
 
 const TOKEN_KEY = 'dstoolkit_token'
 
+export type Tier = 'FREE' | 'PRO' | 'PLUS' | 'ULTIMATE'
+
 export interface User {
   id: number
   username: string
   role: string
   cloudSyncEnabled: boolean
   createdAt?: string
+  tier?: Tier
 }
 
 export const useAuthStore = defineStore('auth', {
@@ -20,6 +23,7 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: (s) => !!s.token,
     isAdmin: (s) => s.user?.role === 'ADMIN',
     cloudSyncEnabled: (s) => !!s.user?.cloudSyncEnabled,
+    effectiveTier: (s): Tier => s.user?.tier ?? 'FREE',
   },
   actions: {
     setToken(t: string) {
