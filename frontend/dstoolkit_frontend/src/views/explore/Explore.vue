@@ -27,6 +27,10 @@ import {
   RocketOutline,
   SparklesOutline,
   ChevronBackOutline,
+  ChevronForwardOutline,
+  FolderOpenOutline,
+  RefreshOutline,
+  ListOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
@@ -71,6 +75,28 @@ const mode = ref<'timeline' | 'search'>('timeline')
 
 const activeConv = ref<ParsedConversation | null>(null)
 const apiKeys = ref<Array<{ id: number; name: string }>>([])
+
+// 搜索建议下拉
+const suggestions = ref<{ text: string; type: string }[]>([])
+const showSuggestions = ref(false)
+let suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null
+
+// AI 智能过滤
+const aiFilters = ref<{ id: string; label: string; keywords: string[] }[]>([])
+const activeAiFilter = ref<string | null>(null)
+
+// 左侧栏：文件夹与标签
+const folders = ref<Array<{ id: number; name: string; color: string | null; conversationCount: number }>>([])
+const tags = ref<Array<{ id: number; name: string; color: string | null; conversationCount: number }>>([])
+const activeFolderId = ref<number | null>(null)
+const activeTagId = ref<number | null>(null)
+const sidebarCollapsed = ref(false)
+
+// 摘要气泡
+const activeSummary = ref<{ tldr: string; summary: string; tags: string[]; confidence: number } | null>(null)
+const summaryLoading = ref(false)
+const summaryJobId = ref<string | null>(null)
+let summaryPollTimer: ReturnType<typeof setInterval> | null = null
 
 // 移动端：是否进入对话详情视图（列表/详情二选一）
 const showDetail = ref(false)
@@ -159,7 +185,84 @@ function onQueryInput(v: string) {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     void doSearch()
+    if (v.trim() && auth.cloudSyncEnabled) {
+      void loadSuggestions(v.trim())
+    } else {
+      showSuggestions.value = false
+    }
   }, 300)
+}
+
+async function loadSuggestions(q: string) {
+  if (!auth.cloudSyncEnabled) {
+    showSuggestions.value = false
+    return
+  }
+  try {
+    const res: any = await request.get('/search/suggest', { params: { q, limit: 8 } })
+    suggestions.value = res.suggestions || []
+    showSuggestions.value = suggestions.value.length > 0
+  } catch {
+    showSuggestions.value = false
+  }
+}
+
+function selectSuggestion(text: string) {
+  query.value = text
+  showSuggestions.value = false
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  void doSearch()
+}
+
+function hideSuggestions() {
+  if (suggestionBlurTimer) clearTimeout(suggestionBlurTimer)
+  suggestionBlurTimer = setTimeout(() => {
+    showSuggestions.value = false
+  }, 150)
+}
+
+function showSuggestionsNow() {
+  if (suggestionBlurTimer) {
+    clearTimeout(suggestionBlurTimer)
+    suggestionBlurTimer = null
+  }
+}
+
+function suggestionTypeLabel(type: string) {
+  if (type === 'history') return '历史搜索'
+  if (type === 'popular') return '热门'
+  return '对话标题'
+}
+
+function onSearchInputBlur() {
+  hideSuggestions()
+}
+
+function onSearchInputKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    showSuggestions.value = false
+  } else if (e.key === 'Enter' && showSuggestions.value && suggestions.value.length > 0) {
+    // 让默认 Enter 行为继续；下拉点击通过 mousedown 处理
+  }
+}
+
+async function loadAiFilters() {
+  try {
+    const res: any = await request.get('/search/filters')
+    aiFilters.value = res.filters || []
+  } catch {}
+}
+
+function toggleAiFilter(id: string) {
+  if (activeAiFilter.value === id) {
+    activeAiFilter.value = null
+  } else {
+    activeAiFilter.value = id
+  }
+  void doSearch()
 }
 
 async function doSearch() {
@@ -175,7 +278,14 @@ async function doSearch() {
   loading.value = true
   try {
     if (auth.cloudSyncEnabled) {
-      const results = await cloudSearch(q, undefined, 200)
+      let cloudQ = q
+      if (activeAiFilter.value) {
+        const f = aiFilters.value.find((x) => x.id === activeAiFilter.value)
+        if (f && f.keywords.length > 0) {
+          cloudQ = `(${f.keywords.join(' OR ')}) ${q}`
+        }
+      }
+      const results = await cloudSearch(cloudQ, undefined, 200)
       const hits = new Set<string>()
       const convIds = new Set<string>()
       const paths = new Set<string>()
@@ -245,6 +355,7 @@ function onSelectSubturn(payload: {
   const conv = payload.conv
   activeConv.value = conv
   if (isMobile.value) showDetail.value = true
+  void loadSummary(conv)
   if (conv.configId && conv.messages.length === 0) {
     detailLoading.value = true
     loadConversationDetail(conv.configId, conv.deepseekConvId)
@@ -345,15 +456,143 @@ async function loadMore() {
   }
 }
 
+async function loadFoldersAndTags() {
+  if (!auth.cloudSyncEnabled) return
+  try {
+    const res: any = await request.get('/folders')
+    folders.value = res.folders || []
+    tags.value = res.tags || []
+  } catch {}
+}
+
+async function loadConversationsByFolder(folderId: number) {
+  loading.value = true
+  try {
+    const res: any = await request.get(`/folders/by-folder/${folderId}`)
+    conversations.value = res.conversations.map((c: any) => ({
+      ...c,
+      messages: [],
+      turns: [],
+    } as ParsedConversation))
+    mode.value = 'timeline'
+  } catch (e) {
+    message.error('加载文件夹对话失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+function selectFolder(id: number) {
+  if (activeFolderId.value === id) {
+    activeFolderId.value = null
+    void init()
+    return
+  }
+  activeFolderId.value = id
+  activeTagId.value = null
+  void loadConversationsByFolder(id)
+}
+
+function selectTag(id: number) {
+  if (activeTagId.value === id) {
+    activeTagId.value = null
+    return
+  }
+  activeTagId.value = id
+  activeFolderId.value = null
+  const tag = tags.value.find((t) => t.id === id)
+  if (tag) {
+    message.info(`按标签筛选需要对话已打标签：${tag.name}`)
+  }
+}
+
+function clearSidebarFilters() {
+  activeFolderId.value = null
+  activeTagId.value = null
+  void init()
+}
+
+async function loadSummary(conv: ParsedConversation) {
+  activeSummary.value = null
+  summaryLoading.value = false
+  if (!conv.configId || !auth.cloudSyncEnabled) return
+  if (!(conv as any).id) return
+  summaryLoading.value = true
+  try {
+    const res: any = await request.get(`/summaries/${(conv as any).id}`)
+    if (res.summary) {
+      activeSummary.value = res.summary
+    }
+  } catch {} finally {
+    summaryLoading.value = false
+  }
+}
+
+async function generateSummary() {
+  const conv = activeConv.value
+  if (!conv || !(conv as any).id) return
+  try {
+    const res: any = await request.post(`/summaries/${(conv as any).id}`)
+    summaryJobId.value = res.jobId
+    message.success(res.message || 'AI 摘要生成中，请稍候')
+    pollSummaryJob()
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || '摘要生成失败'
+    if (e?.response?.status === 402) {
+      message.error(msg + '，请前往定价页购买积分')
+    } else {
+      message.error(msg)
+    }
+  }
+}
+
+function pollSummaryJob() {
+  if (!summaryJobId.value) return
+  if (summaryPollTimer) clearInterval(summaryPollTimer)
+  summaryPollTimer = setInterval(async () => {
+    if (!summaryJobId.value) return
+    try {
+      const res: any = await request.get(`/summaries/job/${summaryJobId.value}`)
+      if (res.status === 'completed' || res.status === 'done') {
+        if (summaryPollTimer) clearInterval(summaryPollTimer)
+        summaryPollTimer = null
+        summaryJobId.value = null
+        if (activeConv.value) await loadSummary(activeConv.value)
+      } else if (res.status === 'failed' || res.status === 'error') {
+        if (summaryPollTimer) clearInterval(summaryPollTimer)
+        summaryPollTimer = null
+        summaryJobId.value = null
+        message.error('摘要生成失败')
+      }
+    } catch {
+      if (summaryPollTimer) clearInterval(summaryPollTimer)
+      summaryPollTimer = null
+      summaryJobId.value = null
+    }
+  }, 2000)
+}
+
 onMounted(() => {
   checkViewport()
   window.addEventListener('resize', checkViewport)
   searchModelStore.syncFromAuth()
   void init()
+  if (auth.cloudSyncEnabled) {
+    void loadAiFilters()
+    void loadFoldersAndTags()
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkViewport)
+  if (summaryPollTimer) {
+    clearInterval(summaryPollTimer)
+    summaryPollTimer = null
+  }
+  if (suggestionBlurTimer) {
+    clearTimeout(suggestionBlurTimer)
+    suggestionBlurTimer = null
+  }
 })
 </script>
 
@@ -437,10 +676,27 @@ onUnmounted(() => {
             class="search-input"
             @update:value="onQueryInput"
             @keyup.enter="debounceTimer = null; doSearch()"
+            @blur="onSearchInputBlur"
+            @keydown="onSearchInputKeydown"
           />
           <div class="search-regex-toggle">
             <span class="regex-label">正则</span>
             <NSwitch v-model:value="useRegex" size="small" />
+          </div>
+          <div v-if="showSuggestions" class="search-suggestions">
+            <div
+              v-for="(s, idx) in suggestions"
+              :key="idx"
+              class="suggestion-item"
+              @mousedown.prevent="selectSuggestion(s.text)"
+              @mouseenter="showSuggestionsNow"
+            >
+              <NIcon size="14" class="suggestion-icon">
+                <component :is="s.type === 'history' ? TimeOutline : SearchOutline" />
+              </NIcon>
+              <span class="suggestion-text">{{ s.text }}</span>
+              <NTag size="tiny" class="suggestion-type">{{ suggestionTypeLabel(s.type) }}</NTag>
+            </div>
           </div>
         </div>
         <NButton type="tertiary" size="medium" :loading="loading" @click="doSearch">
@@ -492,6 +748,24 @@ onUnmounted(() => {
         </div>
       </div>
 
+      <div v-if="auth.cloudSyncEnabled && aiFilters.length > 0" class="ai-filter-row">
+        <div class="filter-label">
+          <NIcon size="14"><SparklesOutline /></NIcon>
+          <span>AI 智能过滤</span>
+        </div>
+        <div class="ai-filter-chips">
+          <button
+            v-for="f in aiFilters"
+            :key="f.id"
+            type="button"
+            :class="['ai-chip', { active: activeAiFilter === f.id }]"
+            @click="toggleAiFilter(f.id)"
+          >
+            {{ f.label }}
+          </button>
+        </div>
+      </div>
+
       <div class="filter-row">
         <div class="filter-label">
           <NIcon size="14"><FilterOutline /></NIcon>
@@ -514,8 +788,75 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- ========== 主分栏：树 + 对话 ========== -->
-    <div class="explore-split">
+    <!-- ========== 主分栏：侧栏 + 树 + 对话 ========== -->
+    <div class="explore-layout">
+      <aside
+        v-show="!isMobile && auth.cloudSyncEnabled"
+        class="chronos-panel explore-sidebar"
+        :class="{ collapsed: sidebarCollapsed }"
+      >
+        <div class="panel-corner tl"></div>
+        <div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div>
+        <div class="panel-corner br"></div>
+        <div class="sidebar-header">
+          <span class="sidebar-title">我的分类</span>
+          <button
+            class="sidebar-collapse-btn"
+            type="button"
+            @click="sidebarCollapsed = !sidebarCollapsed"
+          >
+            <NIcon size="14">
+              <component :is="sidebarCollapsed ? ChevronForwardOutline : ChevronBackOutline" />
+            </NIcon>
+          </button>
+        </div>
+        <div v-show="!sidebarCollapsed" class="sidebar-body">
+          <button
+            class="sidebar-all-btn"
+            :class="{ active: !activeFolderId && !activeTagId }"
+            type="button"
+            @click="clearSidebarFilters"
+          >
+            <NIcon size="14"><ListOutline /></NIcon>
+            <span>全部对话</span>
+          </button>
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">文件夹</div>
+            <div v-if="folders.length === 0" class="sidebar-empty">暂无文件夹</div>
+            <button
+              v-for="f in folders"
+              :key="f.id"
+              class="sidebar-row"
+              :class="{ active: activeFolderId === f.id }"
+              type="button"
+              @click="selectFolder(f.id)"
+            >
+              <NIcon size="14" class="sidebar-row-icon"><FolderOpenOutline /></NIcon>
+              <span class="sidebar-row-name">{{ f.name }}</span>
+              <span class="sidebar-row-count">{{ f.conversationCount }}</span>
+            </button>
+          </div>
+          <div class="sidebar-section">
+            <div class="sidebar-section-title">标签</div>
+            <div v-if="tags.length === 0" class="sidebar-empty">暂无标签</div>
+            <NSpace v-else :size="6" wrap>
+              <NTag
+                v-for="t in tags"
+                :key="t.id"
+                size="small"
+                checkable
+                :checked="activeTagId === t.id"
+                @update:checked="() => selectTag(t.id)"
+              >
+                {{ t.name }}
+              </NTag>
+            </NSpace>
+          </div>
+        </div>
+      </aside>
+
+      <div class="explore-split">
       <!-- 左侧：树面板 -->
       <div v-show="!isMobile || !showDetail" class="chronos-panel explore-tree">
         <div class="panel-corner tl"></div>
@@ -588,6 +929,48 @@ onUnmounted(() => {
           </button>
           <div class="detail-bar-title">{{ activeConv?.title || '对话详情' }}</div>
         </div>
+        <!-- 摘要气泡 -->
+        <div
+          v-if="auth.cloudSyncEnabled && activeConv"
+          class="chronos-panel summary-bubble"
+        >
+          <div class="panel-corner tl"></div>
+          <div class="panel-corner tr"></div>
+          <div class="panel-corner bl"></div>
+          <div class="panel-corner br"></div>
+          <div v-if="summaryLoading" class="summary-loading">
+            <NSpin :size="14" />
+            <span>加载摘要…</span>
+          </div>
+          <div v-else-if="activeSummary" class="summary-content">
+            <div class="summary-tldr">{{ activeSummary.tldr }}</div>
+            <div v-if="activeSummary.summary" class="summary-text">{{ activeSummary.summary }}</div>
+            <div v-if="activeSummary.tags && activeSummary.tags.length" class="summary-tags">
+              <NTag
+                v-for="(t, i) in activeSummary.tags"
+                :key="i"
+                size="small"
+                round
+              >
+                {{ t }}
+              </NTag>
+            </div>
+            <div class="summary-footer">
+              <span class="summary-confidence">置信度 {{ activeSummary.confidence }}</span>
+              <NButton size="tiny" type="primary" ghost @click="generateSummary">
+                <template #icon><NIcon size="12"><RefreshOutline /></NIcon></template>
+                重新生成
+              </NButton>
+            </div>
+          </div>
+          <div v-else class="summary-empty">
+            <NButton size="small" type="primary" @click="generateSummary">
+              <template #icon><NIcon size="14"><SparklesOutline /></NIcon></template>
+              生成 AI 摘要
+            </NButton>
+            <span class="summary-hint">消耗 10 积分（FREE 用户每日免费 5 次）</span>
+          </div>
+        </div>
         <div v-if="detailLoading" class="chronos-panel detail-loading">
           <div class="panel-corner tl"></div>
           <div class="panel-corner tr"></div>
@@ -602,6 +985,7 @@ onUnmounted(() => {
           </NText>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
+      </div>
       </div>
     </div>
   </div>
@@ -830,6 +1214,51 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  max-height: 320px;
+  overflow: auto;
+  margin-top: 4px;
+}
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+.suggestion-item:hover {
+  background: var(--primary-soft);
+}
+.suggestion-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.suggestion-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suggestion-type {
+  flex-shrink: 0;
+}
+
 .search-options {
   display: flex;
   align-items: center;
@@ -903,7 +1332,212 @@ onUnmounted(() => {
   color: var(--text);
 }
 
+.ai-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
+  border: 1px solid var(--border-glow);
+  border-radius: var(--radius);
+  flex-wrap: wrap;
+}
+.ai-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ai-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+.ai-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.ai-chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: var(--shadow-focus);
+}
+
 /* ========== 分栏主体 ========== */
+.explore-layout {
+  display: flex;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+
+.explore-sidebar {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+  transition: flex-basis var(--transition);
+}
+.explore-sidebar.collapsed {
+  flex: 0 0 44px;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 8px;
+}
+.explore-sidebar.collapsed .sidebar-header {
+  justify-content: center;
+}
+.sidebar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: 0.04em;
+}
+.sidebar-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.sidebar-collapse-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-soft);
+}
+.sidebar-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sidebar-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  text-align: left;
+}
+.sidebar-all-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--border-glow);
+}
+.sidebar-all-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sidebar-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.sidebar-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  font-style: italic;
+}
+.sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  text-align: left;
+}
+.sidebar-row:hover {
+  background: var(--surface-2);
+  border-color: var(--border-subtle);
+  color: var(--text);
+}
+.sidebar-row.active {
+  background: var(--primary-soft);
+  border-color: var(--border-glow);
+  color: var(--primary);
+  font-weight: 600;
+}
+.sidebar-row-icon {
+  flex-shrink: 0;
+  color: inherit;
+}
+.sidebar-row-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-row-count {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.sidebar-row.active .sidebar-row-count {
+  background: var(--surface);
+  color: var(--primary);
+  border-color: var(--border-glow);
+}
+
 .explore-split {
   display: flex;
   gap: 18px;
@@ -978,6 +1612,7 @@ onUnmounted(() => {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-direction: column;
 }
 .detail-loading {
   flex: 1;
@@ -987,6 +1622,66 @@ onUnmounted(() => {
   justify-content: center;
   gap: 4px;
   min-height: 300px;
+}
+
+.summary-bubble {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
+  border-color: var(--border-glow);
+}
+.summary-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.summary-tldr {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.55;
+}
+.summary-text {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.summary-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.summary-confidence {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+.summary-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.summary-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
 }
 .chronos-loader {
   position: relative;

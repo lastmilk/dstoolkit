@@ -7,6 +7,8 @@ export interface QuotaLimits {
   apiRatePerMin: number  // RESTful API 每分钟请求数；0 表示无 API 权限
   canShare: boolean      // 是否可创建公开分享
   canCustomSlug: boolean // 是否可自定义短链
+  maxFolders: number     // 文件夹上限；-1 表示无限
+  monthlyAiCredits: number // 每月赠送 AI 积分；0 表示无
 }
 
 export const TIER_LIMITS: Record<Tier, QuotaLimits> = {
@@ -16,27 +18,44 @@ export const TIER_LIMITS: Record<Tier, QuotaLimits> = {
     apiRatePerMin: 0,
     canShare: false,
     canCustomSlug: false,
+    maxFolders: 10,
+    monthlyAiCredits: 0,
   },
   PRO: {
     maxMb: 100 * 1024 * 1024,
-    maxTurns: 1000,
+    maxTurns: 2000,
     apiRatePerMin: 0,
     canShare: true,
     canCustomSlug: false,
+    maxFolders: 50,
+    monthlyAiCredits: 50,
   },
   PLUS: {
-    maxMb: 300 * 1024 * 1024,
+    maxMb: 500 * 1024 * 1024,
     maxTurns: -1,
-    apiRatePerMin: 60,
+    apiRatePerMin: 100,
     canShare: true,
     canCustomSlug: true,
+    maxFolders: -1,
+    monthlyAiCredits: 500,
   },
   ULTIMATE: {
-    maxMb: 300 * 1024 * 1024,
+    maxMb: 2 * 1024 * 1024 * 1024,
     maxTurns: -1,
-    apiRatePerMin: 300,
+    apiRatePerMin: 500,
     canShare: true,
     canCustomSlug: true,
+    maxFolders: -1,
+    monthlyAiCredits: 2000,
+  },
+  TEAM: {
+    maxMb: 10 * 1024 * 1024 * 1024,
+    maxTurns: -1,
+    apiRatePerMin: 500,
+    canShare: true,
+    canCustomSlug: true,
+    maxFolders: -1,
+    monthlyAiCredits: 1000, // per seat
   },
 }
 
@@ -46,6 +65,7 @@ export const TIER_RANK: Record<Tier, number> = {
   PRO: 1,
   PLUS: 2,
   ULTIMATE: 3,
+  TEAM: 4,
 }
 
 export interface UserUsage {
@@ -59,7 +79,6 @@ export interface UserUsage {
  * 用 MySQL LENGTH() 求字节，避免全量回传到 Node。
  */
 export async function getUserUsage(userId: number): Promise<UserUsage> {
-  // 用 raw SQL 走聚合，性能远优于 findMany + JSON 处理
   const [convRow] = (await prisma.$queryRaw<Array<{ bytes: bigint | null; turns: bigint | null }>>`
     SELECT COALESCE(SUM(LENGTH(c.rawMapping)), 0) AS bytes,
            COALESCE(SUM(c.turnCount), 0) AS turns
@@ -93,7 +112,6 @@ export async function checkUploadQuota(
   const limits = TIER_LIMITS[tier]
   const usage = await getUserUsage(userId)
 
-  // 轮次硬限
   if (limits.maxTurns >= 0 && usage.usedTurns + incomingTurns > limits.maxTurns) {
     return {
       ok: false,
@@ -101,7 +119,6 @@ export async function checkUploadQuota(
       upgradeHint: true,
     }
   }
-  // MB 软限（超限拒绝，提示升级）
   if (limits.maxMb >= 0 && usage.usedBytes + incomingBytes > limits.maxMb) {
     const usedMb = (usage.usedBytes / 1024 / 1024).toFixed(1)
     const limitMb = (limits.maxMb / 1024 / 1024).toFixed(0)
@@ -112,4 +129,119 @@ export async function checkUploadQuota(
     }
   }
   return { ok: true }
+}
+
+// ═══════════ AI 积分系统（MKT-M1 / MKT-M4） ═══════════
+
+/** AI 增值操作消耗积分价目表 */
+export const AI_CREDIT_COSTS: Record<string, number> = {
+  SUMMARY: 10,            // AI 对话摘要
+  SUMMARY_BATCH: 50,      // 批量摘要 10 段
+  KNOWLEDGE_CARD: 15,     // 知识卡片提取
+  AI_ORGANIZE: 30,        // AI 批量整理文件夹
+  EXPORT_POLISH: 30,      // AI 导出润色
+  SEMANTIC_SEARCH: 0,     // 语义搜索增强（小额可忽略）
+}
+
+/** 充值包价目表 */
+export const CREDIT_PACKS = [
+  { id: 'pack_500', credits: 500, price: 9.9, label: '500 积分' },
+  { id: 'pack_2000', credits: 2000, price: 29, label: '2000 积分' },
+  { id: 'pack_10000', credits: 10000, price: 99, label: '10000 积分' },
+] as const
+
+/**
+ * 消耗 AI 积分。余额不足时抛错（前端提示购买充值包）。
+ * 同步写 QuotaLedger 流水。
+ */
+export async function consumeCredits(
+  userId: number,
+  action: string,
+  amount: number,
+  detail?: string,
+): Promise<number> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { aiCredits: true },
+  })
+  if (user.aiCredits < amount) {
+    throw new CreditInsufficientError(amount, user.aiCredits)
+  }
+  const newBalance = user.aiCredits - amount
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { aiCredits: newBalance },
+    }),
+    prisma.quotaLedger.create({
+      data: {
+        userId,
+        action,
+        delta: -amount,
+        balance: newBalance,
+        detail: detail || undefined,
+      },
+    }),
+  ])
+  return newBalance
+}
+
+/** 赠予 AI 积分（充值/邀请奖励/月度赠送） */
+export async function grantCredits(
+  userId: number,
+  action: string,
+  amount: number,
+  detail?: string,
+): Promise<number> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { aiCredits: true },
+  })
+  const newBalance = user.aiCredits + amount
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { aiCredits: newBalance },
+    }),
+    prisma.quotaLedger.create({
+      data: {
+        userId,
+        action,
+        delta: amount,
+        balance: newBalance,
+        detail: detail || undefined,
+      },
+    }),
+  ])
+  return newBalance
+}
+
+/** 检查并消耗积分，返回 ok 或余额不足错误 */
+export async function tryConsumeCredits(
+  userId: number,
+  action: string,
+  amount: number,
+  detail?: string,
+): Promise<{ ok: true; balance: number } | { ok: false; needed: number; balance: number }> {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { aiCredits: true },
+  })
+  if (user.aiCredits < amount) {
+    return { ok: false, needed: amount, balance: user.aiCredits }
+  }
+  const balance = await consumeCredits(userId, action, amount, detail)
+  return { ok: true, balance }
+}
+
+export class CreditInsufficientError extends Error {
+  needed: number
+  balance: number
+  constructor(needed: number, balance: number) {
+    super(`AI 积分不足：需要 ${needed}，当前余额 ${balance}`)
+    this.needed = needed
+    this.balance = balance
+    this.name = 'CreditInsufficientError'
+    Object.setPrototypeOf(this, CreditInsufficientError.prototype)
+  }
 }

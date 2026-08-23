@@ -73,6 +73,26 @@ interface Tier {
 // ═══════════ 套餐数据 ═══════════
 const tiers: Tier[] = [
   {
+    id: 'free',
+    name: 'Free',
+    badge: '免费版',
+    tagline: '适合个人本地使用，开箱即用的对话管理',
+    icon: RocketOutline,
+    color: '#64748B',
+    gradient: 'linear-gradient(135deg, #64748B 0%, #94A3B8 100%)',
+    highlight: false,
+    billing: [
+      { period: 'permanent', price: 0, label: '免费', unit: '永久' },
+    ],
+    features: [
+      { icon: CheckmarkCircle, text: '本地对话存储（IndexedDB）', highlight: true },
+      { icon: CloudOutline, text: '50MB 对话云存储 + 200 轮对话' },
+      { icon: SparklesOutline, text: 'AI 摘要 5 次/天（免费体验）', highlight: true },
+      { icon: BarChartOutline, text: '基础统计图表' },
+      { icon: HeadsetOutline, text: '社区支持' },
+    ],
+  },
+  {
     id: 'pro',
     name: 'Pro',
     badge: '高级版',
@@ -143,6 +163,27 @@ const tiers: Tier[] = [
       { icon: ShieldCheckmarkOutline, text: '1 对 1 专属支持 + 功能定制建议权' },
     ],
   },
+  {
+    id: 'team',
+    name: 'Team',
+    badge: '团队版',
+    tagline: '适合团队协作，多席位共享与统一管理',
+    icon: PersonCircleOutline,
+    color: '#0F766E',
+    gradient: 'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
+    highlight: false,
+    billing: [
+      { period: 'annual', price: 199, label: '年费', unit: '/ 席位 / 年' },
+    ],
+    features: [
+      { icon: CheckmarkCircle, text: 'Ultimate 版全部功能', highlight: true },
+      { icon: CloudOutline, text: '10GB 对话云存储 + 无限轮次', highlight: true },
+      { icon: PersonCircleOutline, text: '多席位共享（起 5 席）' },
+      { icon: CodeSlashOutline, text: '团队 API 500 次/分钟' },
+      { icon: ShieldCheckmarkOutline, text: '团队管理后台 + 审计日志' },
+      { icon: HeadsetOutline, text: '专属客户成功经理' },
+    ],
+  },
 ]
 
 // ═══════════ 支付方式 ═══════════
@@ -177,10 +218,11 @@ const paymentMethods: {
 ]
 
 // ═══════════ 状态 ═══════════
-const selectedTier = ref<string>('ultimate')
+const selectedTier = ref<string>('plus')
 const selectedBilling = ref<Record<string, Period>>({
   plus: 'annual',
   ultimate: 'annual',
+  team: 'annual',
 })
 const selectedPayment = ref<PaymentMethod>('wechat')
 
@@ -198,6 +240,27 @@ const redeeming = ref(false)
 const creatingOrder = ref(false)
 const countdown = ref(900)
 let timer: number | null = null
+
+// ═══════════ AI 积分充值包 ═══════════
+interface CreditPack {
+  id: string
+  credits: number
+  price: number
+  label: string
+  popular: boolean
+}
+
+const creditPacks: CreditPack[] = [
+  { id: 'pack_500', credits: 500, price: 9.9, label: '500 积分', popular: false },
+  { id: 'pack_2000', credits: 2000, price: 29, label: '2000 积分', popular: true },
+  { id: 'pack_10000', credits: 10000, price: 99, label: '10000 积分', popular: false },
+]
+
+const purchasingPack = ref<string | null>(null)
+
+function packSummaryCount(credits: number): number {
+  return Math.floor(credits / 10)
+}
 
 // ═══════════ 计算属性 ═══════════
 const currentTier = computed<Tier>(
@@ -389,6 +452,19 @@ function openCardKeyDocs() {
   if (url) window.open(url, '_blank')
 }
 
+async function purchaseCreditPack(packId: string) {
+  purchasingPack.value = packId
+  try {
+    const res: any = await request.post('/subscription/credits/purchase', { packId })
+    message.success(res?.message || '充值成功，积分已到账')
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || '购买失败，请稍后重试'
+    message.error(msg)
+  } finally {
+    purchasingPack.value = null
+  }
+}
+
 onMounted(loadPaymentConfig)
 onUnmounted(stopTimer)
 </script>
@@ -527,6 +603,61 @@ onUnmounted(stopTimer)
           <NIcon size="14"><ArrowForwardOutline /></NIcon>
         </button>
       </article>
+    </section>
+
+    <!-- ═══════════ AI 积分充值包 ═══════════ -->
+    <section class="credit-packs-section">
+      <div class="section-head">
+        <h2 class="section-title">AI 积分充值包</h2>
+        <p class="section-sub credit-cost-note">
+          AI 积分可用于：摘要生成(10)、知识卡片(15)、AI 整理(30)、导出润色(30)
+        </p>
+      </div>
+
+      <div class="credit-packs-grid">
+        <article
+          v-for="pack in creditPacks"
+          :key="pack.id"
+          :class="['credit-pack-card', { popular: pack.popular }]"
+        >
+          <NTag
+            v-if="pack.popular"
+            size="small"
+            round
+            :bordered="false"
+            class="pack-tag-popular"
+          >
+            <template #icon>
+              <NIcon size="12"><StarOutline /></NIcon>
+            </template>
+            热门
+          </NTag>
+
+          <div class="pack-credits">
+            <span class="pack-credits-num">{{ pack.credits }}</span>
+            <span class="pack-credits-suffix">积分</span>
+          </div>
+
+          <div class="pack-price">
+            <span class="currency">¥</span>
+            <span class="price-num">{{ pack.price }}</span>
+          </div>
+
+          <p class="pack-desc">约可生成 {{ packSummaryCount(pack.credits) }} 次 AI 摘要</p>
+
+          <NButton
+            type="primary"
+            size="large"
+            block
+            :loading="purchasingPack === pack.id"
+            :disabled="purchasingPack !== null && purchasingPack !== pack.id"
+            class="pack-cta"
+            @click="purchaseCreditPack(pack.id)"
+          >
+            购买
+          </NButton>
+        </article>
+      </div>
     </section>
 
     <!-- ═══════════ 支付方式 ═══════════ -->
@@ -895,7 +1026,7 @@ onUnmounted(stopTimer)
 /* ═══════════ 套餐卡片网格 ═══════════ */
 .tier-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 18px;
 }
 .tier-card {
@@ -1116,6 +1247,112 @@ onUnmounted(stopTimer)
   color: #fff;
   box-shadow: 0 6px 18px rgba(79, 70, 229, 0.32);
   transform: translateY(-1px);
+}
+
+/* ═══════════ AI 积分充值包 ═══════════ */
+.credit-packs-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px;
+  box-shadow: var(--shadow-xs);
+}
+.credit-cost-note {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+.credit-packs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.credit-pack-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all var(--transition);
+  overflow: hidden;
+}
+.credit-pack-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-strong);
+}
+.credit-pack-card.popular {
+  background: linear-gradient(180deg, #FFFFFF 0%, rgba(79, 70, 229, 0.04) 100%);
+  border-color: var(--primary);
+  box-shadow: 0 8px 28px rgba(79, 70, 229, 0.12), 0 0 0 1px rgba(79, 70, 229, 0.08);
+}
+.pack-tag-popular {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: var(--primary) !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+}
+.pack-credits {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 8px;
+  margin-top: 6px;
+}
+.pack-credits-num {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.credit-pack-card.popular .pack-credits-num {
+  background: linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0EA5E9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.pack-credits-suffix {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.pack-price {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.pack-price .currency {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.pack-price .price-num {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--primary);
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.pack-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+.pack-cta {
+  width: 100%;
+  height: 42px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* ═══════════ 支付方式 ═══════════ */
@@ -1631,9 +1868,15 @@ onUnmounted(stopTimer)
 }
 
 /* ═══════════ 响应式 ═══════════ */
+@media (max-width: 1280px) {
+  .tier-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 960px) {
   .tier-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 14px;
   }
   .tier-card { padding: 22px 20px 20px; }
@@ -1648,6 +1891,12 @@ onUnmounted(stopTimer)
 }
 
 @media (max-width: 640px) {
+  .tier-grid {
+    grid-template-columns: 1fr;
+  }
+  .credit-packs-grid {
+    grid-template-columns: 1fr;
+  }
   .tier-card { padding: 20px 18px 18px; }
   .tier-name { font-size: 18px; }
   .price-num { font-size: 36px; }
