@@ -19,6 +19,10 @@ import searchRoutes from './routes/search.routes.js'
 import chatRoutes from './routes/chat.routes.js'
 import tokenRoutes from './routes/token.routes.js'
 import v1Routes from './routes/v1.routes.js'
+import subscriptionRoutes from './routes/subscription.routes.js'
+import summaryRoutes from './routes/summary.routes.js'
+import folderRoutes from './routes/folder.routes.js'
+import referralRoutes from './routes/referral.routes.js'
 
 const app = express()
 
@@ -43,6 +47,10 @@ app.use('/api/search', searchRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/tokens', tokenRoutes)
 app.use('/api/v1', v1Routes)
+app.use('/api/subscription', subscriptionRoutes)
+app.use('/api/summaries', summaryRoutes)
+app.use('/api/folders', folderRoutes)
+app.use('/api/referral', referralRoutes)
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   // multer 文件大小错误

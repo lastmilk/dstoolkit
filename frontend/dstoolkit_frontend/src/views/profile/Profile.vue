@@ -40,6 +40,10 @@ import {
   RocketOutline,
   FingerPrintOutline,
   LogOutOutline,
+  GiftOutline,
+  PeopleOutline,
+  CashOutline,
+  LinkOutline,
 } from '@vicons/ionicons5'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -197,9 +201,118 @@ const tokenColumns: DataTableColumns<ApiTokenItem> = [
   },
 ]
 
+interface ReferralLinkItem {
+  id: number
+  code: string
+  clicks: number
+  signupCount: number
+  totalCommissionEarned: number
+  createdAt: string
+}
+interface ReferralRewardItem {
+  id: number
+  type: string
+  credits: number
+  detail: string | null
+  createdAt: string
+}
+
+const referralLoading = ref(true)
+const referralInfo = ref<{
+  referralCode: string
+  referralLink: string
+  links: Array<{ id: number; code: string; clicks: number; signupCount: number; totalCommissionEarned: number; createdAt: string }>
+  rewards: Array<{ id: number; type: string; credits: number; detail: string | null; createdAt: string }>
+  stats: { referredCount: number; totalEarned: number; rewardCount: number }
+} | null>(null)
+
+const bindCode = ref('')
+const binding = ref(false)
+const generatingLink = ref(false)
+const copiedField = ref<string | null>(null)
+
+async function loadReferral() {
+  referralLoading.value = true
+  try {
+    const res: any = await request.get('/referral/info')
+    referralInfo.value = res
+  } catch {
+    referralInfo.value = null
+  } finally {
+    referralLoading.value = false
+  }
+}
+
+async function bindReferral() {
+  const code = bindCode.value.trim()
+  if (!code) {
+    message.error('请输入邀请码')
+    return
+  }
+  binding.value = true
+  try {
+    const res: any = await request.post('/referral/bind', { code })
+    message.success(res.message || '邀请绑定成功')
+    bindCode.value = ''
+    await loadReferral()
+  } catch (e: any) {
+    const msg = e?.response?.data?.error || '绑定失败'
+    message.error(msg)
+  } finally {
+    binding.value = false
+  }
+}
+
+async function generateLink() {
+  generatingLink.value = true
+  try {
+    await request.post('/referral/links')
+    message.success('新邀请链接已生成')
+    await loadReferral()
+  } catch (e: any) {
+    message.error('生成失败，请稍后重试')
+  } finally {
+    generatingLink.value = false
+  }
+}
+
+async function copyText(text: string, field: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    copiedField.value = field
+    message.success('已复制到剪贴板')
+    setTimeout(() => { if (copiedField.value === field) copiedField.value = null }, 2000)
+  } catch {
+    message.error('复制失败，请手动选择文本复制')
+  }
+}
+
+const rewardTypeMap: Record<string, string> = {
+  SIGNUP: '邀请注册',
+  WELCOME: '受邀奖励',
+  FIRST_SUBSCRIBE: '首次订阅',
+  PURCHASE: '购买分成',
+}
+
+const referralLinkColumns: DataTableColumns<ReferralLinkItem> = [
+  { title: '邀请码', key: 'code', render: (r) => h(NCode, { code: r.code, language: 'text' }) },
+  { title: '点击数', key: 'clicks' },
+  { title: '注册数', key: 'signupCount' },
+  { title: '累计积分', key: 'totalCommissionEarned' },
+  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+]
+
+const referralRewardColumns: DataTableColumns<ReferralRewardItem> = [
+  { title: '类型', key: 'type', render: (r) => rewardTypeMap[r.type] || r.type },
+  { title: '积分', key: 'credits', render: (r) => h('span', { style: 'color: var(--success); font-weight: 700;' }, `+${r.credits}`) },
+  { title: '说明', key: 'detail', render: (r) => r.detail ?? '—' },
+  { title: '时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+]
+
 onMounted(() => {
   loadApiKeys()
   loadApiTokens()
+  loadReferral()
 })
 </script>
 
@@ -372,6 +485,103 @@ onMounted(() => {
       </div>
 
       <NDataTable :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" :scroll-x="900" />
+    </div>
+
+    <div class="chronos-panel section-card page-enter delay-3">
+      <div class="panel-corner tl"></div>
+      <div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div>
+      <div class="panel-corner br"></div>
+
+      <div class="section-header">
+        <div class="section-icon referral">
+          <NIcon size="19"><GiftOutline /></NIcon>
+        </div>
+        <div style="flex: 1;">
+          <h3>邀请奖励</h3>
+          <div class="section-sub">
+            邀请好友注册，双方均可获得 AI 积分奖励
+          </div>
+        </div>
+      </div>
+
+      <div class="referral-stats">
+        <div class="referral-stat">
+          <NIcon size="18" style="color: var(--accent);"><PeopleOutline /></NIcon>
+          <div class="referral-stat-num">{{ referralInfo?.stats?.referredCount ?? 0 }}</div>
+          <div class="referral-stat-label">邀请人数</div>
+        </div>
+        <div class="referral-stat">
+          <NIcon size="18" style="color: var(--success);"><CashOutline /></NIcon>
+          <div class="referral-stat-num">{{ referralInfo?.stats?.totalEarned ?? 0 }}</div>
+          <div class="referral-stat-label">累计积分</div>
+        </div>
+        <div class="referral-stat">
+          <NIcon size="18" style="color: var(--warning);"><GiftOutline /></NIcon>
+          <div class="referral-stat-num">{{ referralInfo?.stats?.rewardCount ?? 0 }}</div>
+          <div class="referral-stat-label">奖励次数</div>
+        </div>
+      </div>
+
+      <div class="referral-link-row" v-if="referralInfo">
+        <NInput
+          :value="referralInfo!.referralLink"
+          readonly
+          placeholder="暂无邀请链接"
+          style="flex: 1;"
+        />
+        <NButton @click="copyText(referralInfo!.referralLink, 'main')">
+          <template #icon><NIcon size="14"><CopyOutline /></NIcon></template>
+          复制
+        </NButton>
+        <NButton type="tertiary" :loading="generatingLink" @click="generateLink">
+          <template #icon><NIcon size="14"><LinkOutline /></NIcon></template>
+          生成新链接
+        </NButton>
+      </div>
+
+      <div class="referral-bind-row">
+        <NInput
+          v-model:value="bindCode"
+          placeholder="输入好友的邀请码"
+          style="flex: 1;"
+        />
+        <NButton type="tertiary" :loading="binding" @click="bindReferral">
+          <template #icon><NIcon size="14"><CheckmarkCircleOutline /></NIcon></template>
+          绑定邀请码
+        </NButton>
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
+        绑定后双方各获 300/500 积分奖励
+      </div>
+
+      <div class="sub-section-title" style="margin-top: 4px;">
+        <NIcon size="14" style="color: var(--primary);"><LinkOutline /></NIcon>
+        邀请链接
+      </div>
+      <NDataTable
+        v-if="referralInfo && referralInfo.links.length"
+        :columns="referralLinkColumns"
+        :data="referralInfo!.links"
+        :bordered="false"
+        size="small"
+        :single-line="false"
+      />
+      <div v-else class="referral-empty">暂无邀请链接，点击上方生成</div>
+
+      <div class="sub-section-title" style="margin-top: 20px;">
+        <NIcon size="14" style="color: var(--warning);"><GiftOutline /></NIcon>
+        奖励记录
+      </div>
+      <NDataTable
+        v-if="referralInfo && referralInfo.rewards.length"
+        :columns="referralRewardColumns"
+        :data="referralInfo!.rewards"
+        :bordered="false"
+        size="small"
+        :single-line="false"
+      />
+      <div v-else class="referral-empty">暂无奖励记录</div>
     </div>
 
     <div class="logout-row">
@@ -675,6 +885,66 @@ onMounted(() => {
   font-size: 13px;
   background: transparent;
   padding: 0;
+}
+
+.section-icon.referral {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--warning);
+}
+.referral-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.referral-stat {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.referral-stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+  line-height: 1.1;
+}
+.referral-stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.referral-link-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.referral-bind-row {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.referral-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+@media (max-width: 800px) {
+  .referral-stats {
+    grid-template-columns: 1fr;
+  }
+  .referral-link-row,
+  .referral-bind-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 @media (max-width: 800px) {

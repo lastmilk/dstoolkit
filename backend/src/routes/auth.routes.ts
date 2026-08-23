@@ -53,7 +53,21 @@ router.post('/login', asyncHandler(async (req, res) => {
 }))
 
 router.get('/me', verifyJwt, asyncHandler(async (req: AuthedRequest, res) => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } })
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: req.user!.id },
+    select: {
+      id: true,
+      username: true,
+      role: true,
+      cloudSyncEnabled: true,
+      createdAt: true,
+      tier: true,
+      tierExpiresAt: true,
+      isPermanentTier: true,
+      aiCredits: true,
+      referralCode: true,
+    },
+  })
   return res.json({
     user: {
       id: user.id,
@@ -61,6 +75,11 @@ router.get('/me', verifyJwt, asyncHandler(async (req: AuthedRequest, res) => {
       role: user.role,
       cloudSyncEnabled: user.cloudSyncEnabled,
       createdAt: user.createdAt,
+      tier: user.tier,
+      tierExpiresAt: user.tierExpiresAt,
+      isPermanentTier: user.isPermanentTier,
+      aiCredits: user.aiCredits,
+      referralCode: user.referralCode,
     },
   })
 }))
