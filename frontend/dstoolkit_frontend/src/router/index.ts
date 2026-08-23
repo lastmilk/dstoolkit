@@ -43,6 +43,7 @@ const router = createRouter({
         { path: 'stats', name: 'stats', component: () => import('@/views/stats/Stats.vue') },
         { path: 'alpaca', name: 'alpaca', component: () => import('@/views/alpaca/Alpaca.vue') },
         { path: 'balance', name: 'balance', component: () => import('@/views/balance/Balance.vue') },
+        { path: 'pricing', name: 'pricing', component: () => import('@/views/pricing/Pricing.vue') },
         { path: 'market', name: 'market', component: () => import('@/views/market/Market.vue') },
         { path: 'profile', name: 'profile', component: () => import('@/views/profile/Profile.vue') },
       ],

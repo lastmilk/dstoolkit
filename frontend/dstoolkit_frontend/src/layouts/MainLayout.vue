@@ -26,6 +26,7 @@ import {
   BarChartOutline,
   SwapHorizontalOutline,
   WalletOutline,
+  DiamondOutline,
   AppsOutline,
   PersonOutline,
   LogOutOutline,
@@ -81,6 +82,7 @@ const menuOptions = computed<MenuOption[]>(() => [
   { label: '数据统计', key: 'stats', icon: icon(BarChartOutline) },
   { label: 'Alpaca 导出', key: 'alpaca', icon: icon(SwapHorizontalOutline) },
   { label: '余额', key: 'balance', icon: icon(WalletOutline) },
+  { label: '升级方案', key: 'pricing', icon: icon(DiamondOutline) },
   { label: '模型市场', key: 'market', icon: icon(AppsOutline) },
   { label: '个人中心', key: 'profile', icon: icon(PersonOutline) },
 ])
@@ -96,6 +98,7 @@ const MENU_LABELS: Record<string, { title: string; subtitle: string; chrono: str
   stats:     { title: '数据统计',     subtitle: '对话量、模型分布、活跃时段', chrono: '数据概览' },
   alpaca:    { title: 'Alpaca 导出',  subtitle: '导出为微调训练数据格式', chrono: '数据导出' },
   balance:   { title: '余额',         subtitle: 'API Key 余额与用量信息', chrono: '账户信息' },
+  pricing:   { title: '升级方案',     subtitle: 'Pro / Plus / Ultimate 三档权益与支付', chrono: '付费中心' },
   market:    { title: '模型市场',     subtitle: '工具生态与官方资源', chrono: '资源中心' },
   profile:   { title: '个人中心',     subtitle: '账号设置、密钥管理', chrono: '账号管理' },
 }

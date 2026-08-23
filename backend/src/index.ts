@@ -13,6 +13,7 @@ import marketRoutes from './routes/market.routes.js'
 import timelineRoutes from './routes/timeline.routes.js'
 import statsRoutes from './routes/stats.routes.js'
 import alpacaRoutes from './routes/alpaca.routes.js'
+import paymentRoutes from './routes/payment.routes.js'
 import adminRoutes from './routes/admin.routes.js'
 import searchRoutes from './routes/search.routes.js'
 import chatRoutes from './routes/chat.routes.js'
@@ -36,6 +37,7 @@ app.use('/api/market', marketRoutes)
 app.use('/api/timeline', timelineRoutes)
 app.use('/api/stats', statsRoutes)
 app.use('/api/alpaca', alpacaRoutes)
+app.use('/api/payment', paymentRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/chat', chatRoutes)
