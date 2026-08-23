@@ -255,14 +255,6 @@ onMounted(reload)
               <NText depth="3" class="meta-text">手机：{{ c.deepseekMobile }}</NText>
             </div>
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--accent);"><ChatbubbleEllipsesOutline /></NIcon>
-              <NText depth="3" class="meta-text">对话：</NText>
-              <NTag size="small" round class="chronos-count-tag">
-                <RocketOutline style="font-size: 11px; margin-right: 4px;" />
-                {{ c.conversationCount ?? '—' }}
-              </NTag>
-            </div>
-            <div class="meta-row">
               <NIcon size="14" style="color: var(--warning);"><CalendarOutline /></NIcon>
               <NText depth="3" class="meta-text">最近更新：{{ fmtDate(c.updatedAt) }}</NText>
             </div>
