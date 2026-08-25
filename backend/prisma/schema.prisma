@@ -82,6 +82,8 @@ model User {
   referralLinks    ReferralLink[]
   referralRewards  ReferralReward[]
   shares           Share[]
+  oauthCodes       OAuthCode[]
+  oauthTokens      OAuthToken[]
 
   @@index([role])
   @@index([tier])
@@ -346,6 +348,57 @@ model ReferralReward {
 
   @@index([userId])
   @@index([refereeId])
+}
+
+// ═══════════ OAuth2.0（App/插件授权码 + PKCE） ═══════════
+model OAuthClient {
+  id           Int           @id @default(autoincrement())
+  clientId     String        @unique
+  name         String
+  redirectUris Json          // ["dstoolkit://oauth-callback", ...]
+  scopes       Json          // ["read:conversations", ...]
+  isPublic     Boolean       @default(true) // true = PKCE 公共客户端，无 client_secret
+  enabled      Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  codes        OAuthCode[]
+  tokens       OAuthToken[]
+}
+
+model OAuthCode {
+  id                  Int          @id @default(autoincrement())
+  codeHash            String       @unique // SHA256(code)，明文不落库
+  clientId            Int
+  client              OAuthClient  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId              Int
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scopes              Json
+  redirectUri         String       @db.Text
+  codeChallenge       String       @db.Text // PKCE S256
+  codeChallengeMethod String       @default("S256")
+  expiresAt           DateTime // 10 分钟
+  used                Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+
+  @@index([userId])
+}
+
+model OAuthToken {
+  id              Int          @id @default(autoincrement())
+  accessHash      String       @unique // SHA256(dstk_ token)，与 ApiToken.tokenHash 同值
+  refreshHash     String?      @unique // SHA256(refresh_token)
+  clientId        Int
+  client          OAuthClient  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId          Int
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiTokenId      Int // 关联 ApiToken 行，revoke 时联动删除
+  scopes          Json
+  accessExpiresAt DateTime // 30 天
+  refreshExpiresAt DateTime? // 60 天
+  createdAt       DateTime     @default(now())
+  lastUsedAt      DateTime?
+
+  @@index([userId])
+  @@index([apiTokenId])
 }
 
 // ═══════════ 公开分享 ═══════════

@@ -25,7 +25,7 @@ function publicConfig(c: any) {
 router.get('/me', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: req.user!.id },
-    select: { id: true, username: true, role: true, cloudSyncEnabled: true, createdAt: true },
+    select: { id: true, username: true, role: true, cloudSyncEnabled: true, createdAt: true, tier: true, tierExpiresAt: true, isPermanentTier: true },
   })
   return res.json({ user })
 }))
@@ -114,6 +114,7 @@ router.get('/search', asyncHandler(async (req: AuthedRequest, res) => {
 
   const results = [
     ...messages.map((m) => ({
+      configId: m.conversation.configId,
       convId: m.conversation.deepseekConvId,
       nodeId: m.nodeId,
       title: m.conversation.title,
@@ -124,6 +125,7 @@ router.get('/search', asyncHandler(async (req: AuthedRequest, res) => {
       subTurnIndex: m.subTurnIndex,
     })),
     ...titleConvs.map((c) => ({
+      configId: c.configId,
       convId: c.deepseekConvId,
       nodeId: `title:${c.deepseekConvId}`,
       title: c.title,
