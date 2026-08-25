@@ -23,6 +23,7 @@ import subscriptionRoutes from './routes/subscription.routes.js'
 import summaryRoutes from './routes/summary.routes.js'
 import folderRoutes from './routes/folder.routes.js'
 import referralRoutes from './routes/referral.routes.js'
+import oauth2Routes from './routes/oauth2.routes.js'
 
 const app = express()
 
@@ -51,6 +52,7 @@ app.use('/api/subscription', subscriptionRoutes)
 app.use('/api/summaries', summaryRoutes)
 app.use('/api/folders', folderRoutes)
 app.use('/api/referral', referralRoutes)
+app.use('/api/oauth', oauth2Routes)
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   // multer 文件大小错误
@@ -72,6 +74,20 @@ async function seed() {
       ],
     })
     console.log('[seed] 已初始化应用市场占位数据')
+  }
+  // 内置 OAuth2 公共客户端（PKCE，无 secret）
+  const mobileClient = await prisma.oAuthClient.findUnique({ where: { clientId: 'dstk-mobile-app' } })
+  if (!mobileClient) {
+    await prisma.oAuthClient.create({
+      data: {
+        clientId: 'dstk-mobile-app',
+        name: 'DsToolKit Mobile App',
+        isPublic: true,
+        redirectUris: ['dstoolkit://oauth-callback'],
+        scopes: ['read:conversations', 'search', 'profile', 'offline_access'],
+      },
+    })
+    console.log('[seed] 已创建 OAuth 客户端 dstk-mobile-app')
   }
 }
 

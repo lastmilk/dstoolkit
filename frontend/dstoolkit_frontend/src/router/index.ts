@@ -33,6 +33,12 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/oauth/authorize',
+      name: 'oauth-authorize',
+      component: () => import('@/views/oauth/Authorize.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/',
       component: () => import('@/layouts/MainLayout.vue'),
       children: [
