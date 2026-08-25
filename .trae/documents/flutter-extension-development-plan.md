@@ -2,23 +2,23 @@
 
 > 版本：v1.0 · 日期：2026-08-23 · 状态：技术方案稿
 
----
+***
 
 ## 0. 执行摘要 Executive Summary
 
 本方案在现有 DsToolKit 后端（Node.js/Express + Prisma/MySQL）和前端（Vue3 + NaiveUI）体系基础上，新增两大客户端渠道：
 
-| 模块 | 定位 | 核心价值 | 付费门槛 |
-|------|------|----------|----------|
-| **Flutter App** | 移动端原生体验（iOS/Android） | 随身查看对话、离线缓存、移动端适配组件、推送通知 | FREE 可用基础功能；PLUS+ 解锁云同步/搜索/导出 |
-| **DsToolKit（MV3 插件）** | Chrome/Edge 浏览器扩展 | 无感捕获 DeepSeek 官网对话，通过 Git 差分同步至后端；独立管理 API 令牌与连接状态 | **必须创建 RESTful API 令牌**（需要 PLUS 及以上等级） |
-| **DsToolKit Extended（油猴脚本）** | Tampermonkey/Violentmonkey 用户脚本 | 深度注入 DeepSeek 页面 DOM，拦截真实对话数据流；将数据发送给 DsToolKit 插件侧 | 配合插件使用，无独立付费要求；但**依赖插件持有 API 令牌** |
+| 模块                           | 定位                              | 核心价值                                                | 付费门槛                                   |
+| ---------------------------- | ------------------------------- | --------------------------------------------------- | -------------------------------------- |
+| **Flutter App**              | 移动端原生体验（iOS/Android）            | 随身查看对话、离线缓存、移动端适配组件、推送通知                            | FREE 可用基础功能；PLUS+ 解锁云同步/搜索/导出          |
+| **DsToolKit（MV3 插件）**        | Chrome/Edge 浏览器扩展               | 无感捕获 DeepSeek 官网对话，通过 Git 差分同步至后端；独立管理 API 令牌与连接状态  | **必须创建 RESTful API 令牌**（需要 PLUS 及以上等级） |
+| **DsToolKit Extended（油猴脚本）** | Tampermonkey/Violentmonkey 用户脚本 | 深度注入 DeepSeek 页面 DOM，拦截真实对话数据流；将数据发送给 DsToolKit 插件侧 | 配合插件使用，无独立付费要求；但**依赖插件持有 API 令牌**      |
 
-三者通过 **OAuth2.0 授权码流程 + RESTful API（Bearer dstk_ Token）** 与后端通信。浏览器插件的"Git 同步"采用 **类 Git commit 哈希 + 增量差分（diff-match-patch）** 的轻量协议实现，每次对话结束无感提交。
+三者通过 **OAuth2.0 授权码流程 + RESTful API（Bearer dstk\_ Token）** 与后端通信。浏览器插件的"Git 同步"采用 **类 Git commit 哈希 + 增量差分（diff-match-patch）** 的轻量协议实现，每次对话结束无感提交。
 
 **商业闭环**：创建 API 令牌 ➜ 需要 PLUS/ULTIMATE 等级 ➜ 付费（卡密/年付/永久）➜ 解锁浏览器插件 ➜ 同步数据产生黏性 ➜ 反哺 Flutter App 使用率。
 
----
+***
 
 ## 1. 系统总架构
 
@@ -71,7 +71,7 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+***
 
 ## 2. 后端改造方案（兼容现有架构）
 
@@ -195,12 +195,12 @@ model DeviceSession {
 
 在 `backend/src/routes/` 下新增文件并在 `index.ts` 注册：
 
-| 文件 | 路由前缀 | 鉴权方式 | 说明 |
-|------|----------|----------|------|
-| `oauth2.routes.ts` | `/api/oauth` | 混合（JWT + 匿名） | OAuth2.0 授权码 + PKCE 流程；客户端凭据流 |
-| `sync.routes.ts` | `/api/v1/sync` | verifyApiToken (dstk_) | Git 风格同步：push commit / pull since / HEAD 指针 |
-| `devices.routes.ts` | `/api/v1/devices` | verifyApiToken | Flutter 设备注册、推送令牌、在线状态 |
-| `push.routes.ts` | `/api/v1/push` | verifyJwt（Web端触发） | 发送推送通知（手动/定时摘要） |
+| 文件                  | 路由前缀              | 鉴权方式                    | 说明                                          |
+| ------------------- | ----------------- | ----------------------- | ------------------------------------------- |
+| `oauth2.routes.ts`  | `/api/oauth`      | 混合（JWT + 匿名）            | OAuth2.0 授权码 + PKCE 流程；客户端凭据流               |
+| `sync.routes.ts`    | `/api/v1/sync`    | verifyApiToken (dstk\_) | Git 风格同步：push commit / pull since / HEAD 指针 |
+| `devices.routes.ts` | `/api/v1/devices` | verifyApiToken          | Flutter 设备注册、推送令牌、在线状态                      |
+| `push.routes.ts`    | `/api/v1/push`    | verifyJwt（Web端触发）       | 发送推送通知（手动/定时摘要）                             |
 
 #### 2.2.1 OAuth2 核心端点
 
@@ -325,23 +325,23 @@ export const TIER_LIMITS_SYNC: Record<Tier, any> = {
 
 在 `verifyApiToken` 中间件中调用配额检查，返回 403 "当前等级无浏览器同步权限"。
 
----
+***
 
 ## 3. Flutter 移动端应用方案
 
 ### 3.1 技术选型
 
-| 维度 | 选型 | 理由 |
-|------|------|------|
-| **SDK** | Flutter 3.24+ / Dart 3.5+ | 一套代码 iOS/Android；现成组件丰富；现有 Node/TS 团队可快速上手 |
-| **状态管理** | Riverpod 2.x | 编译时安全、Provider 家族统一；比 Bloc 代码量少 40%；适合多屏幕多 Tab |
-| **路由** | go_router 14.x | 声明式路由；深度链接支持（配合 OAuth 回跳） |
-| **本地持久化** | drift (SQLite ORM) + shared_preferences | drift 支持复杂查询/批量同步；SP 存 JWT |
-| **网络** | dio 5.x + retrofit | 强类型 API 生成；Interceptor 支持自动刷新 Token |
-| **Markdown 渲染** | flutter_math_fork（可降级为 flutter_markdown） | 参考 Experience 1149208 教训：必须实现降级渲染策略，检测失败退纯文本 |
-| **权限** | permission_handler 按平台分支 | 参考 1149208：**避免用不存在的枚举**，Android 用 storage/photos、iOS 用 photos |
-| **推送** | firebase_messaging + flutter_local_notifications | FCM Android、APNs iOS 桥接 |
-| **WebView** | webview_flutter 4.x | 登录 OAuth、分享页 Web 预览 |
+| 维度              | 选型                                                  | 理由                                                             |
+| --------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| **SDK**         | Flutter 3.24+ / Dart 3.5+                           | 一套代码 iOS/Android；现成组件丰富；现有 Node/TS 团队可快速上手                     |
+| **状态管理**        | Riverpod 2.x                                        | 编译时安全、Provider 家族统一；比 Bloc 代码量少 40%；适合多屏幕多 Tab                 |
+| **路由**          | go\_router 14.x                                     | 声明式路由；深度链接支持（配合 OAuth 回跳）                                      |
+| **本地持久化**       | drift (SQLite ORM) + shared\_preferences            | drift 支持复杂查询/批量同步；SP 存 JWT                                     |
+| **网络**          | dio 5.x + retrofit                                  | 强类型 API 生成；Interceptor 支持自动刷新 Token                            |
+| **Markdown 渲染** | flutter\_math\_fork（可降级为 flutter\_markdown）         | 参考 Experience 1149208 教训：必须实现降级渲染策略，检测失败退纯文本                   |
+| **权限**          | permission\_handler 按平台分支                           | 参考 1149208：**避免用不存在的枚举**，Android 用 storage/photos、iOS 用 photos |
+| **推送**          | firebase\_messaging + flutter\_local\_notifications | FCM Android、APNs iOS 桥接                                        |
+| **WebView**     | webview\_flutter 4.x                                | 登录 OAuth、分享页 Web 预览                                            |
 
 ### 3.2 项目结构（建议）
 
@@ -394,15 +394,15 @@ flutter_app/
 
 ### 3.3 平台级原生适配清单
 
-| 适配项 | Android | iOS | 实现要点 |
-|--------|---------|-----|----------|
-| **OAuth 回跳** | `android:scheme="dstoolkit"` `<intent-filter>` | `Info.plist` CFBundleURLSchemes | 与 Flutter go_router deep link 联动，解析 `?code=` 和 `?state=` |
-| **存储权限** | Android 13+ READ_MEDIA_IMAGES；12- READ_EXTERNAL_STORAGE | iOS NSPhotoLibraryUsageDescription | **避免 Permission.photosFullAccess**（参考 1149208 教训）按平台分支 |
-| **通知权限** | POST_NOTIFICATIONS（Android13+）+ FCM channel | UNUserNotificationCenter 申请 | 冷启动点击通知跳转指定对话页 |
-| **生物识别** | local_auth：指纹 + 面部 | FaceID / TouchID（NSFaceIDUsageDescription） | 可选：启动 App 锁屏保护对话隐私 |
-| **分享导出** | `share_plus` 分享文件/文本 | UIDocumentInteractionController | 导出 Markdown/PDF 到系统分享面板 |
-| **离线策略** | `drift` 缓存 SQLite + `workmanager` 后台同步 | `background_fetch` T+15min 最小间隔 | 弱网时本地可完整浏览，联网后差分同步 |
-| **渲染降级** | 公式渲染检测失败 → 退回纯文本/简化排版（1149208 经验） | — | `flutter_math_fork` + try/catch，错误标志位决定渲染分支 |
+| 适配项          | Android                                                     | iOS                                        | 实现要点                                                      |
+| ------------ | ----------------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------- |
+| **OAuth 回跳** | `android:scheme="dstoolkit"` `<intent-filter>`              | `Info.plist` CFBundleURLSchemes            | 与 Flutter go\_router deep link 联动，解析 `?code=` 和 `?state=` |
+| **存储权限**     | Android 13+ READ\_MEDIA\_IMAGES；12- READ\_EXTERNAL\_STORAGE | iOS NSPhotoLibraryUsageDescription         | **避免 Permission.photosFullAccess**（参考 1149208 教训）按平台分支    |
+| **通知权限**     | POST\_NOTIFICATIONS（Android13+）+ FCM channel                | UNUserNotificationCenter 申请                | 冷启动点击通知跳转指定对话页                                            |
+| **生物识别**     | local\_auth：指纹 + 面部                                         | FaceID / TouchID（NSFaceIDUsageDescription） | 可选：启动 App 锁屏保护对话隐私                                        |
+| **分享导出**     | `share_plus` 分享文件/文本                                        | UIDocumentInteractionController            | 导出 Markdown/PDF 到系统分享面板                                   |
+| **离线策略**     | `drift` 缓存 SQLite + `workmanager` 后台同步                      | `background_fetch` T+15min 最小间隔            | 弱网时本地可完整浏览，联网后差分同步                                        |
+| **渲染降级**     | 公式渲染检测失败 → 退回纯文本/简化排版（1149208 经验）                           | —                                          | `flutter_math_fork` + try/catch，错误标志位决定渲染分支               |
 
 ### 3.4 核心功能流程
 
@@ -464,12 +464,15 @@ Flutter (drift SQLite)                 Backend /api/v1/sync
 
 ### 3.5 移动端差异化 UI 组件
 
-- **对话气泡**：`flutter_markdown` + `flutter_math_fork` + 代码高亮（`flutter_highlight`），降级为纯文本容器
-- **TurnTree 可视化**：CustomPaint 绘制对话树（用户问题 → 多版本 AI 回复 → 子追问分支），可点击切换
-- **自适应列表**：iOS CupertinoListTile 左滑删除；Android ListTile 长按弹出菜单（归档/删除/分享）
-- **底部导航**：CupertinoTabBar (iOS) / NavigationBar Material3 (Android)，共 5 Tab：对话 / 文件夹 / 搜索 / 统计 / 我的
+* **对话气泡**：`flutter_markdown` + `flutter_math_fork` + 代码高亮（`flutter_highlight`），降级为纯文本容器
 
----
+* **TurnTree 可视化**：CustomPaint 绘制对话树（用户问题 → 多版本 AI 回复 → 子追问分支），可点击切换
+
+* **自适应列表**：iOS CupertinoListTile 左滑删除；Android ListTile 长按弹出菜单（归档/删除/分享）
+
+* **底部导航**：CupertinoTabBar (iOS) / NavigationBar Material3 (Android)，共 5 Tab：对话 / 文件夹 / 搜索 / 统计 / 我的
+
+***
 
 ## 4. DsToolKit 浏览器插件（MV3）方案
 
@@ -477,7 +480,7 @@ Flutter (drift SQLite)                 Backend /api/v1/sync
 
 DsToolKit 是 **Chrome/Edge MV3 Manifest V3 扩展**，承担 4 个核心职责：
 
-1. **OAuth2 身份认证**：通过浏览器弹窗流获取 dstk_ API Token（PLUS+ 等级用户才能创建）
+1. **OAuth2 身份认证**：通过浏览器弹窗流获取 dstk\_ API Token（PLUS+ 等级用户才能创建）
 2. **与 DsToolKit Extended 通信**：接收油猴脚本注入捕获的 DeepSeek 对话数据
 3. **Git 风格同步上传**：构造 commit → diff → push 到后端 `/api/v1/sync/push`
 4. **UI 面板**：Popup 展示连接状态、最近同步、配置管理、手动触发同步
@@ -575,7 +578,7 @@ DsToolKit 是 **Chrome/Edge MV3 Manifest V3 扩展**，承担 4 个核心职责�
 
 ### 4.4 与 Extended（油猴脚本）的通信协议
 
-**通道安全原则**：油猴脚本运行在 `MAIN` world（页面上下文），content_bridge 运行在 `ISOLATED` world。它们之间通过 `window.postMessage` + HMAC 签名校验通信，避免伪造。
+**通道安全原则**：油猴脚本运行在 `MAIN` world（页面上下文），content\_bridge 运行在 `ISOLATED` world。它们之间通过 `window.postMessage` + HMAC 签名校验通信，避免伪造。
 
 ```typescript
 // content_bridge.js — 插件侧（ISOLATED world）
@@ -650,7 +653,7 @@ export async function authorizeAndGetToken(): Promise<TokenPair> {
              → 每隔 1 分钟批量出队重试（指数退避）
 ```
 
----
+***
 
 ## 5. DsToolKit Extended（油猴脚本）方案
 
@@ -660,9 +663,12 @@ export async function authorizeAndGetToken(): Promise<TokenPair> {
 
 1. **DOM 深度拦截**：监听 DeepSeek 官网的对话渲染/消息生成，在用户交互层捕获真实数据
 2. **消息级捕获**：
-   - 用户发送消息时捕获输入内容
-   - AI 流式生成完毕后捕获最终 markdown 文本
-   - 捕获重新生成/编辑消息产生的对话树分支（mapping 结构）
+
+   * 用户发送消息时捕获输入内容
+
+   * AI 流式生成完毕后捕获最终 markdown 文本
+
+   * 捕获重新生成/编辑消息产生的对话树分支（mapping 结构）
 3. **UI 辅助注入**：在 DeepSeek 页面角落注入"同步状态角标"、"手动同步按钮"、"导出到 DsToolKit"菜单
 4. **数据桥接**：通过 `window.postMessage` 将捕获数据发给 DsToolKit（MV3 插件），后者负责鉴权与上传
 
@@ -713,15 +719,15 @@ export async function authorizeAndGetToken(): Promise<TokenPair> {
 
 ### 5.4 捕获时机（对话无感同步触发点）
 
-| 触发时机 | 触发条件 | 同步粒度 | 说明 |
-|----------|----------|----------|------|
-| **用户消息发送** | 检测到发送按钮 click / Enter keydown 且输入框非空 | patch 级 | 立即把用户输入发到插件，预建 Turn |
-| **AI 回复完成** | 流式打字结束（3 秒内无新字符增量） | patch 级 | 构造 REPLY 消息 + 关联 Turn 的最新 Version |
-| **重新生成** | 点击"重新生成"按钮 | patch 级 | 新建 VersionIndex + 标记 parentVersion |
-| **编辑消息** | 用户编辑已发送消息并重新提交 | patch 级 | 新建 Turn 分支（parentId 指向被编辑节点） |
-| **会话切换** | URL hash / router 变化（deepseekConvId 改变） | commit 级 | 把当前会话做一次完整 commit，关闭上一个编辑态 |
-| **页面卸载/隐藏** | `visibilitychange` / `beforeunload` | commit 级 | 做最终一致性提交，防止丢失未保存内容 |
-| **手动按钮** | 注入的"立即同步"按钮 | commit 级 | 用户主动触发全量 snapshot 校验 |
+| 触发时机        | 触发条件                                    | 同步粒度     | 说明                                 |
+| ----------- | --------------------------------------- | -------- | ---------------------------------- |
+| **用户消息发送**  | 检测到发送按钮 click / Enter keydown 且输入框非空    | patch 级  | 立即把用户输入发到插件，预建 Turn                |
+| **AI 回复完成** | 流式打字结束（3 秒内无新字符增量）                      | patch 级  | 构造 REPLY 消息 + 关联 Turn 的最新 Version  |
+| **重新生成**    | 点击"重新生成"按钮                              | patch 级  | 新建 VersionIndex + 标记 parentVersion |
+| **编辑消息**    | 用户编辑已发送消息并重新提交                          | patch 级  | 新建 Turn 分支（parentId 指向被编辑节点）       |
+| **会话切换**    | URL hash / router 变化（deepseekConvId 改变） | commit 级 | 把当前会话做一次完整 commit，关闭上一个编辑态         |
+| **页面卸载/隐藏** | `visibilitychange` / `beforeunload`     | commit 级 | 做最终一致性提交，防止丢失未保存内容                 |
+| **手动按钮**    | 注入的"立即同步"按钮                             | commit 级 | 用户主动触发全量 snapshot 校验               |
 
 ### 5.5 注入的 UI 组件
 
@@ -775,7 +781,7 @@ background Service Worker
    MySQL / Prisma
 ```
 
----
+***
 
 ## 6. OAuth2 + RESTful API 认证体系设计
 
@@ -836,15 +842,15 @@ const builtinClients = [
 
 ### 6.3 统一 Scopes 与权限矩阵
 
-| Scope | 说明 | 授权端点 |
-|-------|------|----------|
-| `read:conversations` | 读取会话列表 / 详情 / 消息 | GET /api/v1/configs/* |
-| `write:sync` | 提交 Git 同步（push/commit） | POST /api/v1/sync/push |
-| `write:conversations` | 手动创建/修改会话 | PUT/DELETE /api/v1/conversations/* |
-| `search` | 调用搜索 API | GET /api/v1/search |
-| `profile` | 读取/修改个人信息 | GET /api/v1/me |
-| `offline_access` | 颁发 refresh_token（30 天有效期） | POST /api/oauth/token refresh |
-| `admin` | 管理后台（仅 ADMIN 角色） | /api/admin/* |
+| Scope                 | 说明                         | 授权端点                                |
+| --------------------- | -------------------------- | ----------------------------------- |
+| `read:conversations`  | 读取会话列表 / 详情 / 消息           | GET /api/v1/configs/\*              |
+| `write:sync`          | 提交 Git 同步（push/commit）     | POST /api/v1/sync/push              |
+| `write:conversations` | 手动创建/修改会话                  | PUT/DELETE /api/v1/conversations/\* |
+| `search`              | 调用搜索 API                   | GET /api/v1/search                  |
+| `profile`             | 读取/修改个人信息                  | GET /api/v1/me                      |
+| `offline_access`      | 颁发 refresh\_token（30 天有效期） | POST /api/oauth/token refresh       |
+| `admin`               | 管理后台（仅 ADMIN 角色）           | /api/admin/\*                       |
 
 ### 6.4 新 OAuth2 路由接入到现有中间件
 
@@ -887,23 +893,23 @@ export async function verifyAnyToken(req: AuthedRequest, res, next) {
 }
 ```
 
----
+***
 
 ## 7. Git 同步协议详解（"Git 技术"落地）
 
 ### 7.1 术语映射
 
-| Git 概念 | DsToolKit 实现 | 存储位置 |
-|----------|---------------|----------|
-| Repository | User + DeepseekConfig 组合 | SyncHead（每 config 一个） |
-| Commit | SyncCommit 行：content-based hash + parentHash 链表 | SyncCommit 表 |
-| Blob | Conversation.mapping 中的消息节点 JSON 片段 | 结构化 → Message 表 |
-| Tree | 路径 `conversations/{deepseekConvId}/mapping/{nodeId}/content` | 逻辑路径，不单独存 |
-| Diff Patch | diff-match-patch 序列化（`DMP.patch_toText`） | SyncCommit.diffPatches JSON |
-| Branch HEAD | 每个 config 指向最新 commitHash | SyncHead.headHash |
-| Snapshot (初始提交) | 完整 conversation JSON（rawMapping） | SyncCommit.snapshotJson |
-| Fast-forward | parentHash == current HEAD，直接追加 | 无冲突 push |
-| Merge Conflict | push 时 parentHash != HEAD，返回 409 + 远端链 | 需先 pull + rebase |
+| Git 概念          | DsToolKit 实现                                                 | 存储位置                        |
+| --------------- | ------------------------------------------------------------ | --------------------------- |
+| Repository      | User + DeepseekConfig 组合                                     | SyncHead（每 config 一个）       |
+| Commit          | SyncCommit 行：content-based hash + parentHash 链表              | SyncCommit 表                |
+| Blob            | Conversation.mapping 中的消息节点 JSON 片段                          | 结构化 → Message 表             |
+| Tree            | 路径 `conversations/{deepseekConvId}/mapping/{nodeId}/content` | 逻辑路径，不单独存                   |
+| Diff Patch      | diff-match-patch 序列化（`DMP.patch_toText`）                     | SyncCommit.diffPatches JSON |
+| Branch HEAD     | 每个 config 指向最新 commitHash                                    | SyncHead.headHash           |
+| Snapshot (初始提交) | 完整 conversation JSON（rawMapping）                             | SyncCommit.snapshotJson     |
+| Fast-forward    | parentHash == current HEAD，直接追加                              | 无冲突 push                    |
+| Merge Conflict  | push 时 parentHash != HEAD，返回 409 + 远端链                       | 需先 pull + rebase            |
 
 ### 7.2 Commit 内容格式
 
@@ -963,15 +969,15 @@ SyncCommit.diffPatches 的 JSON Schema：
 
 ### 7.4 数据大小优化策略
 
-| 场景 | 策略 | 压缩比 |
-|------|------|--------|
-| 首次同步 500 对话 × 完整 JSON (~50MB) | snapshot 模式 + 先 gzip 压缩 body；服务端 gunzip | 85%+ |
-| 用户每发一条消息 | path-based add node op（~200B） | 99% vs 重发整份 |
-| AI 修改一句话（编辑重生成） | dmp text patch（原句 500 字 → patch ~80B） | 95% |
-| 会话切换 commit | 只包含当前会话在本窗口内的 patch 列表 | — |
-| 超过 7 天未同步 | 主动 snapshot 模式（避免 patch 链太长 replay 慢） | — |
+| 场景                             | 策略                                      | 压缩比         |
+| ------------------------------ | --------------------------------------- | ----------- |
+| 首次同步 500 对话 × 完整 JSON (\~50MB) | snapshot 模式 + 先 gzip 压缩 body；服务端 gunzip | 85%+        |
+| 用户每发一条消息                       | path-based add node op（\~200B）          | 99% vs 重发整份 |
+| AI 修改一句话（编辑重生成）                | dmp text patch（原句 500 字 → patch \~80B）  | 95%         |
+| 会话切换 commit                    | 只包含当前会话在本窗口内的 patch 列表                  | —           |
+| 超过 7 天未同步                      | 主动 snapshot 模式（避免 patch 链太长 replay 慢）   | —           |
 
----
+***
 
 ## 8. 商业策略与付费闭环
 
@@ -1028,91 +1034,99 @@ SyncCommit.diffPatches 的 JSON Schema：
 
 ### 8.3 浏览器插件的"锁"机制（强制付费）
 
-**核心约束**：DsToolKit（MV3 插件）的 Popup 中 **必须** 有一个可用的 dstk_ API Token 才能开启同步功能。没有 Token 时：
+**核心约束**：DsToolKit（MV3 插件）的 Popup 中 **必须** 有一个可用的 dstk\_ API Token 才能开启同步功能。没有 Token 时：
 
-- Popup 显示大红色状态："未配置 API Token（需要 PLUS 及以上权限）"
-- 按钮 1："去 Web 创建 Token → 自动打开 /profile 页（带教程）"
-- 按钮 2："OAuth 授权登录 → 启动 OAuth 流程（同样检查后端 tier，未达 PLUS 返回 403 错误并引导升级）"
-- Extended 的同步角标**持续显示红色**，并在点击时弹出"解锁同步"浮层
+* Popup 显示大红色状态："未配置 API Token（需要 PLUS 及以上权限）"
+
+* 按钮 1："去 Web 创建 Token → 自动打开 /profile 页（带教程）"
+
+* 按钮 2："OAuth 授权登录 → 启动 OAuth 流程（同样检查后端 tier，未达 PLUS 返回 403 错误并引导升级）"
+
+* Extended 的同步角标**持续显示红色**，并在点击时弹出"解锁同步"浮层
 
 ### 8.4 免费试用（钩子）
 
-- 新用户注册即送 **7 天 PLUS 试用**，可创建 **1 个临时 API Token**（7 天后失效）
-- 试用到期后：已同步的数据可继续在 Flutter App 中**只读**访问，但**不能再用插件做新同步**
-- 转化话术："您已有 238 条对话自动同步至云端。续费 PLUS 保持您的官网对话实时同步到手机。"
+* 新用户注册即送 **7 天 PLUS 试用**，可创建 **1 个临时 API Token**（7 天后失效）
 
----
+* 试用到期后：已同步的数据可继续在 Flutter App 中**只读**访问，但**不能再用插件做新同步**
+
+* 转化话术："您已有 238 条对话自动同步至云端。续费 PLUS 保持您的官网对话实时同步到手机。"
+
+***
 
 ## 9. 实施路线图
 
 ### Phase 1 · 后端基建（2 周）
 
-| 任务 | 产出 |
-|------|------|
-| Prisma Schema 扩展 + db push/migrate | `OAuthClient/Code/Token`、`SyncCommit/Head`、`DeviceSession` 模型 |
-| OAuth2.0 + PKCE 端点 | `oauth2.routes.ts` + 单元测试（授权码、刷新、吊销、PKCE 校验） |
-| Git Sync Engine + 端点 | `services/gitSync.ts` + `sync.routes.ts`（push/pull/head/commits） |
-| 配额 & 限流对接 | `verifyApiToken` 内检查 tier 是否具备 syncEnabled |
-| ApiToken 支持由 OAuth 流程创建 | `/api/oauth/token` 内部写 ApiToken 表并返回 dstk_ 明文 |
-| 设备端点 | `devices.routes.ts`（注册/列表/删除） |
-| 单元测试 & 文档 | Vitest 覆盖率 ≥ 70%；VitePress 文档：OAuth Guide / Sync API 参考 |
+| 任务                                 | 产出                                                               |
+| ---------------------------------- | ---------------------------------------------------------------- |
+| Prisma Schema 扩展 + db push/migrate | `OAuthClient/Code/Token`、`SyncCommit/Head`、`DeviceSession` 模型    |
+| OAuth2.0 + PKCE 端点                 | `oauth2.routes.ts` + 单元测试（授权码、刷新、吊销、PKCE 校验）                     |
+| Git Sync Engine + 端点               | `services/gitSync.ts` + `sync.routes.ts`（push/pull/head/commits） |
+| 配额 & 限流对接                          | `verifyApiToken` 内检查 tier 是否具备 syncEnabled                       |
+| ApiToken 支持由 OAuth 流程创建            | `/api/oauth/token` 内部写 ApiToken 表并返回 dstk\_ 明文                   |
+| 设备端点                               | `devices.routes.ts`（注册/列表/删除）                                    |
+| 单元测试 & 文档                          | Vitest 覆盖率 ≥ 70%；VitePress 文档：OAuth Guide / Sync API 参考          |
 
 ### Phase 2 · 浏览器插件 + 油猴（2 周）
 
-| 任务 | 产出 |
-|------|------|
-| DsToolKit MV3 scaffold | Manifest + background SW + content_bridge + popup (Vue 3 CDN) |
-| OAuth2 PKCE + identity API | 插件侧登录 / 登出 / refresh / 状态持久化 |
-| Git push + 断网重试队列 | commit 构造 → patch/snapshot 决策 → IndexedDB 队列 + alarms 重试 |
-| DsToolKit Extended 油猴脚本 | L1+L2 捕获 + postMessage 通信 + HMAC 签名 + UI 注入 |
-| postMessage 安全协议验证 | 互测、XSS 注入点检查 |
-| Popup UI | 连接状态、最近同步列表、Token 管理、手动同步按钮 |
-| Chrome 商店上架资料 | 图标、截图、描述、隐私政策页 |
+| 任务                         | 产出                                                             |
+| -------------------------- | -------------------------------------------------------------- |
+| DsToolKit MV3 scaffold     | Manifest + background SW + content\_bridge + popup (Vue 3 CDN) |
+| OAuth2 PKCE + identity API | 插件侧登录 / 登出 / refresh / 状态持久化                                   |
+| Git push + 断网重试队列          | commit 构造 → patch/snapshot 决策 → IndexedDB 队列 + alarms 重试       |
+| DsToolKit Extended 油猴脚本    | L1+L2 捕获 + postMessage 通信 + HMAC 签名 + UI 注入                    |
+| postMessage 安全协议验证         | 互测、XSS 注入点检查                                                   |
+| Popup UI                   | 连接状态、最近同步列表、Token 管理、手动同步按钮                                    |
+| Chrome 商店上架资料              | 图标、截图、描述、隐私政策页                                                 |
 
 ### Phase 3 · Flutter App（4 周）
 
-| 任务 | 产出 |
-|------|------|
-| Flutter scaffold | Riverpod + go_router + drift + retrofit 脚手架 |
-| OAuth PKCE 登录模块 | WebView 授权 + 自定义 scheme 回跳 + secure storage |
-| 核心数据层 | freezed models / retrofit API Client / drift DAO / Repository |
-| 对话列表 + 搜索 | 列表卡片 + 过滤 + 本地 + 远端混合搜索 |
-| 对话详情 + Markdown 渲染 | 气泡 UI + 降级策略 + TurnTree 可视化 + 代码高亮 |
-| Git pull 增量同步 | 手动/自动同步进度条 + 冲突提示 + 日志页 |
-| 个人中心 + 定价 + 卡密兑换 | 与 Web 端定价对齐；App Store 内购或跳 kufaka（审核友好） |
-| 平台适配（权限/通知/分享/导出） | Android/iOS 各 1 台真机调通 |
-| Push 通知（可选） | FCM/APNs 注册 + 后端 push 端点 |
+| 任务                 | 产出                                                            |
+| ------------------ | ------------------------------------------------------------- |
+| Flutter scaffold   | Riverpod + go\_router + drift + retrofit 脚手架                  |
+| OAuth PKCE 登录模块    | WebView 授权 + 自定义 scheme 回跳 + secure storage                   |
+| 核心数据层              | freezed models / retrofit API Client / drift DAO / Repository |
+| 对话列表 + 搜索          | 列表卡片 + 过滤 + 本地 + 远端混合搜索                                       |
+| 对话详情 + Markdown 渲染 | 气泡 UI + 降级策略 + TurnTree 可视化 + 代码高亮                            |
+| Git pull 增量同步      | 手动/自动同步进度条 + 冲突提示 + 日志页                                       |
+| 个人中心 + 定价 + 卡密兑换   | 与 Web 端定价对齐；App Store 内购或跳 kufaka（审核友好）                       |
+| 平台适配（权限/通知/分享/导出）  | Android/iOS 各 1 台真机调通                                         |
+| Push 通知（可选）        | FCM/APNs 注册 + 后端 push 端点                                      |
 
 ### Phase 4 · 联调 + 上线（1 周）
 
-- 端到端测试：DeepSeek 官网聊天 → Extended 捕获 → MV3 push → 后端落库 → Flutter 立即看到
-- 性能压测：50 用户并发、1 万条对话同步、冲突合并
-- 文档 + 使用教程 + 常见问题
+* 端到端测试：DeepSeek 官网聊天 → Extended 捕获 → MV3 push → 后端落库 → Flutter 立即看到
+
+* 性能压测：50 用户并发、1 万条对话同步、冲突合并
+
+* 文档 + 使用教程 + 常见问题
 
 **合计：约 9 周**（可并行 Phase 2/3，实际 6-7 周）
 
----
+***
 
 ## 10. 风险与缓解
 
-| 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|----------|
-| DeepSeek 官网 DOM 改版导致 Extended 捕获失效 | 高 | 中 | 三层兜底（L1 DOM / L2 Fetch / L3 ReactFiber）；建立 CI 定期跑 smoke test + 告警 |
-| Flutter 三方包兼容问题（公式渲染崩溃） | 中 | 中 | 参考 1149208：降级渲染策略 + try/catch 切换分支；锁定兼容版本 |
-| MV3 Service Worker 睡眠（状态丢失） | 中 | 低 | 所有状态存 `chrome.storage` + IndexedDB；用 `chrome.alarms` 代替 `setTimeout` |
-| OAuth 回调 scheme 在 App Store 被拒 | 低 | 高 | 同时提供 Universal Link（iOS）+ App Links（Android）作为 fallback |
-| 同步冲突数据损坏 | 中 | 高 | 每次 push 前做 hash 校验；后端保留完整 commit 链 → 可回滚到任意历史版本 |
-| 浏览器"隐私模式"拒绝扩展 | 低 | 低 | Popup 检测并提示用户开启；Extended 提示"请允许扩展运行" |
+| 风险                                 | 概率 | 影响 | 缓解措施                                                                 |
+| ---------------------------------- | -- | -- | -------------------------------------------------------------------- |
+| DeepSeek 官网 DOM 改版导致 Extended 捕获失效 | 高  | 中  | 三层兜底（L1 DOM / L2 Fetch / L3 ReactFiber）；建立 CI 定期跑 smoke test + 告警    |
+| Flutter 三方包兼容问题（公式渲染崩溃）            | 中  | 中  | 参考 1149208：降级渲染策略 + try/catch 切换分支；锁定兼容版本                            |
+| MV3 Service Worker 睡眠（状态丢失）        | 中  | 低  | 所有状态存 `chrome.storage` + IndexedDB；用 `chrome.alarms` 代替 `setTimeout` |
+| OAuth 回调 scheme 在 App Store 被拒     | 低  | 高  | 同时提供 Universal Link（iOS）+ App Links（Android）作为 fallback              |
+| 同步冲突数据损坏                           | 中  | 高  | 每次 push 前做 hash 校验；后端保留完整 commit 链 → 可回滚到任意历史版本                      |
+| 浏览器"隐私模式"拒绝扩展                      | 低  | 低  | Popup 检测并提示用户开启；Extended 提示"请允许扩展运行"                                 |
 
----
+***
 
 ## 11. 关键成功指标（KPIs）
 
-| 指标 | Phase 3 上线目标 | 6 个月目标 |
-|------|-----------------|-----------|
-| PLUS+ 付费用户数（含试用） | 500 | 3000 |
-| 浏览器插件日活用户 | 200 | 1500 |
-| Flutter App 下载量 | 1000 | 8000 |
-| 平均每日同步 commit 数 | 5000 | 50000 |
-| 同步成功率（一次 push 成功） | ≥95% | ≥99% |
-| 试用 → 付费转化率 | 8% | 15% |
+| 指标                | Phase 3 上线目标 | 6 个月目标 |
+| ----------------- | ------------ | ------ |
+| PLUS+ 付费用户数（含试用）  | 500          | 3000   |
+| 浏览器插件日活用户         | 200          | 1500   |
+| Flutter App 下载量   | 1000         | 8000   |
+| 平均每日同步 commit 数   | 5000         | 50000  |
+| 同步成功率（一次 push 成功） | ≥95%         | ≥99%   |
+| 试用 → 付费转化率        | 8%           | 15%    |
+
