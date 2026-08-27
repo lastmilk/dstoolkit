@@ -18,7 +18,9 @@ import {
   NBadge,
   NDrawer,
   NDrawerContent,
+  NDropdown,
   type MenuOption,
+  type DropdownOption,
 } from 'naive-ui'
 import {
   CloudUploadOutline,
@@ -37,14 +39,54 @@ import {
   HomeOutline,
   GridOutline,
   CloseOutline,
+  ColorPaletteOutline,
+  CheckmarkOutline,
+  DesktopOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import { clearLocalData } from '@/utils/db'
 import { message } from '@/utils/naive'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const themeStore = useThemeStore()
+
+// ═══════════ 主题切换下拉 ═══════════
+const themeDropdownOptions = computed<DropdownOption[]>(() => {
+  const themes = themeStore.list.map((t) => ({
+    label: `${t.emoji}  ${t.label}`,
+    key: t.id,
+    type: 'option' as const,
+    props: { style: 'font-weight: 500;' },
+  }))
+  return [
+    {
+      key: 'group-manual',
+      type: 'group',
+      label: '主题 · 手动',
+      children: themes,
+    },
+    {
+      key: 'divider',
+      type: 'divider',
+    },
+    {
+      key: 'auto',
+      label: themeStore.mode === 'auto' ? '✓  跟随系统' : '   跟随系统',
+      type: 'option',
+      props: { style: 'font-weight: 500;' },
+    },
+  ] as DropdownOption[]
+})
+function handleThemeSelect(key: string | number) {
+  if (key === 'auto') {
+    themeStore.setMode('auto')
+    return
+  }
+  themeStore.setTheme(key as any)
+}
 
 // ═══════════ 响应式：是否移动端 ═══════════
 const isMobile = ref(false)
@@ -313,6 +355,24 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
         </div>
         <!-- 右侧：状态 + 用户 -->
         <NSpace align="center" :size="isMobile ? 10 : 20">
+          <!-- 主题切换（桌面+移动都显示） -->
+          <NDropdown
+            :options="themeDropdownOptions"
+            trigger="click"
+            placement="bottom-end"
+            @select="handleThemeSelect"
+          >
+            <button
+              class="chronos-hamburger"
+              type="button"
+              aria-label="切换主题"
+              :title="`主题：${themeStore.current.label}${themeStore.mode === 'auto' ? '（跟随系统）' : ''}`"
+              style="width: 38px; height: 38px;"
+            >
+              <span style="font-size: 16px;">{{ themeStore.current.emoji }}</span>
+            </button>
+          </NDropdown>
+
           <!-- 状态标签组（桌面端完整 / 移动端精简） -->
           <NSpace v-if="!isMobile" align="center" :size="10">
             <NTag v-if="auth.isAdmin" size="small" type="warning" round>

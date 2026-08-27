@@ -6,12 +6,32 @@ import {
   NLoadingBarProvider,
   zhCN,
   dateZhCN,
+  darkTheme,
 } from 'naive-ui'
-import { themeOverrides } from '@/styles/theme'
+import { computed } from 'vue'
+import { useThemeStore } from '@/stores/theme'
+
+const themeStore = useThemeStore()
+
+/**
+ * NaiveUI 支持两种叠加：
+ *  1) theme: darkTheme / undefined  →  提供「暗色/浅色」底层主题
+ *  2) theme-overrides               →  覆盖具体 token
+ */
+const naiveTheme = computed(() =>
+  themeStore.current.naiveDark ? darkTheme : undefined
+)
+
+const themeOverrides = computed(() => themeStore.current.overrides)
 </script>
 
 <template>
-  <NConfigProvider :locale="zhCN" :date-locale="dateZhCN" :theme-overrides="themeOverrides">
+  <NConfigProvider
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+    :theme="naiveTheme"
+    :theme-overrides="themeOverrides"
+  >
     <NLoadingBarProvider>
       <NMessageProvider>
         <NDialogProvider>
