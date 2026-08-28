@@ -13,6 +13,30 @@ const kufakaApiUrl = process.env.KUFAKA_API_URL || ''
 const kufakaApiKey = process.env.KUFAKA_API_KEY || ''
 const kufakaEnabled = !!(kufakaApiUrl && kufakaApiKey)
 
+// ═══════════ Git 仓库 & 通用装配配置 ═══════════
+// 仓库根目录：每个用户一个 {username}.git 子目录
+const gitReposRoot = process.env.GIT_REPOS_ROOT || 'data/git-repos'
+// Git HTTP 服务基础地址（用户做 git clone 的地址前缀）
+const gitHttpBase = process.env.GIT_HTTP_BASE || ''
+// Git 提交者信息（系统自动提交时使用）
+const gitBotName = process.env.GIT_BOT_NAME || 'dstoolkit-bot'
+const gitBotEmail = process.env.GIT_BOT_EMAIL || 'bot@dstoolkit.local'
+// 是否启用 Git 智能 HTTP 协议（git clone/push/pull over HTTP）
+const gitHttpEnabled = !['0', 'false', 'no', ''].includes((process.env.GIT_HTTP_ENABLED || '1').toLowerCase())
+// 单个仓库最大尺寸（MB）
+const gitMaxRepoSizeMB = Number(process.env.GIT_MAX_REPO_SIZE_MB || 2048)
+// 自动提交间隔（秒，0 表示不做定时自动提交，只在写入 API 时提交）
+const gitAutoCommitSec = Number(process.env.GIT_AUTO_COMMIT_SEC || 0)
+// 行业研究插件连接器默认配置（允许用户在仓库中覆写）
+const industryResearcherDefaults = {
+  // 支持的外部服务名（与 connector.json 中保持一致）
+  providers: ['tdx', 'ifind', 'eastmoney', 'wind-aifin'],
+  // 流水线运行超时时间（毫秒）
+  pipelineTimeoutMs: Number(process.env.ASSEMBLY_PIPELINE_TIMEOUT_MS || 5 * 60 * 1000),
+  // 并发流水线数
+  maxConcurrentRuns: Number(process.env.ASSEMBLY_MAX_CONCURRENT || 2),
+}
+
 // ═══════════ 支付配置（预留） ═══════════
 // 微信支付 / 支付宝：仅在填入完整商户凭证后开启；否则前端自动回退到卡密充值。
 // 卡密为兜底方案：永久有效，与 https://github.com/lastmilk/dstoolkit/tree/main/kami 对应。
@@ -74,5 +98,16 @@ export const env = {
       docsUrl: process.env.PAYMENT_CARD_KEY_DOCS_URL || 'https://github.com/lastmilk/dstoolkit/tree/main/kami',
     },
   },
+  // ═══════════ Git 仓库 & 通用装配 ═══════════
+  git: {
+    reposRoot: gitReposRoot,
+    httpBase: gitHttpBase,
+    httpEnabled: gitHttpEnabled,
+    maxRepoSizeMB: gitMaxRepoSizeMB,
+    autoCommitSec: gitAutoCommitSec,
+    botName: gitBotName,
+    botEmail: gitBotEmail,
+  },
+  industryResearcher: industryResearcherDefaults,
 }
 

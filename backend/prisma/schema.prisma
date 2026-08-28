@@ -84,6 +84,10 @@ model User {
   shares           Share[]
   oauthCodes       OAuthCode[]
   oauthTokens      OAuthToken[]
+  // Git 仓库与通用装配
+  gitRepos         GitRepository[]
+  assemblyConfigs  AssemblyConfig[]
+  assemblyRuns     AssemblyPipelineRun[]
 
   @@index([role])
   @@index([tier])
@@ -420,4 +424,139 @@ model Share {
   @@index([userId])
   @@index([configId])
   @@index([createdAt])
+}
+
+// ═══════════ Git 仓库：每个用户云端账户对应一个 Git 仓库 ═══════════
+enum RepoStatus {
+  INITIALIZING
+  ACTIVE
+  ARCHIVED
+  ERROR
+}
+
+model GitRepository {
+  id            Int         @id @default(autoincrement())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int         @unique
+  repoName      String      // 仓库名（通常为 username 或 sanitized 名称）
+  repoPath      String      // 服务器上的实际存储路径
+  status        RepoStatus  @default(INITIALIZING)
+  defaultBranch String      @default("main")
+  sizeBytes     Int         @default(0)
+  lastCommitHash   String?
+  lastCommitAt     DateTime?
+  lastPushAt       DateTime?
+  commitsCount     Int        @default(0)
+  // 公开访问控制
+  isPublic      Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  commits       GitCommit[]
+  assemblies    AssemblyConfig[]
+
+  @@index([status])
+  @@index([repoName])
+}
+
+// Git 提交审计日志（与 Git 本身的 commits 互补，用于 API 层面追踪）
+model GitCommit {
+  id           Int            @id @default(autoincrement())
+  repo         GitRepository  @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId       Int
+  commitHash   String         @unique
+  shortHash    String
+  message      String         @db.Text
+  author       String
+  authorEmail  String
+  branchName   String
+  // 本次提交变更的模块：CONVERSATIONS / CONFIGS / SUMMARIES / ASSEMBLY / PROFILE 等
+  changedModules Json
+  filesAdded   Int            @default(0)
+  filesModified Int           @default(0)
+  filesDeleted Int            @default(0)
+  createdAt    DateTime       @default(now())
+
+  @@index([repoId])
+  @@index([branchName])
+  @@index([createdAt])
+}
+
+// ═══════════ 通用装配（Assembly）：行业研究插件等可扩展组件的配置化集成 ═══════════
+enum AssemblyStatus {
+  DRAFT
+  ENABLED
+  DISABLED
+  ERROR
+}
+
+enum AssemblyType {
+  PLUGIN_CONNECTOR   // 行业研究插件连接器（TDX / iFinD / Eastmoney / Wind）
+  DATA_PIPELINE      // 数据流水线：对话数据 + 市场数据的组合分析
+  DASHBOARD          // 仪表盘定义：可视化装配
+  SEARCH_ENHANCER    // 搜索增强器：行业知识图谱扩展
+  REPORT_TEMPLATE    // 报告模板：对话→研究简报的装配配置
+}
+
+model AssemblyConfig {
+  id             Int            @id @default(autoincrement())
+  repo           GitRepository? @relation(fields: [repoId], references: [id], onDelete: SetNull)
+  repoId         Int?
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  type           AssemblyType
+  name           String
+  slug           String         @unique // Git 仓库中的路径标识
+  // 装配定义的 JSON Schema（不同 type 对应不同结构）
+  definition     Json
+  // 在 Git 仓库中的文件路径，如 assembly/plugins/tdx.json
+  repoFilePath   String
+  // 是否托管加密密钥（仅 connector 类型需要）
+  hasSecrets     Boolean        @default(false)
+  // 引用的外部服务标识（如 industry-researcher 的 tdx / ifind）
+  serviceName    String?
+  status         AssemblyStatus @default(DRAFT)
+  enabledAt      DateTime?
+  errorMessage   String?        @db.Text
+  runsCount      Int            @default(0)
+  lastRunAt      DateTime?
+  lastRunSuccess Boolean?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  runs           AssemblyPipelineRun[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([serviceName])
+  @@unique([userId, slug])
+}
+
+// 通用装配流水线执行记录（数据流水线 / 报告生成等的历史）
+model AssemblyPipelineRun {
+  id             Int            @id @default(autoincrement())
+  config         AssemblyConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  configId       Int
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  trigger        String         // MANUAL / GIT_PUSH / SCHEDULED
+  triggerCommit  String?        // 触发本次运行的 commit hash
+  // 运行快照：运行时配置的 copy
+  snapshot       Json
+  status         String         // RUNNING / SUCCESS / FAILED / CANCELLED
+  progress       Float          @default(0)    // 0~1
+  stage          String?        // 当前阶段名称
+  resultSummary  String?        @db.Text
+  // 产物文件（在 Git 仓库中相对路径数组，如 ["reports/2026-08-29-battery.md"]）
+  artifacts      Json
+  startedAt      DateTime       @default(now())
+  finishedAt     DateTime?
+  durationMs     Int?
+  errorMessage   String?        @db.Text
+
+  @@index([userId])
+  @@index([configId])
+  @@index([status])
+  @@index([startedAt])
 }
