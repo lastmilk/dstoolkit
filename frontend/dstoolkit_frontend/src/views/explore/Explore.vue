@@ -758,7 +758,7 @@ onUnmounted(() => {
           <span class="qw-label">热门搜索</span>
           <span class="qw-sub">· 近 30 天 · 点击即搜</span>
         </div>
-        <NSpin :show="queryHotwordsLoading" size="12">
+        <NSpin :show="queryHotwordsLoading" :size="12">
           <div class="qw-cloud">
             <button
               v-for="(w, i) in queryHotwords"
