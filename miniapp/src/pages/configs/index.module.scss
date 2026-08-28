@@ -1,0 +1,126 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+.tip {
+  margin: $spacing-lg 0;
+  @include neu-inset(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-size-xs;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  box-sizing: border-box;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+.configCard {
+  @include neu-raised(md);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.configHead {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.configIcon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: $radius-lg;
+  background: $color-primary-gradient;
+  color: $color-text-white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  flex-shrink: 0;
+  box-shadow: 0 4rpx 14rpx rgba($color-primary, 0.28);
+}
+
+.configMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.configName {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.configId {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-family: monospace;
+  @include text-ellipsis;
+}
+
+.configStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-sm;
+  padding-top: $spacing-sm;
+  border-top: 2rpx solid $color-divider;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.statVal {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.statLabel {
+  font-size: 20rpx;
+  color: $color-text-tertiary;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+
+  .label { color: $color-text-tertiary; }
+  .value { color: $color-text-primary; font-weight: $font-weight-medium; }
+}
+
+.actions {
+  display: flex;
+  gap: $spacing-sm;
+  padding-top: $spacing-sm;
+}

@@ -1,0 +1,240 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  padding-bottom: 64rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* === 顶部欢迎区 === */
+.hero {
+  padding: $spacing-xl $page-padding $spacing-lg;
+  position: relative;
+}
+
+.heroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: $radius-round;
+  @include neu-raised(sm);
+  flex-shrink: 0;
+  background: $color-primary-soft;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+  overflow: hidden;
+
+  image {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.userText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.hello {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.subRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}
+
+.creditsChip {
+  @include neu-raised(sm);
+  border-radius: $radius-round;
+  padding: 6rpx 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  color: $color-credits;
+  background: rgba($color-credits, 0.08);
+  box-shadow: none;
+  border: 2rpx solid rgba($color-credits, 0.2);
+}
+
+/* === 搜索框 === */
+.searchBox {
+  margin: $spacing-lg $page-padding 0;
+}
+
+/* === Bento 快捷功能 === */
+.quickSection {
+  padding: $spacing-lg $page-padding 0;
+}
+
+.bento {
+  @include neu-raised(md);
+  border-radius: $radius-xl;
+  padding: $spacing-lg $spacing-md;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: $spacing-lg $spacing-sm;
+}
+
+.bentoItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-sm;
+  transition: all $transition-base;
+
+  &:active {
+    opacity: 0.75;
+    transform: scale(0.95);
+  }
+}
+
+.bentoIcon {
+  @include neu-icon-button(96rpx);
+
+  &.blue { color: $color-primary; }
+  &.orange { color: $color-tier-plus; }
+  &.purple { color: $color-tier-ultimate; }
+  &.green { color: $color-success; }
+  &.red { color: $color-error; }
+  &.gold { color: $color-credits; }
+}
+
+.bentoLabel {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+/* === 区块 === */
+.section {
+  padding: $spacing-xl $page-padding 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  padding-left: $spacing-sm;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  position: relative;
+  padding-left: $spacing-sm;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -$spacing-sm;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6rpx;
+    height: 28rpx;
+    border-radius: 3rpx;
+    background: $color-primary-gradient;
+  }
+}
+
+.sectionMore {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+/* === 最新对话横向滚动 === */
+.convScroll {
+  margin: 0 (-$page-padding);
+  padding: 0 $page-padding;
+}
+
+.convCard {
+  @include scroll-x-item(560rpx);
+  margin-right: $spacing-md;
+}
+
+/* === 应用推荐网格 === */
+.marketGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.marketCard {
+  @include neu-raised(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  transition: all $transition-base;
+  min-height: 220rpx;
+  box-sizing: border-box;
+
+  &:active {
+    box-shadow: $shadow-neu-pressed;
+    transform: scale(0.98);
+  }
+}
+
+.marketIcon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: $radius-md;
+  background: $color-primary-gradient;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-text-white;
+  font-size: 32rpx;
+  font-weight: $font-weight-bold;
+
+  &.cat-tool { background: linear-gradient(135deg, #00b42a, #41c966); }
+  &.cat-community { background: linear-gradient(135deg, #722ed1, #9254de); }
+}
+
+.marketName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.marketDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: $line-height-tight;
+  @include text-ellipsis-multi(2);
+}

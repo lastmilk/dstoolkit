@@ -1,0 +1,57 @@
+@use '@/styles/variables.scss' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-sizing: border-box;
+  border: 2rpx solid transparent;
+
+  &.FREE {
+    background: $color-bg-page;
+    color: $color-tier-free;
+    border-color: rgba($color-tier-free, 0.25);
+  }
+  &.PRO {
+    background: rgba($color-primary, 0.1);
+    color: $color-tier-pro;
+    border-color: rgba($color-primary, 0.3);
+  }
+  &.PLUS {
+    background: rgba($color-tier-plus, 0.1);
+    color: $color-tier-plus;
+    border-color: rgba($color-tier-plus, 0.3);
+  }
+  &.ULTIMATE {
+    background: linear-gradient(135deg, rgba($color-tier-ultimate, 0.15) 0%, rgba($color-primary, 0.1) 100%);
+    color: $color-tier-ultimate;
+    border-color: rgba($color-tier-ultimate, 0.35);
+  }
+  &.TEAM {
+    background: rgba($color-tier-team, 0.1);
+    color: $color-tier-team;
+    border-color: rgba($color-tier-team, 0.3);
+  }
+
+  &.lg {
+    padding: 8rpx 24rpx;
+    font-size: $font-size-sm;
+    border-radius: $radius-md;
+  }
+
+  &.solid {
+    color: $color-text-white;
+    border: none;
+    &.FREE { background: $color-tier-free; }
+    &.PRO { background: $color-primary-gradient; }
+    &.PLUS { background: linear-gradient(135deg, #f77234, #ff9a2e); }
+    &.ULTIMATE { background: linear-gradient(135deg, #722ed1, #9254de); }
+    &.TEAM { background: $color-tier-team; }
+  }
+}

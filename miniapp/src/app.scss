@@ -1,0 +1,81 @@
+@use '@/styles/variables.scss' as *;
+
+// ===== 全局基础样式 =====
+page {
+  background-color: $color-bg-page;
+  color: $color-text-primary;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue',
+    'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+// ===== 通用工具类 =====
+.pageContainer {
+  padding: 0 $page-padding;
+  padding-bottom: 48rpx;
+  box-sizing: border-box;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin: $spacing-xl 0 $spacing-md 0;
+  padding-left: $spacing-sm;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6rpx;
+    height: 28rpx;
+    border-radius: 3rpx;
+    background: $color-primary-gradient;
+  }
+}
+
+.flexRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.flexCol {
+  display: flex;
+  flex-direction: column;
+}
+
+.flexCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flexBetween {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.textEllipsis {
+  @include text-ellipsis;
+}
+
+.textEllipsis2 {
+  @include text-ellipsis-multi(2);
+}
+
+.gapSm { gap: $spacing-sm; }
+.gapMd { gap: $spacing-md; }
+.gapLg { gap: $spacing-lg; }

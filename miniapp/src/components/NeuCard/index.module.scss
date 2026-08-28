@@ -1,0 +1,39 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  @include neu-raised(md);
+  padding: $spacing-lg;
+  box-sizing: border-box;
+
+  &.sm {
+    @include neu-raised(sm);
+    padding: $spacing-md;
+    border-radius: $radius-md;
+  }
+
+  &.lg {
+    @include neu-raised(lg);
+    padding: $spacing-xl;
+  }
+
+  &.flat {
+    box-shadow: none;
+    background: $color-bg-card;
+    border: 2rpx solid $color-divider;
+  }
+
+  &.inset {
+    @include neu-inset(md);
+    background: $color-bg-card;
+  }
+}
+
+.clickable {
+  transition: all $transition-base;
+  cursor: pointer;
+
+  &:active {
+    box-shadow: $shadow-neu-pressed;
+    transform: scale(0.99);
+  }
+}

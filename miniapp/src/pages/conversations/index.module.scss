@@ -1,0 +1,90 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+/* 顶部：搜索 + 筛选 */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: $color-bg-page;
+  padding: $spacing-lg 0 $spacing-md;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.searchFlex {
+  flex: 1;
+  min-width: 0;
+}
+
+.filterButton {
+  @include neu-icon-button(80rpx);
+  color: $color-primary;
+  font-size: 32rpx;
+  flex-shrink: 0;
+}
+
+/* 标签筛选栏 */
+.chipScroll {
+  margin: 0 (-$page-padding);
+  padding: 0 $page-padding $spacing-sm;
+}
+
+.chip {
+  @include scroll-x-item(auto);
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 28rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-right: $spacing-sm;
+  background: $color-bg-card;
+  box-shadow: $shadow-neu-raised-sm;
+  transition: all $transition-base;
+  white-space: nowrap;
+
+  &.active {
+    background: $color-primary-gradient;
+    color: $color-text-white;
+    box-shadow: 0 4rpx 14rpx rgba($color-primary, 0.3);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* 列表统计 */
+.listMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-md 0;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+/* 对话列表 */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.loadMore {
+  padding: $spacing-lg 0;
+  text-align: center;
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
