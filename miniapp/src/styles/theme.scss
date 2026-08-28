@@ -1,0 +1,51 @@
+// ============================================
+// 主题配色变量 — dstoolkit 新拟态风格
+// ============================================
+
+// 品牌主题色：科技蓝
+$color-primary: #165dff;
+$color-primary-light: #4080ff;
+$color-primary-dark: #0e42d2;
+$color-primary-soft: #e8f3ff; // 浅色背景（凹陷/标签）
+$color-primary-gradient: linear-gradient(135deg, #165dff 0%, #4080ff 100%);
+
+// 辅助色：会员等级
+$color-tier-free: #86909c;
+$color-tier-pro: #165dff;
+$color-tier-plus: #f77234;
+$color-tier-ultimate: #722ed1;
+$color-tier-team: #00b42a;
+
+// 功能色
+$color-success: #00b42a;
+$color-warning: #ff7d00;
+$color-error: #f53f3f;
+$color-info: #165dff;
+
+// ============================================
+// 新拟态（Neu-morphism）核心配色
+// ============================================
+// 背景色：统一柔和灰（新拟态要求页面与卡片同色，用阴影区分凸起/凹陷）
+$color-bg-page: #f0f2f5;
+$color-bg-card: #f0f2f5;
+$color-bg-hover: #e8eaed;
+$color-bg-pressed: #e4e7ec;
+
+// 新拟态高光与阴影色
+$color-neu-highlight: #ffffff;
+$color-neu-shadow: #c5c8cf;
+$color-neu-shadow-soft: #d4d7de;
+
+// 文本色
+$color-text-primary: #1d2129;
+$color-text-secondary: #4e5969;
+$color-text-tertiary: #86909c;
+$color-text-disabled: #c9cdd4;
+$color-text-white: #ffffff;
+
+// 边框色（新拟态中尽量少用边框）
+$color-border: #e5e6eb;
+$color-divider: #f2f3f5;
+
+// 积分/金币色
+$color-credits: #f7ba1e;

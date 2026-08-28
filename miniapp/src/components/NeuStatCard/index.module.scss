@@ -1,0 +1,56 @@
+@use '@/styles/variables.scss' as *;
+
+.card {
+  @include neu-raised(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  min-width: 0;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.icon {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  margin-bottom: $spacing-xs;
+
+  &.primary { background: $color-primary-gradient; }
+  &.success { background: linear-gradient(135deg, #00b42a 0%, #41c966 100%); }
+  &.warning { background: linear-gradient(135deg, #ff7d00 0%, #ff9a2e 100%); }
+  &.purple { background: linear-gradient(135deg, #722ed1 0%, #9254de 100%); }
+  &.credits { background: linear-gradient(135deg, #f7ba1e 0%, #fad33e 100%); }
+}
+
+.label {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-normal;
+}
+
+.value {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: 1.2;
+  margin-top: 4rpx;
+}
+
+.sub {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+
+  .up { color: $color-success; }
+  .down { color: $color-error; }
+}

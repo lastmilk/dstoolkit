@@ -1,0 +1,222 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+/* 顶部范围切换 */
+.rangeBar {
+  padding: $spacing-lg 0 $spacing-md;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rangeChips {
+  @include neu-raised(sm);
+  border-radius: $radius-round;
+  padding: 6rpx;
+  display: flex;
+  gap: 4rpx;
+}
+
+.rangeChip {
+  padding: 10rpx 28rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+  transition: all $transition-base;
+
+  &.active {
+    background: $color-primary-gradient;
+    color: $color-text-white;
+    box-shadow: 0 4rpx 12rpx rgba($color-primary, 0.28);
+  }
+}
+
+.summaryTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+/* 统计卡片 2×2 */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+}
+
+/* 图表区块 */
+.chartCard {
+  @include neu-raised(md);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.chartTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-lg;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chartHint {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-normal;
+}
+
+/* 趋势图（自绘条形+折线） */
+.trendChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10rpx;
+  height: 280rpx;
+  padding: $spacing-sm 0;
+  border-bottom: 2rpx dashed $color-border;
+  margin-bottom: $spacing-sm;
+}
+
+.trendBar {
+  flex: 1;
+  min-width: 0;
+  background: linear-gradient(180deg, $color-primary-light 0%, $color-primary 100%);
+  border-radius: 6rpx 6rpx 2rpx 2rpx;
+  position: relative;
+  min-height: 8rpx;
+  transition: height $transition-base;
+  max-width: 100%;
+
+  &::after {
+    content: attr(data-count);
+    position: absolute;
+    top: -36rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18rpx;
+    color: $color-text-tertiary;
+    white-space: nowrap;
+  }
+}
+
+.trendLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18rpx;
+  color: $color-text-tertiary;
+  padding-top: $spacing-xs;
+}
+
+/* 热词列表 */
+.hotList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.hotRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.hotRank {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  flex-shrink: 0;
+  background: $color-primary;
+
+  &.rank1 { background: linear-gradient(135deg, #ff4d4f, #ff7875); }
+  &.rank2 { background: linear-gradient(135deg, #ff7d00, #ffa940); }
+  &.rank3 { background: linear-gradient(135deg, #f7ba1e, #fad33e); color: $color-text-primary; }
+}
+
+.hotWord {
+  flex: 1;
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+  @include text-ellipsis;
+}
+
+.hotBarWrap {
+  width: 200rpx;
+  height: 16rpx;
+  @include neu-inset(sm);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.hotBarFill {
+  height: 100%;
+  background: $color-primary-gradient;
+  border-radius: 999rpx;
+}
+
+.hotCount {
+  width: 80rpx;
+  text-align: right;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 会员等级分布 */
+.tierList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.tierRow {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+}
+
+.tierBadge {
+  width: 160rpx;
+  flex-shrink: 0;
+  font-weight: $font-weight-semibold;
+  font-size: $font-size-sm;
+}
+
+.tierBarWrap {
+  flex: 1;
+  height: 20rpx;
+  @include neu-inset(sm);
+  border-radius: 999rpx;
+  overflow: hidden;
+}
+
+.tierBarFill {
+  height: 100%;
+  border-radius: 999rpx;
+  &.FREE { background: $color-tier-free; }
+  &.PRO { background: $color-primary-gradient; }
+  &.PLUS { background: linear-gradient(135deg, #f77234, #ff9a2e); }
+  &.ULTIMATE { background: linear-gradient(135deg, #722ed1, #9254de); }
+}
+
+.tierCount {
+  width: 80rpx;
+  text-align: right;
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}

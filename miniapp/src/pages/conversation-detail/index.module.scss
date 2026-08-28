@@ -1,0 +1,255 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 0 $spacing-xl;
+  box-sizing: border-box;
+}
+
+/* 头部概览 */
+.header {
+  padding: $spacing-lg $page-padding;
+  @include neu-inset(sm);
+  border-radius: 0 0 $radius-xl $radius-xl;
+  box-shadow: none;
+}
+
+.title {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  color: $color-text-primary;
+  line-height: $line-height-tight;
+  margin-bottom: $spacing-sm;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+}
+
+.metaChip {
+  background: $color-bg-card;
+  border-radius: $radius-sm;
+  padding: 4rpx 14rpx;
+  box-shadow: $shadow-neu-raised-sm;
+}
+
+/* 摘要卡 */
+.summaryCard {
+  margin: $spacing-lg $page-padding;
+  @include neu-raised(md);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.summaryLabel {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-tier-ultimate;
+  margin-bottom: $spacing-sm;
+}
+
+.tldr {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  line-height: $line-height-normal;
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacing-sm;
+}
+
+.summaryBody {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+  margin-bottom: $spacing-sm;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.tag {
+  padding: 4rpx 16rpx;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+}
+
+/* 知识卡片列表 */
+.section {
+  margin: $spacing-lg $page-padding;
+}
+
+.sectionHead {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding-left: $spacing-sm;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -$spacing-sm;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6rpx;
+    height: 28rpx;
+    border-radius: 3rpx;
+    background: $color-primary-gradient;
+  }
+}
+
+.kcList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.kc {
+  @include neu-raised(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-sizing: border-box;
+}
+
+.kcHead {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.kcCate {
+  font-size: $font-size-xs;
+  padding: 4rpx 14rpx;
+  border-radius: $radius-sm;
+  background: rgba($color-tier-plus, 0.12);
+  color: $color-tier-plus;
+  font-weight: $font-weight-semibold;
+  flex-shrink: 0;
+}
+
+.kcTitle {
+  flex: 1;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.kcContent {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: $line-height-loose;
+}
+
+/* 消息列表 */
+.msgList {
+  margin-top: $spacing-md;
+  padding: 0 $page-padding;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.msg {
+  display: flex;
+  gap: $spacing-sm;
+  max-width: 100%;
+
+  &.user { flex-direction: row-reverse; }
+}
+
+.avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: $radius-round;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  background: $color-primary-gradient;
+
+  &.userAvatar {
+    background: linear-gradient(135deg, #722ed1, #9254de);
+  }
+}
+
+.bubble {
+  max-width: calc(100% - 96rpx);
+  @include neu-raised(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  box-sizing: border-box;
+  line-height: $line-height-loose;
+  font-size: $font-size-sm;
+  color: $color-text-primary;
+  white-space: pre-wrap;
+  word-break: break-word;
+
+  .user & {
+    background: $color-primary-gradient;
+    color: $color-text-white;
+    box-shadow: 0 4rpx 14rpx rgba($color-primary, 0.25);
+  }
+}
+
+.bubbleTitle {
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  margin-bottom: $spacing-xs;
+}
+
+.codeBlock {
+  margin-top: $spacing-sm;
+  padding: $spacing-md;
+  background: #1e293b;
+  color: #e2e8f0;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 22rpx;
+  border-radius: $radius-md;
+  overflow-x: auto;
+  line-height: $line-height-normal;
+  white-space: pre;
+}
+
+.tableRow {
+  padding: 8rpx 0;
+  border-bottom: 2rpx solid $color-divider;
+  font-size: 24rpx;
+
+  &:last-child { border-bottom: none; }
+}
+
+.actionBar {
+  position: sticky;
+  bottom: 0;
+  background: rgba($color-bg-page, 0.96);
+  backdrop-filter: blur(20px);
+  padding: $spacing-md $page-padding;
+  display: flex;
+  gap: $spacing-md;
+  margin-top: $spacing-lg;
+  border-top: 2rpx solid $color-divider;
+}

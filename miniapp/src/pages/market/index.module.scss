@@ -1,0 +1,179 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  padding: 0 $page-padding $spacing-xl;
+  box-sizing: border-box;
+}
+
+/* 分类栏 */
+.cateScroll {
+  padding: $spacing-lg 0 $spacing-md;
+  margin: 0 (-$page-padding);
+  padding-left: $page-padding;
+  padding-right: $page-padding;
+}
+
+.cateChip {
+  @include scroll-x-item(auto);
+  display: inline-flex;
+  align-items: center;
+  padding: 14rpx 32rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  margin-right: $spacing-sm;
+  background: $color-bg-card;
+  box-shadow: $shadow-neu-raised-sm;
+  transition: all $transition-base;
+  white-space: nowrap;
+  font-weight: $font-weight-medium;
+
+  &.active {
+    background: $color-primary-gradient;
+    color: $color-text-white;
+    box-shadow: 0 4rpx 14rpx rgba($color-primary, 0.3);
+  }
+
+  &:active { transform: scale(0.96); }
+}
+
+/* Banner */
+.banner {
+  margin: $spacing-md 0;
+  @include neu-raised(md);
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  background: linear-gradient(135deg, $color-primary 0%, $color-tier-ultimate 100%);
+  color: $color-text-white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-md;
+  box-sizing: border-box;
+  box-shadow: 0 8rpx 24rpx rgba($color-primary, 0.25);
+}
+
+.bannerText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.bannerTitle {
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+}
+
+.bannerDesc {
+  font-size: $font-size-xs;
+  opacity: 0.85;
+  line-height: $line-height-loose;
+}
+
+.bannerAction {
+  padding: 12rpx 28rpx;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  border-radius: $radius-round;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  flex-shrink: 0;
+}
+
+/* 应用网格 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $spacing-md;
+}
+
+.appCard {
+  @include neu-raised(sm);
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  box-sizing: border-box;
+  min-height: 260rpx;
+  transition: all $transition-base;
+
+  &:active {
+    box-shadow: $shadow-neu-pressed;
+    transform: scale(0.98);
+  }
+}
+
+.appHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
+}
+
+.appIcon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: $radius-lg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  color: $color-text-white;
+  background: $color-primary-gradient;
+  box-shadow: 0 4rpx 12rpx rgba($color-primary, 0.25);
+
+  &.official { background: $color-primary-gradient; }
+  &.tool { background: linear-gradient(135deg, #00b42a, #41c966); }
+  &.community { background: linear-gradient(135deg, #722ed1, #9254de); }
+}
+
+.appCate {
+  font-size: 20rpx;
+  padding: 4rpx 14rpx;
+  border-radius: $radius-sm;
+  background: $color-bg-page;
+  color: $color-text-tertiary;
+  font-weight: $font-weight-semibold;
+  flex-shrink: 0;
+}
+
+.appName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  @include text-ellipsis;
+}
+
+.appDesc {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  line-height: $line-height-tight;
+  @include text-ellipsis-multi(2);
+  flex: 1;
+}
+
+.appFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: $spacing-xs;
+  padding-top: $spacing-sm;
+  border-top: 2rpx solid $color-divider;
+}
+
+.appStatus {
+  font-size: 20rpx;
+  color: $color-success;
+  font-weight: $font-weight-semibold;
+}
+
+.appBtn {
+  font-size: $font-size-xs;
+  color: $color-primary;
+  font-weight: $font-weight-semibold;
+}

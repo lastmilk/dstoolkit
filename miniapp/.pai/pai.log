@@ -1,0 +1,26 @@
+[02:45:19.597] Server listening on port 46353, PID 115886
+[02:45:19.690] readProjectFiles, Found 96 files to read.
+[02:45:19.750] Starting PAI Cloud Dev...
+[02:45:21.856] [PAI SDK] createCloudSession response: {
+  "code": 0,
+  "msg": "success",
+  "sandboxId": "vefaas-f0vkicge-zwx1wbt5u0-da8teg823c00u3j21c9g-sandbox",
+  "endpoint": "https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com"
+}
+[02:45:22.397] [PAI SDK] cloudServer.start called, appId: pai-preview-trae-06cd1211
+[02:45:23.460] [PAI SDK] Received event: log {"content":"\n> taro_template@1.0.0 dev:h5\n> npm run build:h5 -- --watch\n\n\n> taro_template@1.0.0 build:h5\n> taro build --type h5 --watch\n\n","timestamp":1787942723325}
+[02:45:23.744] [PAI SDK] Received event: log {"content":"👽 Taro v4.1.9\n\n","timestamp":1787942723675}
+[02:45:25.097] [PAI SDK] Received event: log {"content":"Tips:\n1. 建议开启持久化缓存功能，能有效提升二次编译速度，详情请参考: https://docs.taro.zone/docs/config-detail#cache。\n\n\n","timestamp":1787942725003}
+[02:45:26.223] [PAI SDK] Received event: log {"content":"- 即将开始启动编译，请稍等~\n","timestamp":1787942726110}
+[02:45:42.304] [PAI SDK] Received event: log {"content":"✅  编译成功 8/29/2026, 2:45:42 AM\n\n","timestamp":1787942742143}
+[02:45:42.305] [PAI SDK] cloudServer.start response: {
+  "status": "running",
+  "msg": "Cloud Server started successfully.",
+  "hash": "pai-preview-trae-06cd1211"
+}
+[02:46:38.322] [Preview Server] Frontend connected, clients size = 1
+[02:46:38.323] Sending cached status to new connection, lastStatusMessage = {"event":"status_change","message":{"url":"https://sd62opo6oqou1ckhsuo00.apigateway-cn-beijing.volceapi.com/?faasInstanceName=vefaas-f0vkicge-zwx1wbt5u0-da8teg823c00u3j21c9g-sandbox&hash=pai-preview-trae-06cd1211","schema":"aipa://preview?type=pai&aipa_id=pai-preview-trae-06cd1211&uuid=f8d10f24-9245-40f6-b8be-e3c3201733a3","status":"running","msg":"Cloud Server started successfully.","framework":"taro"}}
+[02:47:51.736] [AuthCredentials] read failed: ENOENT: no such file or directory, open '/home/pmfish/Documents/trae_projects/dstoolkit/miniapp/.auth/auth.json'
+[02:47:55.741] [AuthCredentials] read failed: ENOENT: no such file or directory, open '/home/pmfish/Documents/trae_projects/dstoolkit/miniapp/.auth/auth.json'
+[02:47:56.424] [AuthCredentials] read failed: ENOENT: no such file or directory, open '/home/pmfish/Documents/trae_projects/dstoolkit/miniapp/.auth/auth.json'
+[03:00:16.509] [AuthCredentials] read failed: ENOENT: no such file or directory, open '/home/pmfish/Documents/trae_projects/dstoolkit/miniapp/.auth/auth.json'
