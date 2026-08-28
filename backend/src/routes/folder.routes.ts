@@ -4,7 +4,7 @@ import { prisma } from '../utils/prisma.js'
 import { asyncHandler } from '../utils/async.js'
 import { verifyJwt, type AuthedRequest } from '../middleware/auth.js'
 import { TIER_LIMITS } from '../utils/quota.js'
-import { resolveEffectiveTier } from '../services/subscription.js'
+import { resolveEffectiveTierWithAdBoost } from '../services/subscription.js'
 
 const router = Router()
 router.use(verifyJwt)
@@ -61,9 +61,9 @@ router.post('/', asyncHandler(async (req: AuthedRequest, res) => {
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: req.user!.id },
-    select: { tier: true, tierExpiresAt: true, isPermanentTier: true },
+    select: { tier: true, tierExpiresAt: true, isPermanentTier: true, adRewardTier: true, adRewardExpiresAt: true },
   })
-  const effectiveTier = resolveEffectiveTier(user)
+  const effectiveTier = resolveEffectiveTierWithAdBoost(user)
   const limits = TIER_LIMITS[effectiveTier]
 
   if (limits.maxFolders >= 0) {

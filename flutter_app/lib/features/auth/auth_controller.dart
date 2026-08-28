@@ -21,7 +21,8 @@ class AuthState {
   final User? user;
 
   /// 游客或已登录（可进入主界面）
-  bool get canBrowse => status == AuthStatus.guest || status == AuthStatus.loggedIn;
+  bool get canBrowse =>
+      status == AuthStatus.guest || status == AuthStatus.loggedIn;
 
   AuthState copyWith({AuthStatus? status, User? user}) => AuthState(
         status: status ?? this.status,
@@ -36,13 +37,19 @@ final tokenProviderProvider = Provider<TokenProvider>(
   (ref) => TokenStoreAdapter(ref.watch(tokenStoreProvider)),
 );
 
-final bareDioProvider = Provider<Dio>((_) => buildBareDio());
+/// 当前选中的 API 线路（登录页线路检测可切换；切换后 Dio 全部重建）
+final selectedApiBaseProvider =
+    StateProvider<String>((_) => ApiConstants.apiBase);
+
+final bareDioProvider = Provider<Dio>(
+    (ref) => buildBareDio(baseUrl: ref.watch(selectedApiBaseProvider)));
 final oauthApiProvider =
     Provider<OAuthApi>((ref) => OAuthApi(ref.watch(bareDioProvider)));
 
 /// 主 Dio（带 dstk_ 鉴权 + 自动刷新）
 final dioProvider = Provider<Dio>((ref) {
   return buildDio(
+    baseUrl: ref.watch(selectedApiBaseProvider),
     tokenProvider: ref.watch(tokenProviderProvider),
     oauthApi: ref.watch(oauthApiProvider),
     onAuthFailed: () => ref.read(authControllerProvider.notifier).forceLogout(),
@@ -54,7 +61,8 @@ final v1ApiProvider = Provider<V1Api>((ref) => V1Api(ref.watch(dioProvider)));
 // ── Controller ────────────────────────────────────────────
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._ref) : super(const AuthState(status: AuthStatus.unknown)) {
+  AuthController(this._ref)
+      : super(const AuthState(status: AuthStatus.unknown)) {
     bootstrap();
   }
 
@@ -160,18 +168,31 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(status: AuthStatus.loggedIn, user: user);
       return null;
     } on DioException catch (e) {
+      final status = e.response?.statusCode;
       final data = e.response?.data;
+
+      // 服务端返回 JSON error
       if (data is Map<String, dynamic>) {
-        final msg = data['error'] as String?;
-        if (msg != null) return msg;
+        final msg = data['error'] as String? ?? data['message'] as String?;
+        if (msg != null && msg.isNotEmpty) return msg;
+      }
+      // OAuth 端点不存在 → 服务端版本过旧
+      if (status == 404) {
+        return '该线路服务端未部署 OAuth 接口（版本过旧），请切换线路或更新服务端';
+      }
+      // 服务端返回纯文本（如网关/反代错误页）
+      if (data is String && data.trim().isNotEmpty) {
+        final snippet = data.trim();
+        return '服务端响应异常($status)：${snippet.length > 60 ? snippet.substring(0, 60) : snippet}';
       }
       if (e.type == DioExceptionType.connectionError ||
-          e.type == DioExceptionType.connectionTimeout) {
-        return '网络连接失败，请检查网络';
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return '无法连接服务器，请检查网络或在下方切换线路';
       }
-      return '请求失败，请稍后重试';
-    } catch (_) {
-      return '登录失败，请重试';
+      return '请求失败(${status ?? e.type.name})，请稍后重试';
+    } catch (e) {
+      return '登录失败：$e';
     }
   }
 
@@ -201,8 +222,8 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authControllerProvider =
-    StateNotifierProvider<AuthController, AuthState>((ref) => AuthController(ref));
+final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
+    (ref) => AuthController(ref));
 
 // ── PKCE 工具 ─────────────────────────────────────────────
 

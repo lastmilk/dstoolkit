@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 
+import 'math_formula.dart';
+import 'mermaid_diagram.dart';
+
 /// 聊天气泡：用户（右侧）/ 助手（左侧）。
 /// Markdown 渲染失败时自动降级为纯文本（PRD 1149208 教训）。
 class ChatBubble extends StatelessWidget {
@@ -95,6 +98,8 @@ class _MarkdownOrPlain extends StatelessWidget {
       data: content,
       selectable: true,
       shrinkWrap: true,
+      // LaTeX 公式语法扩展（$...$ / $$...$$ / \(...\) / \[...\]）
+      inlineSyntaxes: [_LatexInlineSyntax()],
       styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
         p: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
         code: theme.textTheme.bodySmall?.copyWith(
@@ -114,14 +119,20 @@ class _MarkdownOrPlain extends StatelessWidget {
       // 渲染异常（公式/超长嵌套等）时 ErrorWidget 降级为纯文本
       builders: {
         'code': _FallbackCodeBuilder(),
+        'latex': _LatexBuilder(),
       },
     );
   }
 }
 
-/// 代码块构建器：统一走 _SafeCode（出错时退化为 SelectableText）
+/// 代码块构建器：
+/// - ```mermaid → Mermaid 图表
+/// - ```math/latex/tex/katex → 公式块
+/// - 其余 → _SafeCode（出错时退化为 SelectableText）
 class _FallbackCodeBuilder extends MarkdownElementBuilder {
   _FallbackCodeBuilder();
+
+  static const _mathLangs = {'math', 'latex', 'tex', 'katex'};
 
   @override
   Widget? visitElementAfterWithContext(
@@ -131,7 +142,58 @@ class _FallbackCodeBuilder extends MarkdownElementBuilder {
     TextStyle? parentStyle,
   ) {
     final text = element.textContent;
+    final lang = (element.attributes['class'] ?? '')
+        .replaceFirst('language-', '')
+        .trim()
+        .toLowerCase();
+
+    if (lang == 'mermaid') return MermaidDiagram(code: text);
+    if (_mathLangs.contains(lang)) {
+      return MathFormula(tex: text, display: true);
+    }
     return _SafeCode(text: text);
+  }
+}
+
+/// LaTeX 元素构建器：根据 MathStyle 属性区分行内/独立块
+class _LatexBuilder extends MarkdownElementBuilder {
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    // 公式内换行转为空格（flutter_math 不接受裸换行）
+    final tex = element.textContent.replaceAll('\n', ' ').trim();
+    if (tex.isEmpty) return const SizedBox.shrink();
+    final display = element.attributes['MathStyle'] == 'display';
+    return MathFormula(tex: tex, display: display);
+  }
+}
+
+/// 行内公式语法：\( ... \) / \[ ... \] / $$...$$ / $...$
+///
+/// 统一走 inline 元素（flutter_markdown 对自定义 block 标签支持不佳），
+/// `$$`、`\[` 产生的元素标记 MathStyle=display。
+/// `$` 单美元两侧不允许多余空白，避免 "价格 $5 到 $10" 误判。
+class _LatexInlineSyntax extends md.InlineSyntax {
+  _LatexInlineSyntax()
+      : super(r'\\\(([\s\S]+?)\\\)|\\\[([\s\S]+?)\\\]'
+            r'|\$\$([\s\S]+?)\$\$'
+            r'|\$([^\s\$](?:[^\n\$]*[^\s\$])?)\$');
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final inline = match.group(1) ?? match.group(4);
+    final display = match.group(2) ?? match.group(3);
+    final tex = (display ?? inline ?? '').trim();
+    if (tex.isEmpty) return false;
+
+    final element = md.Element.text('latex', tex);
+    if (display != null) element.attributes['MathStyle'] = 'display';
+    parser.addNode(element);
+    return true;
   }
 }
 

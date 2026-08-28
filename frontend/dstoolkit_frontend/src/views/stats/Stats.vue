@@ -1,6 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { NSpace, NSpin, NEmpty, NStatistic, NGrid, NGridItem, NIcon } from 'naive-ui'
+import { computed, onMounted, ref, watch } from 'vue'
+import {
+  NSpace,
+  NSpin,
+  NEmpty,
+  NStatistic,
+  NGrid,
+  NGridItem,
+  NIcon,
+  NRadioGroup,
+  NRadioButton,
+  NTag,
+  NTabs,
+  NTabPane,
+} from 'naive-ui'
 import {
   BarChartOutline,
   ChatbubblesOutline,
@@ -8,6 +21,16 @@ import {
   ColorPaletteOutline,
   TimeOutline,
   TrendingUpOutline,
+  FlameOutline,
+  ArrowUpOutline,
+  ArrowDownOutline,
+  RemoveOutline,
+  SparklesOutline,
+  SearchOutline,
+  PricetagOutline,
+  DocumentTextOutline,
+  ListOutline,
+  CloudOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
@@ -17,6 +40,90 @@ import VChart from '@/utils/echarts'
 const auth = useAuthStore()
 const loading = ref(false)
 const stats = ref<any>({})
+
+// ═══════════ 热力词 ═══════════
+type HotWord = {
+  word: string
+  weight: number
+  count: number
+  score: number
+  sources: string[]
+  trend: 'up' | 'down' | 'stable' | 'new'
+  trendDelta: number
+}
+const hotwordsLoading = ref(false)
+const hotwords = ref<HotWord[]>([])
+const hotwordsSummary = ref<any>({})
+const hotwordsPeriod = ref<'7d' | '30d' | '90d' | 'all'>('30d')
+const hotwordsView = ref<'cloud' | 'rank'>('cloud')
+
+async function loadHotwords() {
+  if (!auth.cloudSyncEnabled) return
+  hotwordsLoading.value = true
+  try {
+    const res: any = await request.get('/stats/hotwords', {
+      params: { period: hotwordsPeriod.value, limit: 50 },
+    })
+    hotwords.value = res.hotwords || []
+    hotwordsSummary.value = res.summary || {}
+  } catch (e) {
+    hotwords.value = []
+    hotwordsSummary.value = {}
+  } finally {
+    hotwordsLoading.value = false
+  }
+}
+
+watch(hotwordsPeriod, () => loadHotwords())
+
+// 热力词色板（根据 score 由低到高）
+function hwColor(score: number) {
+  if (score >= 80) return '#EF4444'
+  if (score >= 65) return '#F59E0B'
+  if (score >= 50) return '#4F46E5'
+  if (score >= 35) return '#0EA5E9'
+  return '#64748B'
+}
+function hwBg(score: number) {
+  if (score >= 80) return 'rgba(239, 68, 68, 0.08)'
+  if (score >= 65) return 'rgba(245, 158, 11, 0.08)'
+  if (score >= 50) return 'rgba(79, 70, 229, 0.08)'
+  if (score >= 35) return 'rgba(14, 165, 233, 0.08)'
+  return 'rgba(100, 116, 139, 0.06)'
+}
+function hwFontSize(score: number) {
+  // score 30~100 → 12px ~ 26px
+  const base = 12 + ((score - 30) / 70) * 14
+  return `${Math.round(base)}px`
+}
+function sourceLabel(s: string) {
+  if (s === 'search') return '搜索'
+  if (s === 'summary') return '摘要'
+  return '标题'
+}
+function sourceIcon(s: string) {
+  if (s === 'search') return SearchOutline
+  if (s === 'summary') return SparklesOutline
+  return DocumentTextOutline
+}
+function trendLabel(t: string) {
+  if (t === 'up') return '上升'
+  if (t === 'down') return '下降'
+  if (t === 'new') return '新晋'
+  return '平稳'
+}
+function trendIcon(t: string) {
+  if (t === 'up') return ArrowUpOutline
+  if (t === 'down') return ArrowDownOutline
+  if (t === 'new') return SparklesOutline
+  return RemoveOutline
+}
+function trendColor(t: string) {
+  if (t === 'up') return '#EF4444'
+  if (t === 'down') return '#10B981'
+  if (t === 'new') return '#4F46E5'
+  return '#94A3B8'
+}
 
 function cnDate(d: string | Date) {
   const t = new Date(d)
@@ -64,6 +171,7 @@ async function load() {
   try {
     if (auth.cloudSyncEnabled) {
       stats.value = await request.get('/stats')
+      void loadHotwords()
     } else {
       const convs = await loadAllConversations(false)
       stats.value = localStats(convs)
@@ -431,6 +539,162 @@ onMounted(load)
             <VChart :option="barOption" autoresize style="height: 280px;" />
           </div>
         </NSpace>
+
+        <!-- ═══════════ 热力词板块 ═══════════ -->
+        <div
+          v-if="auth.cloudSyncEnabled"
+          class="surface chart-card page-enter surface-hover hotwords-card"
+          style="padding: 18px 20px 20px;"
+        >
+          <div class="chart-header" style="flex-wrap: wrap; gap: 10px;">
+            <NIcon size="16" style="color: #EF4444;"><FlameOutline /></NIcon>
+            <div class="chart-title">热力词 · 关注焦点</div>
+            <span class="chrono-stamp warn">HOT-WORDS</span>
+
+            <div style="flex: 1;" />
+
+            <!-- 视图切换 -->
+            <NRadioGroup
+              :value="hotwordsView"
+              size="small"
+              @update:value="(v: any) => (hotwordsView = v)"
+              style="margin-left: auto;"
+            >
+              <NRadioButton value="cloud">
+                <NIcon size="13" style="margin-right: 4px;"><CloudOutline /></NIcon>
+                标签云
+              </NRadioButton>
+              <NRadioButton value="rank">
+                <NIcon size="13" style="margin-right: 4px;"><ListOutline /></NIcon>
+                排行榜
+              </NRadioButton>
+            </NRadioGroup>
+
+            <!-- 周期切换 -->
+            <NRadioGroup
+              :value="hotwordsPeriod"
+              size="small"
+              @update:value="(v: any) => (hotwordsPeriod = v)"
+            >
+              <NRadioButton value="7d">近 7 天</NRadioButton>
+              <NRadioButton value="30d">30 天</NRadioButton>
+              <NRadioButton value="90d">90 天</NRadioButton>
+              <NRadioButton value="all">全部</NRadioButton>
+            </NRadioGroup>
+          </div>
+
+          <!-- 热力词小统计卡 -->
+          <div v-if="hotwordsSummary.uniqueKeywords" class="hw-summary-row">
+            <div class="hw-sum-chip">
+              <div class="hw-sum-label">唯一关键词</div>
+              <div class="hw-sum-value">{{ hotwordsSummary.uniqueKeywords }}</div>
+            </div>
+            <div class="hw-sum-chip">
+              <div class="hw-sum-label">周期搜索次数</div>
+              <div class="hw-sum-value">{{ hotwordsSummary.totalSearchQueries || 0 }}</div>
+            </div>
+            <div class="hw-sum-chip">
+              <div class="hw-sum-label">覆盖对话数</div>
+              <div class="hw-sum-value">{{ hotwordsSummary.totalConversations || 0 }}</div>
+            </div>
+            <div class="hw-sum-chip accent">
+              <div class="hw-sum-label">数据来源</div>
+              <div class="hw-sum-value">
+                <NIcon size="11" style="margin-right: 2px;"><SearchOutline /></NIcon>
+                +
+                <NIcon size="11" style="margin: 0 2px;"><SparklesOutline /></NIcon>
+                +
+                <NIcon size="11" style="margin-left: 2px;"><DocumentTextOutline /></NIcon>
+              </div>
+            </div>
+          </div>
+
+          <NSpin :show="hotwordsLoading" style="margin-top: 8px;">
+            <NEmpty
+              v-if="!hotwordsLoading && hotwords.length === 0"
+              description="暂无热力词数据 · 多搜索几次试试"
+              size="small"
+              style="padding: 40px 0 20px;"
+            />
+
+            <!-- 视图 A：标签云 -->
+            <div v-else-if="hotwordsView === 'cloud'" class="hw-cloud">
+              <div
+                v-for="(w, idx) in hotwords"
+                :key="w.word"
+                class="hw-cloud-item"
+                :style="{
+                  color: hwColor(w.score),
+                  backgroundColor: hwBg(w.score),
+                  fontSize: hwFontSize(w.score),
+                  borderColor: hwColor(w.score) + '33',
+                  animationDelay: `${idx * 20}ms`,
+                }"
+                :title="`热度分 ${w.score} · 出现约 ${w.count} 次 · ${trendLabel(w.trend)}`"
+              >
+                <span class="hw-word">{{ w.word }}</span>
+                <span class="hw-trend-mini" :style="{ color: trendColor(w.trend) }">
+                  <NIcon :size="w.score >= 60 ? 12 : 10">
+                    <component :is="trendIcon(w.trend)" />
+                  </NIcon>
+                </span>
+              </div>
+            </div>
+
+            <!-- 视图 B：排行榜 -->
+            <div v-else class="hw-rank">
+              <div
+                v-for="(w, idx) in hotwords"
+                :key="w.word"
+                class="hw-rank-row"
+                :class="{ top3: idx < 3 }"
+              >
+                <div class="hw-rank-index" :class="'rank-' + (idx + 1)">{{ idx + 1 }}</div>
+                <div class="hw-rank-word-wrap">
+                  <div
+                    class="hw-rank-word"
+                    :style="{ color: hwColor(w.score), fontSize: hwFontSize(Math.max(w.score, 40)) }"
+                  >
+                    {{ w.word }}
+                  </div>
+                  <div class="hw-rank-sources">
+                    <NTag
+                      v-for="s in w.sources"
+                      :key="s"
+                      size="tiny"
+                      round
+                      class="hw-src-tag"
+                    >
+                      <template #icon>
+                        <NIcon size="11">
+                          <component :is="sourceIcon(s)" />
+                        </NIcon>
+                      </template>
+                      {{ sourceLabel(s) }}
+                    </NTag>
+                  </div>
+                </div>
+                <div class="hw-rank-bar-wrap">
+                  <div
+                    class="hw-rank-bar"
+                    :style="{
+                      width: `${(w.score / 100) * 100}%`,
+                      background: `linear-gradient(90deg, ${hwColor(w.score)}aa, ${hwColor(w.score)})`,
+                    }"
+                  />
+                </div>
+                <div class="hw-rank-count">
+                  <span class="hw-cnt-num">{{ w.count }}</span>
+                  <span class="hw-cnt-label">次</span>
+                </div>
+                <div class="hw-rank-trend" :style="{ color: trendColor(w.trend) }">
+                  <NIcon size="14"><component :is="trendIcon(w.trend)" /></NIcon>
+                  <span class="hw-trend-text">{{ trendLabel(w.trend) }}</span>
+                </div>
+              </div>
+            </div>
+          </NSpin>
+        </div>
       </template>
     </NSpin>
   </div>
@@ -572,11 +836,191 @@ onMounted(load)
   gap: 14px;
 }
 
+/* ═══════════ 热力词 ═══════════ */
+.hotwords-card { margin-top: 14px; }
+.hw-summary-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 8px;
+}
+.hw-sum-chip {
+  flex: 1 1 140px;
+  min-width: 120px;
+  padding: 10px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+.hw-sum-chip.accent {
+  background: linear-gradient(135deg, var(--primary-soft), var(--accent-soft));
+  border-color: var(--border-glow);
+}
+.hw-sum-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.hw-sum-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  display: flex;
+  align-items: center;
+}
+
+/* —— 标签云视图 —— */
+.hw-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 4px 12px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.hw-cloud-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-bounce), box-shadow 0.2s, opacity 0.3s;
+  opacity: 0;
+  animation: hw-pop-in 0.45s ease-out forwards;
+  font-weight: 600;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1.25;
+}
+.hw-cloud-item:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+}
+@keyframes hw-pop-in {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.92); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hw-trend-mini {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.85;
+}
+
+/* —— 排行榜视图 —— */
+.hw-rank {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 8px;
+}
+.hw-rank-row {
+  display: grid;
+  grid-template-columns: 42px 1fr 1.2fr 80px 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+.hw-rank-row:hover {
+  background: var(--surface-2);
+}
+.hw-rank-row.top3 {
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.03), transparent 60%);
+}
+.hw-rank-index {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+.hw-rank-index.rank-1 { background: linear-gradient(135deg, #EF4444, #F59E0B); color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25); }
+.hw-rank-index.rank-2 { background: linear-gradient(135deg, #F59E0B, #F59E0Bcc); color: #fff; }
+.hw-rank-index.rank-3 { background: linear-gradient(135deg, #4F46E5, #0EA5E9); color: #fff; }
+.hw-rank-word-wrap {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hw-rank-word {
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hw-rank-sources {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.hw-src-tag {
+  font-size: 10px !important;
+  padding: 0 4px !important;
+  border-color: var(--border) !important;
+}
+.hw-rank-bar-wrap {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hw-rank-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease-out;
+}
+.hw-rank-count {
+  text-align: right;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 3px;
+}
+.hw-cnt-num {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+}
+.hw-cnt-label {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.hw-rank-trend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.hw-trend-text { white-space: nowrap; }
+
 /* ═══════════ 响应式 ═══════════ */
 @media (max-width: 900px) {
   .stats-grid-2 {
     grid-template-columns: 1fr !important;
   }
+  .hw-rank-row {
+    grid-template-columns: 38px 1fr 70px 72px;
+    grid-template-rows: auto auto;
+    gap: 6px 10px;
+  }
+  .hw-rank-bar-wrap { grid-column: 2 / span 3; order: 5; }
+  .hw-rank-sources { grid-column: 2 / span 3; }
 }
 @media (max-width: 640px) {
   .stats-header-icon {
@@ -589,5 +1033,13 @@ onMounted(load)
   .chart-header {
     padding-bottom: 8px;
   }
+  .hotwords-card { padding: 14px !important; }
+  .hw-rank-row {
+    grid-template-columns: 32px 1fr 60px;
+  }
+  .hw-rank-trend { justify-content: flex-start; font-size: 11px; grid-column: 2 / span 2; }
+  .hw-rank-count { font-size: 12px; }
+  .hw-cloud { gap: 7px; padding: 8px 0; }
+  .hw-cloud-item { padding: 4px 9px; }
 }
 </style>

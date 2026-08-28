@@ -17,6 +17,27 @@ export function resolveEffectiveTier(user: {
   return user.tier
 }
 
+/**
+ * 有效等级 = max(付费有效等级, 广告 boost)。广告 boost 仅当 adRewardTier 非空且未过期时生效。
+ * 绝不降级付费等级。调用方须 select adRewardTier/adRewardExpiresAt；未 select 视为无 boost。
+ */
+export function resolveEffectiveTierWithAdBoost(user: {
+  tier: Tier
+  tierExpiresAt: Date | null
+  isPermanentTier: boolean
+  adRewardTier?: Tier | null
+  adRewardExpiresAt?: Date | null
+}): Tier {
+  const paid = resolveEffectiveTier(user)
+  const now = new Date()
+  const boost =
+    user.adRewardTier && user.adRewardExpiresAt && user.adRewardExpiresAt > now
+      ? user.adRewardTier
+      : null
+  if (boost && (TIER_RANK[boost] ?? 0) > (TIER_RANK[paid] ?? 0)) return boost
+  return paid
+}
+
 export interface TierStatus {
   tier: Tier
   effectiveTier: Tier

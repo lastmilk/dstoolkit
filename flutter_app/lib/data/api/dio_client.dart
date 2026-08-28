@@ -10,12 +10,13 @@ typedef OnAuthFailed = void Function();
 /// - 请求拦截：注入 `Authorization: Bearer dstk_...`
 /// - 401 拦截：refresh_token 轮换后重试一次；仍失败 → 通知登出
 Dio buildDio({
+  required String baseUrl,
   required TokenProvider tokenProvider,
   required OAuthApi oauthApi,
   OnAuthFailed? onAuthFailed,
 }) {
   final dio = Dio(BaseOptions(
-    baseUrl: ApiConstants.apiBase,
+    baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 15),
     receiveTimeout: const Duration(seconds: 60),
   ));
@@ -76,9 +77,9 @@ Future<bool> _tryRefresh(TokenProvider tokenProvider, OAuthApi oauthApi) async {
 
 bool _refreshing = false;
 
-/// 裸 Dio（用于 /oauth/token、/oauth/revoke —— 无鉴权拦截）
-Dio buildBareDio() => Dio(BaseOptions(
-      baseUrl: ApiConstants.apiBase,
+/// 裸 Dio（用于 /oauth/token、/oauth/revoke、/auth/login —— 无鉴权拦截）
+Dio buildBareDio({required String baseUrl}) => Dio(BaseOptions(
+      baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
     ));

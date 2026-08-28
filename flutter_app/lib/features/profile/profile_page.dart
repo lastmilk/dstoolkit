@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -131,6 +132,18 @@ class ProfilePage extends ConsumerWidget {
               title: '升级订阅 / 查看定价',
               trailing: const Icon(Icons.open_in_new_rounded, size: 18),
               onTap: () => _openWeb(ApiConstants.pricingUrl),
+              surface: neu.surface,
+              shadowDark: neu.shadowDark,
+              shadowLight: neu.shadowLight,
+            ),
+            const SizedBox(height: 12),
+
+            // ── 看广告 · 免费会员 ──
+            _NeuListTile(
+              icon: Icons.play_circle_outline_rounded,
+              title: '看广告 · 免费会员',
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              onTap: () => context.push('/ads'),
               surface: neu.surface,
               shadowDark: neu.shadowDark,
               shadowLight: neu.shadowLight,
