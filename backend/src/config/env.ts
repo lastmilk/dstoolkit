@@ -25,6 +25,11 @@ const alipayEnabled =
      process.env.PAYMENT_ALIPAY_PRIVATE_KEY &&
      process.env.PAYMENT_ALIPAY_PUBLIC_KEY)
 
+// ═══════════ 穿山甲（CSJ）激励视频服务端回调验签 ═══════════
+// Security Key：在穿山甲媒体平台编辑激励视频代码位时配置回调 URL 同页获得。
+// 留空 → 严格拒绝所有回调（{isValid:false}），避免误开 insecure 模式。
+const csjRewardSecurityKey = process.env.CSJ_REWARD_SECURITY_KEY || ''
+
 export const env = {
   databaseUrl: required('DATABASE_URL'),
   jwtSecret: required('JWT_SECRET'),
@@ -45,6 +50,12 @@ export const env = {
   kufakaEnabled,
   kufakaApiUrl,
   kufakaApiKey,
+  // 穿山甲激励视频回调验签
+  csjRewardSecurityKey,
+  csjRewardAppId: process.env.CSJ_REWARD_APP_ID || '5873937',
+  csjRewardCodeId: process.env.CSJ_REWARD_CODE_ID || '104441730',
+  csjRewardDailyTarget: Number(process.env.CSJ_REWARD_DAILY_TARGET) || 5, // 每日达标次数
+  csjRewardStreakForPlus: Number(process.env.CSJ_REWARD_STREAK_FOR_PLUS) || 3, // 连续达标天数升级 PLUS
   // 支付配置（预留）
   payment: {
     wechat: {

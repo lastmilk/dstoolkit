@@ -24,6 +24,9 @@ import summaryRoutes from './routes/summary.routes.js'
 import folderRoutes from './routes/folder.routes.js'
 import referralRoutes from './routes/referral.routes.js'
 import oauth2Routes from './routes/oauth2.routes.js'
+import adsRoutes from './routes/ads.routes.js'
+import { asyncHandler } from './utils/async.js'
+import { recordAdWatch, type CsjCallbackPayload } from './services/ads.js'
 
 const app = express()
 
@@ -32,6 +35,28 @@ app.use(compression())  // gzip 压缩：20MB JSON → ~1-2MB，大幅减少传�
 app.use(express.json({ limit: '50mb' }))
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
+
+// ═══════════ 穿山甲激励视频服务端回调（根路径，注意 webhoook 三连 o 拼写按后台原样） ═══════════
+// 穿山甲默认 GET；同时接受 POST 兜底。返回 {"isValid": true/false}。
+const handleCsjCallback = asyncHandler(async (req, res) => {
+  const q = req.query || {}
+  const b = (req.body || {}) as Record<string, unknown>
+  const payload: CsjCallbackPayload = {
+    user_id: q.user_id ?? b.user_id,
+    trans_id: q.trans_id ?? b.trans_id,
+    reward_name: q.reward_name ?? b.reward_name,
+    reward_amount: q.reward_amount ?? b.reward_amount,
+    extra: q.extra ?? b.extra,
+    sign: q.sign ?? b.sign,
+  }
+  const result = await recordAdWatch(payload)
+  if (!result.isValid && result.reason) {
+    console.warn(`[ads/webhook] 拒绝: ${result.reason}`)
+  }
+  res.json({ isValid: result.isValid })
+})
+app.get('/webhoook/verify', handleCsjCallback)
+app.post('/webhoook/verify', handleCsjCallback)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/configs', configRoutes)
@@ -53,6 +78,7 @@ app.use('/api/summaries', summaryRoutes)
 app.use('/api/folders', folderRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/oauth', oauth2Routes)
+app.use('/api/ads', adsRoutes)
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   // multer 文件大小错误

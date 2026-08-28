@@ -57,6 +57,10 @@ model User {
   tierExpiresAt    DateTime?
   isPermanentTier  Boolean          @default(false)
 
+  // 广告权益 boost（当日 PRO/PLUS；null=无活跃 boost）。绝不降级付费等级。
+  adRewardTier     Tier?
+  adRewardExpiresAt DateTime?
+
   // AI 积分余额（摘要/整理/导出等增值操作消耗）
   aiCredits        Int              @default(0)
 
@@ -84,6 +88,8 @@ model User {
   shares           Share[]
   oauthCodes       OAuthCode[]
   oauthTokens      OAuthToken[]
+  adWatches        AdWatch[]
+  adDailyLogs     AdDailyLog[]
 
   @@index([role])
   @@index([tier])
@@ -420,4 +426,32 @@ model Share {
   @@index([userId])
   @@index([configId])
   @@index([createdAt])
+}
+
+// ═══════════ 广告权益（穿山甲激励视频服务端回调） ═══════════
+// 幂等记录每次验签通过的广告观看（transId 唯一，防重放/重试）
+model AdWatch {
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  transId       String   @unique // 穿山甲回调 trans_id，幂等键
+  rewardAmount  Int      @default(0)
+  watchedAt     DateTime @default(now()) // 回调到达时间
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([watchedAt])
+}
+
+// 每日观看计数 + 连击计算依据（userId+date 唯一）
+model AdDailyLog {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  date        String   // "YYYY-MM-DD"（服务器本地 Asia/Shanghai）
+  count       Int      @default(0)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
 }

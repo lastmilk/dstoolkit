@@ -34,6 +34,9 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // CSJ SDK 本身已混淆并依赖外部注解类；关闭 R8 避免 Missing class 错误
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -46,4 +49,12 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // 穿山甲（CSJ）激励视频 SDK
+    implementation(files("libs/open_ad_sdk.aar"))
+    // CSJ SDK 依赖的网络与注解类（release build R8 需要解析符号）
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("androidx.annotation:annotation:1.8.2")
 }

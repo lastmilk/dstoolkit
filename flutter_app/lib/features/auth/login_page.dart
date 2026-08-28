@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/api_constants.dart';
+import '../../data/api/line_check.dart';
 import 'auth_controller.dart';
 
-/// 登录页：App 内账号密码登录 / 注册（无需网页端）+ 游客模式入口
+/// 登录页：App 内账号密码登录 / 注册（无需网页端）+ 游客模式入口 + 线路检测
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -17,15 +19,121 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _loading = false;
   String? _error;
 
+  /// 线路检测结果（null = 未检测）
+  List<ApiLine>? _lines;
+  bool _checking = false;
+
   final _formKey = GlobalKey<FormState>();
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 进入登录页自动测速并选最快线路
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _checkLines(autoSelect: true));
+  }
 
   @override
   void dispose() {
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkLines({bool autoSelect = false}) async {
+    if (_checking) return;
+    setState(() => _checking = true);
+    final lines = await checkApiLines(ApiConstants.apiLines);
+    if (!mounted) return;
+    setState(() {
+      _lines = lines;
+      _checking = false;
+    });
+    if (autoSelect) {
+      // lines 已按延迟排序，取第一个可达线路即最快
+      for (final l in lines) {
+        if (l.ok) {
+          ref.read(selectedApiBaseProvider.notifier).state = l.baseUrl;
+          break;
+        }
+      }
+    }
+  }
+
+  void _showLineSheet() {
+    final selected = ref.read(selectedApiBaseProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('选择线路',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    Row(
+                      children: [
+                        if (_checking)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2)),
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.refresh_rounded),
+                          onPressed: _checking ? null : _checkLines,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              ...?_lines?.map((line) {
+                final active = line.baseUrl == selected;
+                return ListTile(
+                  leading: Icon(
+                    active
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    color:
+                        active ? Theme.of(context).colorScheme.primary : null,
+                  ),
+                  title: Text(line.label),
+                  subtitle: Text(line.baseUrl),
+                  trailing: _LineBadge(line: line),
+                  onTap: () {
+                    ref.read(selectedApiBaseProvider.notifier).state =
+                        line.baseUrl;
+                    setState(() => _error = null);
+                    Navigator.pop(sheetCtx);
+                  },
+                );
+              }),
+              if (_lines == null && !_checking)
+                const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Center(child: Text('未检测，点击右上角刷新')),
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _submit() async {
@@ -58,9 +166,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     ref.read(authControllerProvider.notifier).enterGuestMode();
   }
 
+  String _selectedLabel() {
+    final base = ref.watch(selectedApiBaseProvider);
+    return Uri.tryParse(base)?.host ?? base;
+  }
+
+  ApiLine? _selectedLine() {
+    final base = ref.watch(selectedApiBaseProvider);
+    final lines = _lines;
+    if (lines == null) return null;
+    for (final l in lines) {
+      if (l.baseUrl == base) return l;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final selLine = _selectedLine();
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -165,8 +289,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ? const SizedBox(
                             width: 22,
                             height: 22,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Text(
                             _isRegister ? '注册并登录' : '登录',
@@ -182,6 +305,51 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       style: TextStyle(color: theme.colorScheme.error),
                     ),
                   ],
+
+                  // ── 线路检测 ──
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: _showLineSheet,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.speed_rounded,
+                              size: 18, color: theme.colorScheme.outline),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '线路：${_selectedLabel()}',
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_checking)
+                            const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else if (selLine != null)
+                            _LineBadge(line: selLine)
+                          else
+                            Text('点击检测',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.primary)),
+                        ],
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 12),
                   TextButton(
@@ -199,6 +367,43 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 线路延迟徽章：<150ms 绿 / <500ms 橙 / 其余红；不可达灰色
+class _LineBadge extends StatelessWidget {
+  const _LineBadge({required this.line});
+
+  final ApiLine line;
+
+  Color _color(BuildContext context) {
+    if (!line.ok || line.latencyMs == null) {
+      return Theme.of(context).colorScheme.outline;
+    }
+    if (line.latencyMs! < 150) return const Color(0xFF4CAF50);
+    if (line.latencyMs! < 500) return const Color(0xFFFFA726);
+    return const Color(0xFFEF5350);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text =
+        (line.ok && line.latencyMs != null) ? '${line.latencyMs}ms' : '不可达';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: _color(context).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: _color(context),
         ),
       ),
     );

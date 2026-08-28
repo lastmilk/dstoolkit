@@ -1,6 +1,6 @@
 /// API 与 Web 基址配置。
 ///
-/// 生产默认直连 `https://dstoolkit.cn/api`；开发时通过 dart-define 覆盖：
+/// 生产默认直连 `https://api.dstoolkit.cn/api`；开发时通过 dart-define 覆盖：
 /// ```sh
 /// flutter run \
 ///   --dart-define=DSTK_API_BASE=http://10.0.2.2:3000/api \
@@ -11,8 +11,15 @@ class ApiConstants {
 
   static const String apiBase = String.fromEnvironment(
     'DSTK_API_BASE',
-    defaultValue: 'https://dstoolkit.cn/api',
+    defaultValue: 'https://api.dstoolkit.cn/api',
   );
+
+  /// 可用 API 线路（登录页线路检测按此列表测速）。
+  /// dart-define 指定了自定义 base 时只保留该线路。
+  static const List<String> apiLines = [
+    'https://api.dstoolkit.cn/api',
+    'https://dstoolkit.cn/api',
+  ];
 
   static const String webBase = String.fromEnvironment(
     'DSTK_WEB_BASE',

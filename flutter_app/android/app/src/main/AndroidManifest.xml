@@ -1,12 +1,20 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- 网络访问（API + WebView 授权） -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 穿山甲激励视频所需权限 -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- debug 指向本机后端（10.0.2.2）时允许 cleartext -->
     <application
         android:label="DsToolKit"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        tools:replace="android:label">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -41,6 +49,18 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- 穿山甲（CSJ）激励视频：文件 Provider
+             CSJ SDK 自带的 TTFileProvider 继承旧 support.v4.FileProvider，与 AndroidX 冲突
+             → 直接使用 androidx.core.content.FileProvider，功能等价且类一定存在 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.TTFileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/csj_file_paths" />
+        </provider>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

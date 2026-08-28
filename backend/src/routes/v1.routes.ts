@@ -4,6 +4,7 @@ import { asyncHandler } from '../utils/async.js'
 import { verifyApiToken, type AuthedRequest } from '../middleware/auth.js'
 import { parsePaging, pageResponse } from '../utils/paging.js'
 import { aggregateTurnsFromMessages } from '../services/turns.js'
+import { resolveEffectiveTierWithAdBoost } from '../services/ads.js'
 
 const router = Router()
 router.use(verifyApiToken)
@@ -25,9 +26,18 @@ function publicConfig(c: any) {
 router.get('/me', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: req.user!.id },
-    select: { id: true, username: true, role: true, cloudSyncEnabled: true, createdAt: true, tier: true, tierExpiresAt: true, isPermanentTier: true },
+    select: { id: true, username: true, role: true, cloudSyncEnabled: true, createdAt: true, tier: true, tierExpiresAt: true, isPermanentTier: true, adRewardTier: true, adRewardExpiresAt: true },
   })
-  return res.json({ user })
+  // tier 字段返回有效等级（含广告 boost，绝不降级付费等级）
+  const effectiveTier = resolveEffectiveTierWithAdBoost(user)
+  return res.json({
+    user: {
+      ...user,
+      tier: effectiveTier,
+      adRewardTier: user.adRewardTier,
+      adRewardExpiresAt: user.adRewardExpiresAt,
+    },
+  })
 }))
 
 // GET /api/v1/configs  列出当前用户的配置

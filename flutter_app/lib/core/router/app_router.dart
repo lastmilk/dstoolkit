@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/ads/ad_reward_page.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/auth/login_page.dart';
 import '../../features/conversation/detail/conversation_detail_page.dart';
@@ -68,6 +69,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           configId: int.parse(state.pathParameters['configId']!),
           convId: state.pathParameters['convId']!,
         ),
+      ),
+      GoRoute(
+        path: '/ads',
+        builder: (context, state) => const AdRewardPage(),
       ),
     ],
   );

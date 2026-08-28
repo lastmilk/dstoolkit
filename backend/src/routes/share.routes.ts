@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import { prisma } from '../utils/prisma.js'
 import { asyncHandler } from '../utils/async.js'
 import { verifyJwt, type AuthedRequest } from '../middleware/auth.js'
-import { resolveEffectiveTier } from '../services/subscription.js'
+import { resolveEffectiveTierWithAdBoost } from '../services/subscription.js'
 import { aggregateTurnsFromMessages } from '../services/turns.js'
 import { TIER_LIMITS } from '../utils/quota.js'
 import { env } from '../config/env.js'
@@ -34,8 +34,11 @@ router.post('/', asyncHandler(async (req: AuthedRequest, res) => {
   if (!parsed.success) return res.status(400).json({ error: '参数错误' })
   const { configId, deepseekConvId, theme, password, customSlug, expiresInDays } = parsed.data
 
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: req.user!.id } })
-  const tier = resolveEffectiveTier(user)
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: req.user!.id },
+    select: { id: true, username: true, tier: true, tierExpiresAt: true, isPermanentTier: true, adRewardTier: true, adRewardExpiresAt: true },
+  })
+  const tier = resolveEffectiveTierWithAdBoost(user)
   const limits = TIER_LIMITS[tier]
   if (!limits.canShare) {
     return res.status(403).json({ error: '当前等级不支持分享功能，请升级至 Pro 或更高等级', upgradeRequired: true })
