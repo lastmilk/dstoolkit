@@ -124,21 +124,162 @@ router.get('/suggest', asyncHandler(async (req: AuthedRequest, res) => {
     }
   }
 
-  // 3. 无输入时返回热门搜索词
+  // 3. 无输入时返回热门搜索词（近 30 天） + AI 摘要标签高频词
   if (!q) {
+    const userId = req.user!.id
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400 * 1000)
+    const seen = new Set(suggestions.map((s) => s.text))
+
+    // 3a. 热门搜索（近30天加权）
     const popular = await prisma.searchQuery.groupBy({
       by: ['query'],
-      where: { userId: req.user!.id },
+      where: { userId, createdAt: { gte: thirtyDaysAgo } },
       _count: { _all: true },
       orderBy: { _count: { query: 'desc' } },
       take: limit,
     })
     for (const p of popular) {
-      suggestions.push({ text: p.query, type: 'popular' })
+      if (!seen.has(p.query)) {
+        suggestions.push({ text: p.query, type: 'popular' })
+        seen.add(p.query)
+      }
+    }
+
+    // 3b. AI 摘要高频标签（作为补充的推荐热词）
+    if (suggestions.length < limit) {
+      const tagRows = await prisma.convSummary.findMany({
+        where: { userId, createdAt: { gte: thirtyDaysAgo } },
+        select: { tags: true },
+        take: 500,
+        orderBy: { createdAt: 'desc' },
+      })
+      const tagCount = new Map<string, number>()
+      for (const row of tagRows) {
+        const tags = Array.isArray(row.tags) ? (row.tags as any[]) : []
+        for (const t of tags) {
+          const s = String(t).trim()
+          if (s.length >= 2) tagCount.set(s, (tagCount.get(s) || 0) + 1)
+        }
+      }
+      const topTags = Array.from(tagCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+      for (const [tag] of topTags) {
+        if (!seen.has(tag)) {
+          suggestions.push({ text: tag, type: 'trending' })
+          seen.add(tag)
+        }
+      }
+
+      // 3c. 近 30 天对话标题关键词作为兜底
+      if (suggestions.length < limit) {
+        const titleRows = await prisma.conversation.findMany({
+          where: { config: { userId }, insertedAt: { gte: thirtyDaysAgo } },
+          select: { title: true },
+          take: 500,
+          orderBy: { insertedAt: 'desc' },
+        })
+        // 简单中文/英文热词提取（2~8字连续）
+        const counter = new Map<string, number>()
+        for (const r of titleRows) {
+          const matches = (r.title || '').match(/[\u4e00-\u9fa5]{2,8}|[A-Za-z][A-Za-z0-9_-]{2,}/g)
+          if (!matches) continue
+          for (const m of matches) {
+            counter.set(m, (counter.get(m) || 0) + 1)
+          }
+        }
+        const topTitles = Array.from(counter.entries())
+          .filter(([k, v]) => v >= 2 && k.length >= 2)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, limit)
+        for (const [kw] of topTitles) {
+          if (!seen.has(kw)) {
+            suggestions.push({ text: kw, type: 'topic' })
+            seen.add(kw)
+          }
+        }
+      }
     }
   }
 
   res.json({ suggestions: suggestions.slice(0, limit) })
+}))
+
+// GET /api/search/hotwords?limit=30
+// 轻量级热力词接口：Explore 页面搜索框下的快速热词云（近 30 天）
+router.get('/hotwords', asyncHandler(async (req: AuthedRequest, res) => {
+  const userId = req.user!.id
+  const limit = Math.min(Number(req.query.limit) || 30, 60)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400 * 1000)
+  const counter = new Map<string, { weight: number; type: string }>()
+
+  // 1. 搜索记录（权重 x3）
+  const searchGroup = await prisma.searchQuery.groupBy({
+    by: ['query'],
+    where: { userId, createdAt: { gte: thirtyDaysAgo } },
+    _count: { _all: true },
+    orderBy: { _count: { query: 'desc' } },
+    take: 100,
+  })
+  for (const s of searchGroup) {
+    const q = s.query.trim()
+    if (!q) continue
+    const cur = counter.get(q) || { weight: 0, type: 'search' }
+    cur.weight += s._count._all * 3
+    counter.set(q, cur)
+  }
+
+  // 2. 摘要标签（权重 x2）
+  const summaries = await prisma.convSummary.findMany({
+    where: { userId, createdAt: { gte: thirtyDaysAgo } },
+    select: { tags: true },
+    take: 500,
+  })
+  for (const sum of summaries) {
+    const tags = Array.isArray(sum.tags) ? (sum.tags as any[]) : []
+    for (const t of tags) {
+      const s = String(t).trim()
+      if (s.length < 2) continue
+      const cur = counter.get(s) || { weight: 0, type: 'tag' }
+      cur.weight += 2
+      if (cur.weight >= 2 && cur.type !== 'search') cur.type = 'tag'
+      counter.set(s, cur)
+    }
+  }
+
+  // 3. 对话标题关键词（权重 x1）
+  const convs = await prisma.conversation.findMany({
+    where: { config: { userId }, insertedAt: { gte: thirtyDaysAgo } },
+    select: { title: true },
+    take: 1000,
+  })
+  for (const c of convs) {
+    const matches = (c.title || '').match(/[\u4e00-\u9fa5]{2,8}|[A-Za-z][A-Za-z0-9_-]{2,}/g)
+    if (!matches) continue
+    for (const m of matches) {
+      const cur = counter.get(m) || { weight: 0, type: 'title' }
+      cur.weight += 1
+      if (cur.type === 'title' && cur.weight >= 2) cur.type = 'title'
+      counter.set(m, cur)
+    }
+  }
+
+  // 排序 + 归一化
+  const list = Array.from(counter.entries())
+    .map(([word, v]) => ({ word, weight: v.weight, type: v.type }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, limit)
+  const max = list[0]?.weight || 1
+  const min = list[list.length - 1]?.weight || 0
+  const range = max - min || 1
+  const hotwords = list.map((w) => ({
+    word: w.word,
+    type: w.type,
+    count: w.weight,
+    score: max === min ? 60 : Math.round(30 + ((w.weight - min) / range) * 70),
+  }))
+
+  res.json({ hotwords, total: hotwords.length })
 }))
 
 // AI 过滤器预设（根据用户对话内容自动分类）

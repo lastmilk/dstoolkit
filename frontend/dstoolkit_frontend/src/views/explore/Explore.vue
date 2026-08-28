@@ -31,6 +31,7 @@ import {
   FolderOpenOutline,
   RefreshOutline,
   ListOutline,
+  FlameOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
@@ -84,6 +85,45 @@ let suggestionBlurTimer: ReturnType<typeof setTimeout> | null = null
 // AI 智能过滤
 const aiFilters = ref<{ id: string; label: string; keywords: string[] }[]>([])
 const activeAiFilter = ref<string | null>(null)
+
+// 搜索框下方热门词云（近30天）
+type ExploreHotWord = { word: string; type: string; count: number; score: number }
+const queryHotwords = ref<ExploreHotWord[]>([])
+const queryHotwordsLoading = ref(false)
+
+async function loadQueryHotwords() {
+  if (!auth.cloudSyncEnabled) return
+  queryHotwordsLoading.value = true
+  try {
+    const res: any = await request.get('/search/hotwords', { params: { limit: 24 } })
+    queryHotwords.value = res.hotwords || []
+  } catch {
+    queryHotwords.value = []
+  } finally {
+    queryHotwordsLoading.value = false
+  }
+}
+
+function hwQuickColor(type: string, score: number) {
+  if (type === 'search') {
+    return score >= 70 ? '#EF4444' : score >= 50 ? '#F59E0B' : '#4F46E5'
+  }
+  if (type === 'tag') return score >= 60 ? '#4F46E5' : '#0EA5E9'
+  return score >= 60 ? '#10B981' : '#64748B'
+}
+function hwQuickSize(score: number) {
+  return 12 + ((score - 30) / 70) * 5 // 12~17px
+}
+function hwTypeLabel(t: string) {
+  if (t === 'search') return '搜'
+  if (t === 'tag') return '签'
+  return '题'
+}
+function clickHotword(w: string) {
+  query.value = w
+  if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null }
+  void doSearch()
+}
 
 // 左侧栏：文件夹与标签
 const folders = ref<Array<{ id: number; name: string; color: string | null; conversationCount: number }>>([])
@@ -234,6 +274,8 @@ function showSuggestionsNow() {
 function suggestionTypeLabel(type: string) {
   if (type === 'history') return '历史搜索'
   if (type === 'popular') return '热门'
+  if (type === 'trending') return '摘要标签'
+  if (type === 'topic') return '话题'
   return '对话标题'
 }
 
@@ -580,6 +622,7 @@ onMounted(() => {
   if (auth.cloudSyncEnabled) {
     void loadAiFilters()
     void loadFoldersAndTags()
+    void loadQueryHotwords()
   }
 })
 
@@ -703,6 +746,43 @@ onUnmounted(() => {
           <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
           搜索
         </NButton>
+      </div>
+
+      <!-- 热力词云：搜索框为空 & 云端模式 & 有数据时显示 -->
+      <div
+        v-if="auth.cloudSyncEnabled && !query.trim() && queryHotwords.length > 0"
+        class="quick-hotwords"
+      >
+        <div class="qw-head">
+          <NIcon size="12" style="color: #EF4444;"><FlameOutline /></NIcon>
+          <span class="qw-label">热门搜索</span>
+          <span class="qw-sub">· 近 30 天 · 点击即搜</span>
+        </div>
+        <NSpin :show="queryHotwordsLoading" size="12">
+          <div class="qw-cloud">
+            <button
+              v-for="(w, i) in queryHotwords"
+              :key="w.word"
+              type="button"
+              class="qw-chip"
+              :style="{
+                color: hwQuickColor(w.type, w.score),
+                borderColor: hwQuickColor(w.type, w.score) + '33',
+                backgroundColor: hwQuickColor(w.type, w.score) + '0D',
+                fontSize: hwQuickSize(w.score) + 'px',
+                animationDelay: `${i * 25}ms`,
+              }"
+              @click="clickHotword(w.word)"
+              :title="`点击搜索「${w.word}」· 热度 ${w.score}`"
+            >
+              <span
+                class="qw-type-pill"
+                :style="{ backgroundColor: hwQuickColor(w.type, w.score) + '22', color: hwQuickColor(w.type, w.score) }"
+              >{{ hwTypeLabel(w.type) }}</span>
+              <span class="qw-word">{{ w.word }}</span>
+            </button>
+          </div>
+        </NSpin>
       </div>
 
       <div class="search-options">
@@ -1279,6 +1359,85 @@ onUnmounted(() => {
 }
 .opt-mode { margin-left: auto; }
 .opt-datasource { margin-left: auto; }
+
+/* ═══════════ 热门搜索快速词云 ═══════════ */
+.quick-hotwords {
+  padding: 10px 14px 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.04), rgba(79, 70, 229, 0.04) 50%, rgba(14, 165, 233, 0.04));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+.qw-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.03em;
+}
+.qw-label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.qw-sub {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 11px;
+  font-family: inherit;
+}
+.qw-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+.qw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.35;
+  transition: transform 0.2s var(--ease-bounce), box-shadow 0.2s;
+  opacity: 0;
+  animation: qw-pop 0.4s ease-out forwards;
+}
+.qw-chip:hover {
+  transform: translateY(-1.5px) scale(1.04);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
+@keyframes qw-pop {
+  from { opacity: 0; transform: translateY(5px) scale(0.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.qw-type-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+  flex-shrink: 0;
+}
+.qw-word {
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .source-pill {
   display: inline-flex;
