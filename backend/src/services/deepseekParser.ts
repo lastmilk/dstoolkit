@@ -77,18 +77,20 @@ function getNodeFragType(mapping: Record<string, any>, nodeId: string): string |
 }
 
 /**
- * 提取五层树结构的 Turns：Date > Conversation > Turn > Version > SubTurn 中的 L3-L5。
+ * 泛化版五层树 Turns 提取（L3-L5）：Turn > Version > SubTurn。
+ * 角色判定由 isUser/isAssistant 谓词注入，便于 OpenAI（ChatGPT）导出格式复用同一算法。
  *
  * 算法：
  * 1. 主链（main chain）= 从 root 出发，每个节点取「最后一个子节点」继续，构成一条主路径。
- *    （Deepseek 导出中 children 顺序通常按生成时间，最后一个即用户最近一次采纳的分支）
- * 2. 主链上的 USER 节点（fragment.type === 'REQUEST'）依次为 Turn 0、1、2...
- * 3. 每个 Turn 的 USER 节点的所有 ASSISTANT 子节点（RESPONSE）为 Versions（上限 6）。
- * 4. 每个 Version 的 ASSISTANT 节点的 USER 子节点中，**不在主链上**的为 SubTurns（上限 6），
- *    其中 SubTurn.assistantNodeId 取该 USER 节点的首个 ASSISTANT 子节点（AI 对追问的回复）。
- *    （主链上的 USER 子节点作为下一 Turn，不计入 SubTurn）
+ * 2. 主链上的 USER 节点依次为 Turn 0、1、2...
+ * 3. 每个 Turn 的 USER 节点的所有 ASSISTANT 子节点为 Versions（上限 6）。
+ * 4. 每个 Version 的 ASSISTANT 节点的 USER 子节点中，**不在主链上**的为 SubTurns（上限 6）。
  */
-function extractTurns(mapping: Record<string, any>): Turn[] {
+export function extractTurnsGeneric(
+  mapping: Record<string, any>,
+  isUser: (nodeId: string) => boolean,
+  isAssistant: (nodeId: string) => boolean,
+): Turn[] {
   const rootNode = Object.values<any>(mapping).find((n) => n && n.parent === null)
   if (!rootNode) return []
 
@@ -96,8 +98,6 @@ function extractTurns(mapping: Record<string, any>): Turn[] {
     const node = mapping[id]
     return node && Array.isArray(node.children) ? node.children.map((c: any) => String(c)) : []
   }
-  const isUser = (id: string): boolean => getNodeFragType(mapping, id) === 'REQUEST'
-  const isAssistant = (id: string): boolean => getNodeFragType(mapping, id) === 'RESPONSE'
 
   // 1. 计算主链（最后一个子节点为延续）+ 主链顺序
   const mainChain = new Set<string>()
@@ -159,6 +159,17 @@ function extractTurns(mapping: Record<string, any>): Turn[] {
 }
 
 /**
+ * Deepseek 专属：fragment.type === 'REQUEST' / 'RESPONSE' 判定角色的 turns 提取。
+ */
+function extractTurns(mapping: Record<string, any>): Turn[] {
+  return extractTurnsGeneric(
+    mapping,
+    (id) => getNodeFragType(mapping, id) === 'REQUEST',
+    (id) => getNodeFragType(mapping, id) === 'RESPONSE',
+  )
+}
+
+/**
  * 由 turns 构建 nodeId -> {turnIndex, versionIndex?, subTurnIndex?} 映射，用于回填到扁平 messages[]。
  * 规则：
  *   - Turn.userNodeId            → {turnIndex}
@@ -166,7 +177,7 @@ function extractTurns(mapping: Record<string, any>): Turn[] {
  *   - SubTurn.userNodeId         → {turnIndex, versionIndex, subTurnIndex}
  *   - SubTurn.assistantNodeId    → {turnIndex, versionIndex, subTurnIndex}（与 SubTurn 同位）
  */
-function buildNodeIndexMap(turns: Turn[]): Map<string, { turnIndex: number; versionIndex?: number; subTurnIndex?: number }> {
+export function buildNodeIndexMap(turns: Turn[]): Map<string, { turnIndex: number; versionIndex?: number; subTurnIndex?: number }> {
   const map = new Map<string, { turnIndex: number; versionIndex?: number; subTurnIndex?: number }>()
   for (const turn of turns) {
     map.set(turn.userNodeId, { turnIndex: turn.turnIndex })
@@ -188,7 +199,7 @@ function buildNodeIndexMap(turns: Turn[]): Map<string, { turnIndex: number; vers
  * 处理单个会话对象：extractTurns（依赖该会话的完整 mapping 树，无法流式）+
  * 前序遍历扁平化为 messages[]。流式解析时每解析完一个会话即调用此函数。
  */
-function processConversation(c: any): ParsedConversation {
+export function processConversation(c: any): ParsedConversation {
   const mapping: Record<string, any> = c.mapping || {}
 
   // 五层树（L3-L5）—— 需要完整 mapping，无法流式处理

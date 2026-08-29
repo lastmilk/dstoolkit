@@ -111,9 +111,9 @@ router.post('/:id/assign', asyncHandler(async (req: AuthedRequest, res) => {
   // 验证对话归属
   const conv = await prisma.conversation.findUnique({
     where: { id: parsed.data.conversationId },
-    include: { config: { select: { userId: true } } },
+    include: { repo: { select: { userId: true } } },
   })
-  if (!conv || conv.config.userId !== req.user!.id) {
+  if (!conv || conv.repo.userId !== req.user!.id) {
     return res.status(404).json({ error: '对话不存在' })
   }
 
@@ -176,9 +176,9 @@ router.post('/tags/:id/assign', asyncHandler(async (req: AuthedRequest, res) => 
 
   const conv = await prisma.conversation.findUnique({
     where: { id: parsed.data.conversationId },
-    include: { config: { select: { userId: true } } },
+    include: { repo: { select: { userId: true } } },
   })
-  if (!conv || conv.config.userId !== req.user!.id) {
+  if (!conv || conv.repo.userId !== req.user!.id) {
     return res.status(404).json({ error: '对话不存在' })
   }
 
@@ -204,7 +204,7 @@ router.delete('/tags/:id', asyncHandler(async (req: AuthedRequest, res) => {
 router.get('/by-folder/:folderId', asyncHandler(async (req: AuthedRequest, res) => {
   const folderId = Number(req.params.folderId)
   const items = await prisma.conversationTag.findMany({
-    where: { folderId, conversation: { config: { userId: req.user!.id } } },
+    where: { folderId, conversation: { repo: { userId: req.user!.id } } },
     include: {
       conversation: {
         select: {

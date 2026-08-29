@@ -16,8 +16,8 @@ router.get('/', asyncHandler(async (req: AuthedRequest, res) => {
   const configId = req.query.configId ? Number(req.query.configId) : undefined
   const type = String(req.query.type || 'by_day')
   const convWhere: any = configId
-    ? { configId, config: { userId: req.user!.id } }
-    : { config: { userId: req.user!.id } }
+    ? { configId, repo: { userId: req.user!.id } }
+    : { repo: { userId: req.user!.id } }
 
   if (type === 'by_session') {
     const convs = await prisma.conversation.findMany({

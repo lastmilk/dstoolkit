@@ -9,7 +9,7 @@ const router = createRouter({
       redirect: () => {
         const auth = useAuthStore()
         if (auth.isLoggedIn) {
-          return '/configs'
+          return '/repos'
         }
         return '/portal'
       },
@@ -42,7 +42,8 @@ const router = createRouter({
       path: '/',
       component: () => import('@/layouts/MainLayout.vue'),
       children: [
-        { path: 'configs', name: 'configs', component: () => import('@/views/config/Configs.vue') },
+        { path: 'repos', name: 'repos', component: () => import('@/views/repo/Repos.vue') },
+        { path: 'configs', redirect: '/repos' },
         { path: 'explore', name: 'explore', component: () => import('@/views/explore/Explore.vue') },
         { path: 'search', redirect: '/explore' },
         { path: 'timeline', redirect: '/explore' },

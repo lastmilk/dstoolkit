@@ -9,6 +9,30 @@ export interface DeepseekConfig {
   updatedAt?: string
 }
 
+/** 聊天记录仓库（Git 版本化） */
+export interface ChatRepo {
+  id: number | null
+  name: string
+  description?: string | null
+  defaultBranch?: string
+  lastCommitSha?: string | null
+  lastCommitAt?: string | null
+  commitCount?: number
+  snapshotBytes?: number | null
+  conversationCount?: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+/** Git 提交历史条目 */
+export interface RepoCommit {
+  sha: string
+  shortSha: string
+  message: string
+  author: string
+  date: string
+}
+
 export interface ParsedMessage {
   nodeId: string
   parentId: string | null
@@ -54,11 +78,15 @@ export interface ParsedConversation {
 export interface UploadResult {
   persisted: boolean
   config: DeepseekConfig
+  repo?: ChatRepo
   deepseekUser: { userId: string; email: string | null; mobile: string | null }
   /** cloud=false 时返回全部会话（前端存 IndexedDB）；cloud=true 时不回传 */
   conversations?: ParsedConversation[]
   /** cloud=true 时返回会话总数（前端按需分页加载） */
   conversationCount?: number
+  added?: number
+  updated?: number
+  commit?: { sha: string; message: string; timestamp: number }
 }
 
 export interface ConversationSummary {

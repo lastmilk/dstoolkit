@@ -8,6 +8,8 @@ import '../../features/conversation/detail/conversation_detail_page.dart';
 import '../../features/conversation/list/conversation_list_page.dart';
 import '../../features/home/home_shell.dart';
 import '../../features/profile/profile_page.dart';
+import '../../features/repo/repo_history_page.dart';
+import '../../features/repo/repo_list_page.dart';
 import '../../features/search/search_page.dart';
 import '../../features/stats/stats_page.dart';
 
@@ -57,6 +59,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
+              path: '/repos',
+              builder: (context, state) => const RepoListPage(),
+            ),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(
               path: '/profile',
               builder: (context, state) => const ProfilePage(),
             ),
@@ -68,6 +76,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ConversationDetailPage(
           configId: int.parse(state.pathParameters['configId']!),
           convId: state.pathParameters['convId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/repos/:id/history',
+        builder: (context, state) => RepoHistoryPage(
+          repoId: int.parse(state.pathParameters['id']!),
         ),
       ),
       GoRoute(

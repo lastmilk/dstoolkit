@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// 底部导航壳：对话 / 搜索 / 统计 / 我的
+/// 底部导航壳：对话 / 搜索 / 统计 / 仓库 / 我的
 class HomeShell extends StatelessWidget {
   const HomeShell({super.key, required this.navigationShell});
 
@@ -32,6 +32,11 @@ class HomeShell extends StatelessWidget {
             icon: Icon(Icons.insights_outlined),
             selectedIcon: Icon(Icons.insights_rounded),
             label: '统计',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.folder_outlined),
+            selectedIcon: Icon(Icons.folder_rounded),
+            label: '仓库',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),

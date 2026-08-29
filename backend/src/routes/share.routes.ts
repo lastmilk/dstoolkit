@@ -47,8 +47,8 @@ router.post('/', asyncHandler(async (req: AuthedRequest, res) => {
     return res.status(400).json({ error: `主题无效，可选：${SHARE_THEMES.join(', ')}` })
   }
   // 校验会话归属
-  const config = await prisma.deepseekConfig.findFirst({ where: { id: configId, userId: user.id } })
-  if (!config) return res.status(404).json({ error: '配置不存在' })
+  const repo = await prisma.chatRepo.findFirst({ where: { id: configId, userId: user.id } })
+  if (!repo) return res.status(404).json({ error: '仓库不存在' })
   const conv = await prisma.conversation.findFirst({
     where: { configId, deepseekConvId },
     select: { id: true, title: true },
@@ -143,7 +143,7 @@ async function hashSharePassword(plain: string): Promise<string> {
 // 为避免循环依赖，公开路由单独放 public.routes.ts；但此处导出聚合消息的逻辑供复用
 export async function loadShareConversation(share: { userId: number; configId: number; deepseekConvId: string }) {
   const conv = await prisma.conversation.findFirst({
-    where: { configId: share.configId, deepseekConvId: share.deepseekConvId, config: { userId: share.userId } },
+    where: { configId: share.configId, deepseekConvId: share.deepseekConvId, repo: { userId: share.userId } },
     include: { messages: { orderBy: { insertedAt: 'asc' } } },
   })
   if (!conv) return null

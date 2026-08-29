@@ -72,8 +72,8 @@ function computeTrend(cur: number, prev: number): 'up' | 'down' | 'stable' | 'ne
 router.get('/', asyncHandler(async (req: AuthedRequest, res) => {
   const configId = req.query.configId ? Number(req.query.configId) : undefined
   const convWhere: any = configId
-    ? { configId, config: { userId: req.user!.id } }
-    : { config: { userId: req.user!.id } }
+    ? { configId, repo: { userId: req.user!.id } }
+    : { repo: { userId: req.user!.id } }
 
   const convs = await prisma.conversation.findMany({
     where: convWhere,
@@ -129,7 +129,7 @@ router.get('/hotwords', asyncHandler(async (req: AuthedRequest, res) => {
   const prevStart = new Date(curStart.getTime() - days * 86400 * 1000)
 
   const userId = req.user!.id
-  const convWhere: any = { config: { userId } }
+  const convWhere: any = { repo: { userId } }
 
   // ═══ 数据源1：搜索记录（SearchQuery）═══
   const [curSearchGroup, prevSearchGroup] = await Promise.all([
@@ -145,6 +145,7 @@ router.get('/hotwords', asyncHandler(async (req: AuthedRequest, res) => {
       where: { userId, createdAt: { gte: prevStart, lt: curStart } },
       _count: { _all: true },
       take: 200,
+      orderBy: { _count: { query: 'desc' } },
     }),
   ])
 

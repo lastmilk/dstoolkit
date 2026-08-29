@@ -1,48 +1,5 @@
-import { env } from '../config/env.js'
 import { prisma } from '../utils/prisma.js'
-
-interface DeepseekMessage {
-  role: 'system' | 'user' | 'assistant'
-  content: string
-}
-
-interface ChatCompletionResponse {
-  choices: Array<{ message: { content: string } }>
-}
-
-/** 调用 DeepSeek Chat Completions API（OpenAI 兼容） */
-async function callDeepseek(
-  messages: DeepseekMessage[],
-  opts?: { json?: boolean; model?: string },
-): Promise<string> {
-  const key = env.deepseekServerKey
-  if (!key) {
-    throw new Error('服务端未配置 DEEPSEEK_SERVER_API_KEY，无法执行 AI 操作')
-  }
-  const body: Record<string, unknown> = {
-    model: opts?.model || 'deepseek-chat',
-    messages,
-    temperature: 0.3,
-    max_tokens: 4096,
-  }
-  if (opts?.json) {
-    body.response_format = { type: 'json_object' }
-  }
-  const res = await fetch(`${env.deepseekApiBase}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-    },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(`DeepSeek API 错误 (${res.status}): ${text || res.statusText}`)
-  }
-  const data = (await res.json()) as ChatCompletionResponse
-  return data.choices?.[0]?.message?.content || ''
-}
+import { callAI, resolveProvider, type AiMessage } from './aiProvider.js'
 
 /** 获取对话的文本内容（截断到合理长度以控制 token） */
 async function getConversationText(conversationId: number, maxChars = 12000): Promise<{
@@ -87,9 +44,15 @@ export interface SummaryResult {
 
 /**
  * 为一段对话生成 AI 摘要 + 知识卡片。
- * 调用 DeepSeek，返回结构化 JSON。
+ * 调用 AI（OpenAI / DeepSeek 双 provider），返回结构化 JSON 与所用模型。
  */
-export async function generateSummary(conversationId: number, userId: number): Promise<SummaryResult> {
+export async function generateSummary(
+  conversationId: number,
+  userId: number,
+  opts?: { provider?: string },
+): Promise<{ result: SummaryResult; model: string }> {
+  // 提前校验 provider 合法性（避免任务入队后才失败）
+  resolveProvider(opts?.provider)
   const { title, text, messageCount } = await getConversationText(conversationId)
   if (!text.trim()) {
     throw new Error('对话内容为空，无法生成摘要')
@@ -112,12 +75,12 @@ export async function generateSummary(conversationId: number, userId: number): P
 
   const userPrompt = `对话标题：${title}\n消息数：${messageCount}\n\n对话内容：\n${text}`
 
-  const raw = await callDeepseek(
+  const { content: raw, model } = await callAI(
     [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
-    ],
-    { json: true },
+    ] satisfies AiMessage[],
+    { provider: opts?.provider, json: true },
   )
 
   let parsed: SummaryResult
@@ -140,7 +103,7 @@ export async function generateSummary(conversationId: number, userId: number): P
   parsed.knowledgeCards = Array.isArray(parsed.knowledgeCards) ? parsed.knowledgeCards : []
   parsed.confidence = typeof parsed.confidence === 'number' ? parsed.confidence : 0.8
 
-  return parsed
+  return { result: parsed, model }
 }
 
 /**

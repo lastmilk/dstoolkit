@@ -70,6 +70,76 @@ class DeepseekConfig {
       );
 }
 
+/// 聊天记录仓库（Git 版本化）
+class ChatRepo {
+  const ChatRepo({
+    required this.id,
+    required this.name,
+    this.description,
+    this.defaultBranch = 'main',
+    this.lastCommitSha,
+    this.lastCommitAt,
+    this.commitCount = 0,
+    this.snapshotBytes,
+    this.conversationCount = 0,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  final int id;
+  final String name;
+  final String? description;
+  final String defaultBranch;
+  final String? lastCommitSha;
+  final DateTime? lastCommitAt;
+  final int commitCount;
+  final int? snapshotBytes;
+  final int conversationCount;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  factory ChatRepo.fromJson(Map<String, dynamic> json) => ChatRepo(
+        id: (json['id'] as num).toInt(),
+        name: json['name'] as String,
+        description: json['description'] as String?,
+        defaultBranch: json['defaultBranch'] as String? ?? 'main',
+        lastCommitSha: json['lastCommitSha'] as String?,
+        lastCommitAt: json['lastCommitAt'] == null
+            ? null
+            : DateTime.tryParse(json['lastCommitAt'] as String),
+        commitCount: (json['commitCount'] as num?)?.toInt() ?? 0,
+        snapshotBytes: (json['snapshotBytes'] as num?)?.toInt(),
+        conversationCount: (json['conversationCount'] as num?)?.toInt() ?? 0,
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+        updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+      );
+}
+
+/// Git 提交历史条目
+class RepoCommit {
+  const RepoCommit({
+    required this.sha,
+    required this.shortSha,
+    required this.message,
+    required this.author,
+    required this.date,
+  });
+
+  final String sha;
+  final String shortSha;
+  final String message;
+  final String author;
+  final DateTime? date;
+
+  factory RepoCommit.fromJson(Map<String, dynamic> json) => RepoCommit(
+        sha: json['sha'] as String,
+        shortSha: json['shortSha'] as String,
+        message: json['message'] as String? ?? '',
+        author: json['author'] as String? ?? '',
+        date: DateTime.tryParse(json['date'] as String? ?? ''),
+      );
+}
+
 class ConversationLite {
   const ConversationLite({
     required this.id,

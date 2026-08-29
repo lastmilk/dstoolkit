@@ -44,7 +44,7 @@ router.get('/configs', asyncHandler(async (req: AuthedRequest, res) => {
   const name = req.query.name ? String(req.query.name) : undefined
   const where = name ? { name: { contains: name } } : {}
   const [records, total] = await Promise.all([
-    prisma.deepseekConfig.findMany({
+    prisma.chatRepo.findMany({
       where,
       include: {
         user: { select: { id: true, username: true } },
@@ -54,7 +54,7 @@ router.get('/configs', asyncHandler(async (req: AuthedRequest, res) => {
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
-    prisma.deepseekConfig.count({ where }),
+    prisma.chatRepo.count({ where }),
   ])
   return res.json(pageResponse(records, { page, pageSize, total }))
 }))
@@ -70,7 +70,7 @@ router.get('/conversations', asyncHandler(async (req, res) => {
   const [records, total] = await Promise.all([
     prisma.conversation.findMany({
       where,
-      include: { config: { select: { id: true, name: true, user: { select: { id: true, username: true } } } } },
+      include: { repo: { select: { id: true, name: true, user: { select: { id: true, username: true } } } } },
       orderBy: { insertedAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -110,7 +110,7 @@ router.get('/apikeys', asyncHandler(async (req, res) => {
 router.get('/stats', asyncHandler(async (_req, res) => {
   const [users, configs, conversations, messages, apiKeys, marketEntries] = await Promise.all([
     prisma.user.count(),
-    prisma.deepseekConfig.count(),
+    prisma.chatRepo.count(),
     prisma.conversation.count(),
     prisma.message.count(),
     prisma.apiKey.count(),

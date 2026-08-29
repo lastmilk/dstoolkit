@@ -28,7 +28,7 @@ async function sqlFallbackSearch(
   limit: number,
   configId?: number,
 ) {
-  const convWhere: any = { config: { userId } }
+  const convWhere: any = { repo: { userId } }
   if (configId) convWhere.configId = configId
 
   // Search messages (USER + ASSISTANT content)
@@ -98,7 +98,7 @@ router.get('/suggest', asyncHandler(async (req: AuthedRequest, res) => {
     const convs = await prisma.conversation.findMany({
       where: {
         title: { contains: q },
-        config: { userId: req.user!.id },
+        repo: { userId: req.user!.id },
       },
       select: { title: true },
       distinct: ['title'],
@@ -174,7 +174,7 @@ router.get('/suggest', asyncHandler(async (req: AuthedRequest, res) => {
       // 3c. 近 30 天对话标题关键词作为兜底
       if (suggestions.length < limit) {
         const titleRows = await prisma.conversation.findMany({
-          where: { config: { userId }, insertedAt: { gte: thirtyDaysAgo } },
+          where: { repo: { userId }, insertedAt: { gte: thirtyDaysAgo } },
           select: { title: true },
           take: 500,
           orderBy: { insertedAt: 'desc' },
@@ -249,7 +249,7 @@ router.get('/hotwords', asyncHandler(async (req: AuthedRequest, res) => {
 
   // 3. 对话标题关键词（权重 x1）
   const convs = await prisma.conversation.findMany({
-    where: { config: { userId }, insertedAt: { gte: thirtyDaysAgo } },
+    where: { repo: { userId }, insertedAt: { gte: thirtyDaysAgo } },
     select: { title: true },
     take: 1000,
   })

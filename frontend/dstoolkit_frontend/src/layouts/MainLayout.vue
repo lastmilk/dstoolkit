@@ -117,7 +117,7 @@ function icon(Comp: Component, size = 18) {
 
 // ═══════════ 菜单配置 ═══════════
 const menuOptions = computed<MenuOption[]>(() => [
-  { label: '账号配置', key: 'configs', icon: icon(CloudUploadOutline) },
+  { label: '聊天仓库', key: 'repos', icon: icon(CloudUploadOutline) },
   { label: '对话探索', key: 'explore', icon: icon(SearchOutline) },
   { label: '数据统计', key: 'stats', icon: icon(BarChartOutline) },
   { label: 'Alpaca 导出', key: 'alpaca', icon: icon(SwapHorizontalOutline) },
@@ -127,13 +127,13 @@ const menuOptions = computed<MenuOption[]>(() => [
   { label: '个人中心', key: 'profile', icon: icon(PersonOutline) },
 ])
 
-const activeKey = computed(() => (route.name as string) || 'configs')
+const activeKey = computed(() => (route.name as string) || 'repos')
 function onSelect(key: string) {
   router.push({ name: key })
 }
 
 const MENU_LABELS: Record<string, { title: string; subtitle: string; chrono: string }> = {
-  configs:   { title: '账号配置',     subtitle: '上传与管理你的 Deepseek 数据', chrono: '数据配置中心' },
+  repos:     { title: '聊天仓库',     subtitle: 'Git 版本化管理你的对话记录（DeepSeek / ChatGPT）', chrono: '仓库管理' },
   explore:   { title: '对话探索',     subtitle: '搜索、浏览和继续你的对话', chrono: '对话记录管理' },
   stats:     { title: '数据统计',     subtitle: '对话量、模型分布、活跃时段', chrono: '数据概览' },
   alpaca:    { title: 'Alpaca 导出',  subtitle: '导出为微调训练数据格式', chrono: '数据导出' },
@@ -148,7 +148,7 @@ function menuChrono(key: string): string { return MENU_LABELS[key]?.chrono || ''
 
 // ═══════════ 移动端底部Tab（取前5个高频功能） ═══════════
 const tabbarItems = computed(() => [
-  { key: 'configs', label: '配置', icon: CloudUploadOutline, badge: 0 },
+  { key: 'repos', label: '仓库', icon: CloudUploadOutline, badge: 0 },
   { key: 'explore', label: '探索', icon: SearchOutline, badge: 0 },
   { key: 'stats', label: '统计', icon: BarChartOutline, badge: 0 },
   { key: 'market', label: '市场', icon: AppsOutline, badge: 0 },
@@ -430,7 +430,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
               <span>你好，{{ auth.user?.username || '用户' }}，开始管理你的对话数据吧。</span>
             </div>
             <div class="chronos-banner-subtitle">
-              共 1 个账号 · {{ menuTitle(activeKey) }} 功能可用 · 最近同步：刚刚
+              Git 版本化仓库管理 · {{ menuTitle(activeKey) }} 功能可用 · 最近同步：刚刚
             </div>
             <div class="chronos-banner-meta">
               <div class="chronos-meta-item">

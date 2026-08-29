@@ -17,9 +17,9 @@ async function verifyConversationOwnership(
 ): Promise<number> {
   const conv = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    include: { config: { select: { userId: true } } },
+    include: { repo: { select: { userId: true } } },
   })
-  if (!conv || conv.config.userId !== userId) {
+  if (!conv || conv.repo.userId !== userId) {
     throw Object.assign(new Error('对话不存在或无权访问'), { status: 404 })
   }
   return conversationId
@@ -80,14 +80,15 @@ router.post('/:conversationId', asyncHandler(async (req: AuthedRequest, res) => 
     })
   }
 
-  // 提交异步任务
+  // 提交异步任务（provider 可由请求体指定：openai | deepseek，缺省用服务端配置）
+  const provider = typeof req.body?.provider === 'string' ? req.body.provider : undefined
   const jobId = submitJob('summary', async () => {
-    const result = await generateSummary(conversationId, req.user!.id)
-    await saveSummary(conversationId, req.user!.id, result, 'deepseek-chat')
+    const { result, model } = await generateSummary(conversationId, req.user!.id, { provider })
+    await saveSummary(conversationId, req.user!.id, result, model)
     return result
   })
 
-  res.json({ jobId, message: 'AI 摘要生成中，请稍候' })
+  res.json({ jobId, message: 'AI 摘要生成中，请稍候', provider: provider || undefined })
 }))
 
 // GET /api/summaries/job/:jobId  查询任务状态

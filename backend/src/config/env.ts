@@ -30,6 +30,19 @@ const alipayEnabled =
 // 留空 → 严格拒绝所有回调（{isValid:false}），避免误开 insecure 模式。
 const csjRewardSecurityKey = process.env.CSJ_REWARD_SECURITY_KEY || ''
 
+// ═══════════ AI Provider（OpenAI + DeepSeek 双支持） ═══════════
+// 默认 provider：显式配置 AI_PROVIDER 优先；否则按「哪个密钥存在」自动选择。
+const rawProvider = (process.env.AI_PROVIDER || '').toLowerCase()
+const hasOpenai = !!process.env.OPENAI_SERVER_API_KEY
+const hasDeepseek = !!process.env.DEEPSEEK_SERVER_API_KEY
+const aiProviderDefault: 'openai' | 'deepseek' =
+  rawProvider === 'openai' || rawProvider === 'deepseek'
+    ? (rawProvider as 'openai' | 'deepseek')
+    : hasOpenai && !hasDeepseek ? 'openai' : 'deepseek'
+
+// ═══════════ Git 聊天记录仓库 ═══════════
+const gitReposDir = process.env.REPOS_DIR || 'repos'
+
 export const env = {
   databaseUrl: required('DATABASE_URL'),
   jwtSecret: required('JWT_SECRET'),
@@ -40,6 +53,13 @@ export const env = {
   deepseekApiBase: process.env.DEEPSEEK_API_BASE || 'https://api.deepseek.com',
   // 服务端 AI 调用密钥（摘要/整理/导出润色等增值操作）
   deepseekServerKey: process.env.DEEPSEEK_SERVER_API_KEY || '',
+  // OpenAI provider（与 DeepSeek 双支持；OpenAI 兼容端点可自定义 base）
+  aiProvider: aiProviderDefault,
+  openaiApiBase: process.env.OPENAI_API_BASE || 'https://api.openai.com/v1',
+  openaiServerKey: process.env.OPENAI_SERVER_API_KEY || '',
+  openaiModel: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+  // Git 聊天记录仓库根目录（相对 backend 运行目录）
+  gitReposDir,
   aesKey: required('AES_KEY'),
   meiliHost,
   meiliApiKey: process.env.MEILISEARCH_API_KEY || '',

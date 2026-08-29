@@ -8,7 +8,7 @@ const router = Router()
 router.use(verifyJwt)
 
 async function loadForAlpaca(userId: number, configId: number, conversationIds?: number[]) {
-  const convWhere: any = { configId, config: { userId } }
+  const convWhere: any = { configId, repo: { userId } }
   if (conversationIds && conversationIds.length) {
     convWhere.id = { in: conversationIds }
   }

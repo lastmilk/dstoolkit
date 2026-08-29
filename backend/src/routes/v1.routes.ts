@@ -5,6 +5,7 @@ import { verifyApiToken, type AuthedRequest } from '../middleware/auth.js'
 import { parsePaging, pageResponse } from '../utils/paging.js'
 import { aggregateTurnsFromMessages } from '../services/turns.js'
 import { resolveEffectiveTierWithAdBoost } from '../services/ads.js'
+import * as gitRepo from '../services/gitRepo.js'
 
 const router = Router()
 router.use(verifyApiToken)
@@ -13,9 +14,25 @@ function publicConfig(c: any) {
   return {
     id: c.id,
     name: c.name,
-    deepseekUserId: c.deepseekUserId,
-    deepseekEmail: c.deepseekEmail,
-    deepseekMobile: c.deepseekMobile,
+    description: c.description ?? null,
+    conversationCount: c._count?.conversations ?? 0,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+  }
+}
+
+/** 仓库详情（含 Git 元信息，供 /v1/repos 使用） */
+async function publicRepo(c: any, userId: number) {
+  const disk = await gitRepo.repoDiskInfo(userId, c.id)
+  return {
+    id: c.id,
+    name: c.name,
+    description: c.description ?? null,
+    defaultBranch: c.defaultBranch || 'main',
+    lastCommitSha: c.lastCommitSha ?? null,
+    lastCommitAt: c.lastCommitAt ?? null,
+    commitCount: disk.commitCount ?? c.commitCount ?? 0,
+    snapshotBytes: disk.snapshotBytes ?? null,
     conversationCount: c._count?.conversations ?? 0,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
@@ -40,9 +57,9 @@ router.get('/me', asyncHandler(async (req: AuthedRequest, res) => {
   })
 }))
 
-// GET /api/v1/configs  列出当前用户的配置
+// GET /api/v1/configs  列出当前用户的聊天记录仓库
 router.get('/configs', asyncHandler(async (req: AuthedRequest, res) => {
-  const configs = await prisma.deepseekConfig.findMany({
+  const configs = await prisma.chatRepo.findMany({
     where: { userId: req.user!.id },
     include: { _count: { select: { conversations: true } } },
     orderBy: { updatedAt: 'desc' },
@@ -53,8 +70,8 @@ router.get('/configs', asyncHandler(async (req: AuthedRequest, res) => {
 // GET /api/v1/configs/:id/conversations  分页返回会话元数据（lite，无 messages）
 router.get('/configs/:id/conversations', asyncHandler(async (req: AuthedRequest, res) => {
   const id = Number(req.params.id)
-  const config = await prisma.deepseekConfig.findFirst({ where: { id, userId: req.user!.id } })
-  if (!config) return res.status(404).json({ error: '配置不存在' })
+  const config = await prisma.chatRepo.findFirst({ where: { id, userId: req.user!.id } })
+  if (!config) return res.status(404).json({ error: '仓库不存在' })
   const { page, pageSize, paged } = parsePaging(req)
   const where = { configId: id }
   const [convs, total] = await Promise.all([
@@ -84,8 +101,8 @@ router.get('/configs/:id/conversations', asyncHandler(async (req: AuthedRequest,
 router.get('/configs/:id/conversations/:convId', asyncHandler(async (req: AuthedRequest, res) => {
   const configId = Number(req.params.id)
   const deepseekConvId = req.params.convId
-  const config = await prisma.deepseekConfig.findFirst({ where: { id: configId, userId: req.user!.id } })
-  if (!config) return res.status(404).json({ error: '配置不存在' })
+  const config = await prisma.chatRepo.findFirst({ where: { id: configId, userId: req.user!.id } })
+  if (!config) return res.status(404).json({ error: '仓库不存在' })
   const conv = await prisma.conversation.findFirst({
     where: { configId, deepseekConvId },
     include: { messages: { orderBy: { insertedAt: 'asc' } } },
@@ -101,7 +118,7 @@ router.get('/search', asyncHandler(async (req: AuthedRequest, res) => {
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 500)
   if (!q) return res.json({ results: [] })
   const configId = req.query.configId ? Number(req.query.configId) : undefined
-  const convWhere: any = { config: { userId: req.user!.id } }
+  const convWhere: any = { repo: { userId: req.user!.id } }
   if (configId) convWhere.configId = configId
 
   const messages = await prisma.message.findMany({
@@ -153,12 +170,123 @@ router.get('/search', asyncHandler(async (req: AuthedRequest, res) => {
 router.get('/stats', asyncHandler(async (req: AuthedRequest, res) => {
   const userId = req.user!.id
   const [configs, conversations, messages, tokens] = await Promise.all([
-    prisma.deepseekConfig.count({ where: { userId } }),
-    prisma.conversation.count({ where: { config: { userId } } }),
-    prisma.message.count({ where: { conversation: { config: { userId } } } }),
+    prisma.chatRepo.count({ where: { userId } }),
+    prisma.conversation.count({ where: { repo: { userId } } }),
+    prisma.message.count({ where: { conversation: { repo: { userId } } } }),
     prisma.apiToken.count({ where: { userId } }),
   ])
   return res.json({ configs, conversations, messages, apiTokens: tokens })
+}))
+
+// ═══════════ 仓库管理（Git 版本化，供移动端 / API Token 客户端使用） ═══════════
+
+// GET /api/v1/repos  列出仓库（含 Git 元信息）
+router.get('/repos', asyncHandler(async (req: AuthedRequest, res) => {
+  const userId = req.user!.id
+  const repos = await prisma.chatRepo.findMany({
+    where: { userId },
+    include: { _count: { select: { conversations: true } } },
+    orderBy: { updatedAt: 'desc' },
+  })
+  const result = await Promise.all(repos.map((r) => publicRepo(r, userId)))
+  return res.json({ repos: result, configs: result })
+}))
+
+// GET /api/v1/repos/:id/history  提交历史（首次访问自动回填）
+router.get('/repos/:id/history', asyncHandler(async (req: AuthedRequest, res) => {
+  const id = Number(req.params.id)
+  const repo = await prisma.chatRepo.findFirst({ where: { id, userId: req.user!.id } })
+  if (!repo) return res.status(404).json({ error: '仓库不存在' })
+
+  // 首次访问回填初始提交
+  const disk = await gitRepo.repoDiskInfo(req.user!.id, id)
+  if (disk.initialized && disk.commitCount === 0) {
+    const { loadRepoConversationRows } = await import('../services/conversationStore.js')
+    const { serializeSnapshot, snapshotConversationFromDb } = await import('../services/unifiedParser.js')
+    const rows = await loadRepoConversationRows(id)
+    const snapshotJson = serializeSnapshot(rows.map(snapshotConversationFromDb))
+    const commit = await gitRepo.commitSnapshot(req.user!.id, id, snapshotJson, '初始提交（回填当前数据快照）')
+    await prisma.chatRepo.update({
+      where: { id },
+      data: { lastCommitSha: commit.sha, lastCommitAt: new Date(), commitCount: { increment: 1 } },
+    })
+  }
+
+  const commits = await gitRepo.listHistory(req.user!.id, id)
+  const freshDisk = await gitRepo.repoDiskInfo(req.user!.id, id)
+  return res.json({
+    defaultBranch: repo.defaultBranch,
+    commits: commits.map((c) => ({
+      sha: c.sha,
+      shortSha: c.sha.slice(0, 7),
+      message: c.message.trim(),
+      author: c.author,
+      date: new Date(c.timestamp * 1000).toISOString(),
+    })),
+    commitCount: commits.length,
+    snapshotBytes: freshDisk.snapshotBytes,
+  })
+}))
+
+// POST /api/v1/repos/:id/rollback  回滚到指定提交
+router.post('/repos/:id/rollback', asyncHandler(async (req: AuthedRequest, res) => {
+  const id = Number(req.params.id)
+  const sha = String(req.body?.sha || '').trim()
+  if (!sha) return res.status(400).json({ error: '缺少 sha 参数' })
+  const repo = await prisma.chatRepo.findFirst({ where: { id, userId: req.user!.id } })
+  if (!repo) return res.status(404).json({ error: '仓库不存在' })
+
+  const { parseSnapshot, fromSnapshotConversation } = await import('../services/unifiedParser.js')
+  const { upsertConversations, loadRepoConversationRows } = await import('../services/conversationStore.js')
+  const { serializeSnapshot, snapshotConversationFromDb } = await import('../services/unifiedParser.js')
+
+  const snapshotText = await gitRepo.readSnapshotAt(req.user!.id, id, sha)
+  if (snapshotText == null) return res.status(404).json({ error: '提交不存在或快照不可读' })
+
+  const { conversations: snapConvs } = parseSnapshot(snapshotText)
+  const parsed = snapConvs.map((sc) => ({ conv: fromSnapshotConversation(sc), source: sc.source }))
+
+  // 删除快照中不存在的会话
+  const keepIds = parsed.map((p) => p.conv.deepseekConvId)
+  await prisma.conversation.deleteMany({
+    where: { configId: id, deepseekConvId: { notIn: keepIds } },
+  })
+
+  // 强制重建快照中的会话
+  const stats = await upsertConversations(req.user!.id, id, parsed, { force: true })
+
+  // 追加回滚提交
+  const rows = await loadRepoConversationRows(id)
+  const snapshotJson = serializeSnapshot(rows.map(snapshotConversationFromDb))
+  const commit = await gitRepo.commitSnapshot(req.user!.id, id, snapshotJson, `回滚到 ${sha.slice(0, 7)}: 共 ${keepIds.length} 会话`)
+  await prisma.chatRepo.update({
+    where: { id },
+    data: { lastCommitSha: commit.sha, lastCommitAt: new Date(), commitCount: { increment: 1 } },
+  })
+
+  return res.json({ ok: true, restored: keepIds.length, stats, commit })
+}))
+
+// GET /api/v1/repos/:id/commits/:sha/download  下载指定提交的快照
+router.get('/repos/:id/commits/:sha/download', asyncHandler(async (req: AuthedRequest, res) => {
+  const id = Number(req.params.id)
+  const repo = await prisma.chatRepo.findFirst({ where: { id, userId: req.user!.id } })
+  if (!repo) return res.status(404).json({ error: '仓库不存在' })
+  const text = await gitRepo.readSnapshotAt(req.user!.id, id, req.params.sha)
+  if (text == null) return res.status(404).json({ error: '提交不存在或快照不可读' })
+  res.setHeader('Content-Type', 'application/json; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="conversations-${req.params.sha.slice(0, 7)}.json"`)
+  return res.send(Buffer.from(text, 'utf8'))
+}))
+
+// DELETE /api/v1/repos/:id  删除仓库
+router.delete('/repos/:id', asyncHandler(async (req: AuthedRequest, res) => {
+  const id = Number(req.params.id)
+  const repo = await prisma.chatRepo.findFirst({ where: { id, userId: req.user!.id } })
+  if (!repo) return res.status(404).json({ error: '仓库不存在' })
+  await prisma.chatRepo.delete({ where: { id } })
+  gitRepo.deleteRepoDisk(req.user!.id, id)
+  return res.json({ ok: true })
 }))
 
 export default router

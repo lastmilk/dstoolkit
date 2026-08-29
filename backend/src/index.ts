@@ -5,7 +5,7 @@ import type { ErrorRequestHandler } from 'express'
 import { env } from './config/env.js'
 import { prisma } from './utils/prisma.js'
 import authRoutes from './routes/auth.routes.js'
-import configRoutes from './routes/config.routes.js'
+import repoRoutes from './routes/repo.routes.js'
 import conversationRoutes from './routes/conversation.routes.js'
 import apikeyRoutes from './routes/apikey.routes.js'
 import balanceRoutes from './routes/balance.routes.js'
@@ -59,7 +59,9 @@ app.get('/webhoook/verify', handleCsjCallback)
 app.post('/webhoook/verify', handleCsjCallback)
 
 app.use('/api/auth', authRoutes)
-app.use('/api/configs', configRoutes)
+// 聊天记录仓库（Git 版本化）；/api/configs 为旧客户端兼容别名
+app.use('/api/repos', repoRoutes)
+app.use('/api/configs', repoRoutes)
 app.use('/api/conversations', conversationRoutes)
 app.use('/api/apikeys', apikeyRoutes)
 app.use('/api/balance', balanceRoutes)

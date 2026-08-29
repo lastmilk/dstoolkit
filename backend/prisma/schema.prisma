@@ -73,7 +73,7 @@ model User {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  configs          DeepseekConfig[]
+  repos            ChatRepo[]
   apiKeys          ApiKey[]
   apiTokens        ApiToken[]
   redeemedCards    RedeemCard[]
@@ -96,26 +96,35 @@ model User {
   @@index([referralCode])
 }
 
-model DeepseekConfig {
+// ═══════════ 聊天记录仓库（Git 版本化） ═══════════
+// 取代原 DeepseekConfig（绑定 deepseek 账号）的体系：
+// 用户创建聊天记录 = 创建一个仓库；上传 zip = 对仓库提交一次 conversations.json 快照。
+// 底层表名保持 DeepseekConfig（@@map），历史数据零迁移——旧配置自动成为仓库。
+// configId 在下游表中即「仓库 id」。
+model ChatRepo {
   id             Int           @id @default(autoincrement())
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId          Int
+  userId         Int
   name           String
-  deepseekUserId String
-  deepseekEmail  String?       @db.Text
-  deepseekMobile String?       @db.Text
-  createdAt       DateTime      @default(now())
+  description    String?       @db.Text
+  defaultBranch  String        @default("main")
+  // Git 元信息（与 services/gitRepo.ts 的磁盘仓库 repos/<userId>/<repoId> 同步）
+  lastCommitSha  String?
+  lastCommitAt   DateTime?
+  commitCount    Int           @default(0)
+  createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   conversations  Conversation[]
   shares         Share[]
 
-  @@unique([userId, deepseekUserId])
+  @@unique([userId, name])
   @@index([userId])
+  @@map("DeepseekConfig")
 }
 
 model Conversation {
   id             Int       @id @default(autoincrement())
-  config          DeepseekConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  repo            ChatRepo @relation(fields: [configId], references: [id], onDelete: Cascade)
   configId        Int
   deepseekConvId  String
   title           String    @db.Text
@@ -124,6 +133,8 @@ model Conversation {
   rawMapping      Json
   turnCount       Int       @default(0)
   messages        Message[]
+  // 导入来源格式：deepseek（fragments REQUEST/RESPONSE）| openai（ChatGPT 导出 author.role）
+  source          String    @default("deepseek")
 
   // AI 摘要与知识卡片
   summary         ConvSummary?
@@ -413,8 +424,8 @@ model Share {
   slug            String    @unique       // 短链标识
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId          Int
-  config          DeepseekConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  configId        Int
+  repo            ChatRepo @relation(fields: [configId], references: [id], onDelete: Cascade)
+  configId        Int                    // 所属仓库 id
   deepseekConvId  String                   // 冗余存储便于直接定位会话
   title           String     @db.Text
   theme           String     @default("default")

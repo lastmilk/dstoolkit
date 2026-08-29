@@ -12,11 +12,11 @@ router.get('/', asyncHandler(async (req: AuthedRequest, res) => {
   const q = String(req.query.q || '').trim()
   const where: any = {}
   if (configId) {
-    const config = await prisma.deepseekConfig.findFirst({ where: { id: configId, userId: req.user!.id } })
-    if (!config) return res.status(404).json({ error: '配置不存在' })
+    const repo = await prisma.chatRepo.findFirst({ where: { id: configId, userId: req.user!.id } })
+    if (!repo) return res.status(404).json({ error: '仓库不存在' })
     where.configId = configId
   } else {
-    where.config = { userId: req.user!.id }
+    where.repo = { userId: req.user!.id }
   }
   if (q) {
     where.OR = [
