@@ -1,0 +1,10 @@
+
+  Widget _customDividerStyle(BuildContext context) {
+    return TDTabBar(
+      tabs: subList(2),
+      controller: _tabController1,
+      showIndicator: true,
+      dividerColor: Colors.red,
+      dividerHeight: 5,
+    );
+  }

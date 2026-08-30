@@ -1,72 +1,17 @@
 import 'package:flutter/material.dart';
 
-/// Neu-morphism（新拟态）软 UI 主题。
+import 'td_theme.dart';
+
+/// App 主题入口：已迁移到 TDesign token 体系（见 [DsTdTheme]）。
+/// NeuColors / NeuBoxDecoration 保留为派生扩展，供新拟态卡片组件使用。
 class AppTheme {
   AppTheme._();
 
-  static const Color primary = Color(0xFF4A6CF7);
+  static const Color primary = DsBrandColors.brand;
 
-  static ThemeData light() => _build(
-        brightness: Brightness.light,
-        background: const Color(0xFFE8ECF3),
-        surface: const Color(0xFFFDFDFE),
-        textPrimary: const Color(0xFF2C3E5D),
-        textSecondary: const Color(0xFF6B7A99),
-        shadowDark: const Color(0x59A3B1C6),
-        shadowLight: const Color(0xE6FFFFFF),
-      );
+  static ThemeData light() => DsTdTheme.light();
 
-  static ThemeData dark() => _build(
-        brightness: Brightness.dark,
-        background: const Color(0xFF232936),
-        surface: const Color(0xFF2B3242),
-        textPrimary: const Color(0xFFE4E9F2),
-        textSecondary: const Color(0xFF9AA7BF),
-        shadowDark: const Color(0xCC141821),
-        shadowLight: const Color(0x33424D63),
-      );
-
-  static ThemeData _build({
-    required Brightness brightness,
-    required Color background,
-    required Color surface,
-    required Color textPrimary,
-    required Color textSecondary,
-    required Color shadowDark,
-    required Color shadowLight,
-  }) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: primary,
-      brightness: brightness,
-    ).copyWith(
-      surface: surface,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: background,
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
-        foregroundColor: textPrimary,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: textPrimary,
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: surface,
-        indicatorColor: primary.withValues(alpha: 0.15),
-        elevation: 0,
-        labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(fontSize: 11, color: textSecondary),
-        ),
-      ),
-      dividerColor: textSecondary.withValues(alpha: 0.15),
-    );
-  }
+  static ThemeData dark() => DsTdTheme.dark();
 }
 
 /// 新拟态卡片装饰：双阴影（右下深 / 左上浅）+ 大圆角

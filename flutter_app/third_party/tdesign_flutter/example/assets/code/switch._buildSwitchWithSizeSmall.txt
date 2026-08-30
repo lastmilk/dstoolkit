@@ -1,0 +1,10 @@
+
+  Widget _buildSwitchWithSizeSmall(BuildContext context) {
+    return const TDCell(
+      title: '小尺寸24',
+      noteWidget: TDSwitch(
+        size: TDSwitchSize.small,
+        isOn: true,
+      ),
+    );
+  }

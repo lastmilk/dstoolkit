@@ -9,6 +9,7 @@ analyzer:
     deprecated_member_use: ignore
   exclude:
     - build/**
+    - third_party/**
     - android/**
     - ios/**
     - web/**

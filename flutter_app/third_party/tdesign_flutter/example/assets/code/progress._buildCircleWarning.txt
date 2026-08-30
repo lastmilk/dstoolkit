@@ -1,0 +1,8 @@
+
+  Widget _buildCircleWarning(BuildContext context) {
+    return TDProgress(
+      type: TDProgressType.circular,
+      progressStatus: TDProgressStatus.warning,
+      value: value,
+    );
+  }

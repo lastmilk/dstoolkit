@@ -1,0 +1,18 @@
+
+  Widget _buildCircleBadge(BuildContext context) {
+    return SizedBox(
+      width: 48,
+      height: 34,
+      child: Stack(
+        alignment: Alignment.bottomLeft,
+        children: [
+          const Icon(TDIcons.notification),
+          Positioned(
+            child: TDBadge(TDBadgeType.message, count: num.toString()),
+            left: 18,
+            bottom: 18,
+          )
+        ],
+      ),
+    );
+  }

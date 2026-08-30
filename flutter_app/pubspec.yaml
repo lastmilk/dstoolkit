@@ -31,6 +31,22 @@ dependencies:
   intl: ^0.19.0
   crypto: ^3.0.6
   flutter_math_fork: ^0.7.4
+  # TDesign 组件库（主题体系 + 降级底栏）
+  tdesign_flutter: ^0.2.7
+  # iOS 液态玻璃效果（纯 Flutter 实现）
+  cupertino_liquid_glass: ^0.7.0
+  # CupertinoIcons 字体资产（液态玻璃库使 CupertinoIcons 类进入编译产物）
+  cupertino_icons: ^1.0.8
+  # 设备能力检测（底栏降级判断）
+  device_info_plus: ^11.2.0
+
+dependency_overrides:
+  # 本地 vendor 修复：Flutter 3.43+ 将 IconData 标记为 final class，
+  # tdesign_flutter 0.2.7 的 _TDIconsData extends IconData 无法编译（见
+  # third_party/tdesign_flutter/lib/src/components/icon/td_icons.dart）
+  tdesign_flutter:
+    path: third_party/tdesign_flutter
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
