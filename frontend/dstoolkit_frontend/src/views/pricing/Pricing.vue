@@ -551,19 +551,22 @@ onUnmounted(stopTimer)
 
         <p class="tier-tagline">{{ tier.tagline }}</p>
 
-        <!-- 计费切换 -->
-        <div v-if="tier.billing.length > 1" class="billing-toggle">
-          <button
-            v-for="b in tier.billing"
-            :key="b.period"
-            :class="[
-              'billing-tab',
-              { active: getBilling(tier).period === b.period },
-            ]"
-            @click.stop="selectBilling(tier.id, b.period)"
+        <!-- 计费切换（阻断卡片点击冒泡） -->
+        <div v-if="tier.billing.length > 1" class="billing-toggle" @click.stop>
+          <t-radio-group
+            :value="getBilling(tier).period"
+            variant="default-filled"
+            size="small"
+            @change="(v: unknown) => selectBilling(tier.id, String(v) as Period)"
           >
-            {{ b.label }}
-          </button>
+            <t-radio-button
+              v-for="b in tier.billing"
+              :key="b.period"
+              :value="b.period"
+            >
+              {{ b.label }}
+            </t-radio-button>
+          </t-radio-group>
         </div>
 
         <!-- 价格 -->
@@ -585,14 +588,18 @@ onUnmounted(stopTimer)
           </li>
         </ul>
 
-        <!-- CTA -->
-        <button
-          :class="['tier-cta', { primary: tier.highlight }]"
-          @click.stop="selectTier(tier.id)"
-        >
-          升级到 {{ tier.name }}
-          <AppIcon :size="14"><ArrowForwardOutline /></AppIcon>
-        </button>
+        <!-- CTA（阻断卡片点击冒泡） -->
+        <div class="tier-cta" @click.stop>
+          <t-button
+            block
+            :theme="tier.highlight ? 'primary' : 'default'"
+            :variant="tier.highlight ? 'base' : 'outline'"
+            @click="selectTier(tier.id)"
+          >
+            升级到 {{ tier.name }}
+            <template #icon><AppIcon :size="14"><ArrowForwardOutline /></AppIcon></template>
+          </t-button>
+        </div>
       </article>
     </section>
 
@@ -667,7 +674,7 @@ onUnmounted(stopTimer)
           <div style="height: 96px;"></div>
         </t-loading>
         <template v-else>
-          <label
+          <div
             v-for="m in paymentMethods"
             :key="m.id"
             :class="[
@@ -677,16 +684,10 @@ onUnmounted(stopTimer)
                 disabled: !methodAvailability[m.id],
               },
             ]"
+            role="radio"
+            :aria-checked="selectedPayment === m.id"
+            @click="!methodAvailability[m.id] && selectPayment(m.id)"
           >
-            <input
-              type="radio"
-              name="payment"
-              :value="m.id"
-              :checked="selectedPayment === m.id"
-              :disabled="!methodAvailability[m.id]"
-              @change="selectPayment(m.id)"
-            />
-
             <div :class="['payment-brand-icon', `brand-${m.brand}`]">
               <!-- 微信 -->
               <svg v-if="m.brand === 'wechat'" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -718,9 +719,13 @@ onUnmounted(stopTimer)
             </div>
 
             <div class="payment-radio">
-              <span class="radio-dot"></span>
+              <t-radio
+                :checked="selectedPayment === m.id"
+                :disabled="!methodAvailability[m.id]"
+                @change="selectPayment(m.id)"
+              />
             </div>
-          </label>
+          </div>
         </template>
       </div>
 
@@ -1120,31 +1125,11 @@ onUnmounted(stopTimer)
   min-height: 40px;
 }
 
-/* 计费切换 */
+/* 计费切换（TDesign radio-group 自带底色，容器仅保留布局） */
 .billing-toggle {
   display: inline-flex;
-  background: var(--bg-2);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-full);
-  padding: 3px;
   margin-bottom: 14px;
   align-self: flex-start;
-}
-.billing-tab {
-  padding: 5px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.billing-tab.active {
-  background: #fff;
-  color: var(--text);
-  box-shadow: var(--shadow-xs);
 }
 
 /* 价格 */
@@ -1213,35 +1198,6 @@ onUnmounted(stopTimer)
 /* CTA */
 .tier-cta {
   width: 100%;
-  height: 42px;
-  border: 1px solid var(--border-strong);
-  background: #fff;
-  color: var(--text);
-  border-radius: var(--radius);
-  font-size: 14px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.tier-cta:hover {
-  border-color: var(--tier-color);
-  color: var(--tier-color);
-  box-shadow: var(--shadow-sm);
-}
-.tier-cta.primary {
-  background: var(--tier-gradient);
-  color: #fff;
-  border-color: transparent;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
-}
-.tier-cta.primary:hover {
-  color: #fff;
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.32);
-  transform: translateY(-1px);
 }
 
 /* ═══════════ AI 积分充值包 ═══════════ */
@@ -1414,12 +1370,6 @@ onUnmounted(stopTimer)
   cursor: not-allowed;
   background: var(--bg-2);
 }
-.payment-card input[type='radio'] {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
 .payment-brand-icon {
   width: 42px; height: 42px;
   border-radius: 10px;
@@ -1456,27 +1406,9 @@ onUnmounted(stopTimer)
 }
 
 .payment-radio {
-  width: 18px; height: 18px;
-  border: 1.5px solid var(--border-strong);
-  border-radius: 50%;
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
-}
-.payment-card.selected .payment-radio {
-  border-color: var(--primary);
-  background: var(--primary);
-}
-.radio-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: transparent;
-  transition: all var(--transition-fast);
-}
-.payment-card.selected .radio-dot {
-  background: #fff;
 }
 
 /* 卡密说明 */

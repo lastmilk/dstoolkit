@@ -756,10 +756,9 @@ onUnmounted(() => {
         </div>
         <t-loading :loading="queryHotwordsLoading" size="small">
           <div class="qw-cloud">
-            <button
+            <t-tag
               v-for="(w, i) in queryHotwords"
               :key="w.word"
-              type="button"
               class="qw-chip"
               :style="{
                 color: hwQuickColor(w.type, w.score),
@@ -776,7 +775,7 @@ onUnmounted(() => {
                 :style="{ backgroundColor: hwQuickColor(w.type, w.score) + '22', color: hwQuickColor(w.type, w.score) }"
               >{{ hwTypeLabel(w.type) }}</span>
               <span class="qw-word">{{ w.word }}</span>
-            </button>
+            </t-tag>
           </div>
         </t-loading>
       </div>
@@ -830,15 +829,14 @@ onUnmounted(() => {
           <span>AI 智能过滤</span>
         </div>
         <div class="ai-filter-chips">
-          <button
+          <t-check-tag
             v-for="f in aiFilters"
             :key="f.id"
-            type="button"
-            :class="['ai-chip', { active: activeAiFilter === f.id }]"
-            @click="toggleAiFilter(f.id)"
-          >
-            {{ f.label }}
-          </button>
+            class="ai-chip"
+            :checked="activeAiFilter === f.id"
+            :content="f.label"
+            @change="toggleAiFilter(f.id)"
+          />
         </div>
       </div>
 
@@ -1391,23 +1389,21 @@ onUnmounted(() => {
   gap: 7px;
   align-items: center;
 }
-.qw-chip {
+.qw-cloud .qw-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 10px 4px 4px;
   border-radius: 999px;
   border: 1px solid;
-  background: transparent;
   cursor: pointer;
-  font-family: inherit;
   font-weight: 600;
   line-height: 1.35;
   transition: transform 0.2s var(--ease-bounce), box-shadow 0.2s;
   opacity: 0;
   animation: qw-pop 0.4s ease-out forwards;
 }
-.qw-chip:hover {
+.qw-cloud .qw-chip:hover {
   transform: translateY(-1.5px) scale(1.04);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
 }
@@ -1502,7 +1498,7 @@ onUnmounted(() => {
   gap: 8px;
   flex-wrap: wrap;
 }
-.ai-chip {
+.ai-filter-chips .ai-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1515,14 +1511,13 @@ onUnmounted(() => {
   border: 1px solid var(--border);
   cursor: pointer;
   transition: all var(--transition-fast);
-  font-family: inherit;
 }
-.ai-chip:hover {
+.ai-filter-chips .ai-chip:hover {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--primary-soft);
 }
-.ai-chip.active {
+.ai-filter-chips .ai-chip.t-check-tag--checked {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);

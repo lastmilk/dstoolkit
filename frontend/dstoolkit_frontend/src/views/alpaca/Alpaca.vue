@@ -7,7 +7,6 @@ import {
   DownloadOutline,
   ChevronDownOutline,
   EyeOutline,
-  GitNetworkOutline,
   ListOutline,
 } from '@vicons/ionicons5'
 import AppIcon from '@/components/AppIcon.vue'
@@ -158,13 +157,15 @@ onMounted(load)
       <!-- 操作工具栏 -->
       <div class="surface toolbar-surface" style="padding: 14px 18px; margin-bottom: 16px;">
         <t-space align="center" :size="12" break-line>
-          <div class="mode-toggle" style="display: flex; align-items: center; gap: 10px; padding: 6px 14px; background: var(--surface-2); border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
-            <AppIcon :size="14" :style="{ color: multiTurn ? 'var(--primary)' : 'var(--text-muted)' }">
-              <GitNetworkOutline v-if="multiTurn" />
-              <ListOutline v-else />
-            </AppIcon>
-            <span style="font-size: 13px; color: var(--text-muted);">{{ multiTurn ? '多轮对话' : '单轮问答' }}</span>
-            <t-switch v-model="multiTurn" size="small" />
+          <div class="mode-toggle" style="display: flex; align-items: center; gap: 8px;">
+            <t-radio-group
+              v-model="multiTurn"
+              variant="default-filled"
+              size="small"
+            >
+              <t-radio-button :value="true">多轮对话</t-radio-button>
+              <t-radio-button :value="false">单轮问答</t-radio-button>
+            </t-radio-group>
           </div>
           <t-button size="small" variant="outline" @click="selectAll">
             <template #icon><AppIcon :size="14"><CheckmarkDoneOutline /></AppIcon></template>

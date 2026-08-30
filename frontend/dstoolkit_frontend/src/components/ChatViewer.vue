@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch, h } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import dayjs from 'dayjs'
+import type { TNode } from 'tdesign-vue-next'
 import {
   PersonOutline,
   SparklesSharp,
   CreateOutline,
   CheckmarkOutline,
   CloseOutline,
-  SendOutline,
-  ChevronDownOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { message } from '@/utils/feedback'
 import AppIcon from '@/components/AppIcon.vue'
 import MarkdownView from './MarkdownView.vue'
 import type { ParsedConversation, ParsedMessage } from '@/types'
+import type { ScrollToBottomParams } from '@tdesign-vue-next/chat'
 
 const props = defineProps<{
   conversation: ParsedConversation | null
@@ -32,7 +32,7 @@ const streamingContent = ref('')
 const editingIndex = ref<number | null>(null)
 const editText = ref('')
 
-const bottomRef = ref<HTMLElement | null>(null)
+const chatListRef = ref<{ scrollToBottom?: (params?: ScrollToBottomParams) => void } | null>(null)
 
 const keyOptions = computed(() =>
   props.apiKeys.map((k) => ({ label: k.name, value: k.id })),
@@ -57,7 +57,7 @@ watch(
 
 function scrollToBottom() {
   nextTick(() => {
-    bottomRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    chatListRef.value?.scrollToBottom?.({ behavior: 'smooth' })
   })
 }
 
@@ -66,9 +66,7 @@ function throttledScrollToBottom() {
   if (scrollTimer) return
   scrollTimer = setTimeout(() => {
     scrollTimer = null
-    nextTick(() => {
-      bottomRef.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-    })
+    scrollToBottom()
   }, 200)
 }
 
@@ -173,6 +171,10 @@ async function sendMessage() {
   messages.value.push(makeAssistant())
 }
 
+function onInputSend() {
+  void sendMessage()
+}
+
 function startEdit(index: number) {
   const m = messages.value[index]
   if (!m) return
@@ -205,12 +207,25 @@ async function saveEdit() {
   messages.value.push(makeAssistant())
 }
 
-const canSend = computed(
-  () =>
-    !streaming.value &&
-    inputText.value.trim().length > 0 &&
-    selectedKeyId.value != null,
-)
+// 渲染函数：AI 消息头部名称（Deepseek AI + 模型标签）
+function aiNameNode(m: ParsedMessage): TNode {
+  return (h) =>
+    h('span', { class: 'chat-item-name' }, [
+      'Deepseek AI',
+      m.model
+        ? h('span', { class: 'model-tag' }, m.model)
+        : null,
+    ])
+}
+// 渲染函数：流式中的 AI 名称（含"生成中"指示）
+function aiStreamingNameNode(): TNode {
+  return (h) =>
+    h('span', { class: 'chat-item-name' }, [
+      'Deepseek AI',
+      h('span', { class: 'model-tag' }, selectedModel.value),
+      h('span', { class: 'streaming-tag streaming-on' }, '生成中…'),
+    ])
+}
 </script>
 
 <template>
@@ -249,107 +264,99 @@ const canSend = computed(
         </div>
       </div>
 
-      <!-- 消息流 -->
+      <!-- 消息流：TDesign Chat 组件 -->
       <div class="chat-thread">
-        <div
-          v-for="(m, index) in messages"
-          :key="m.nodeId"
-          :class="['msg-row', m.role === 'USER' ? 'msg-row-user' : 'msg-row-ai']"
+        <t-chat-list
+          ref="chatListRef"
+          class="chat-list"
+          :show-scroll-button="true"
         >
-          <!-- 头像 -->
-          <div :class="['msg-avatar', m.role === 'USER' ? 'user-avatar' : 'ai-avatar']">
-            <AppIcon :size="16">
-              <component :is="m.role === 'USER' ? PersonOutline : SparklesSharp" />
-            </AppIcon>
-          </div>
-
-          <!-- 内容主体 -->
-          <div :class="['msg-bubble-wrap', m.role === 'USER' ? 'user-wrap' : 'ai-wrap']">
-            <!-- 角色标签（仅 AI） -->
-            <div v-if="m.role === 'ASSISTANT'" class="msg-role-row">
-              <span class="role-name">Deepseek AI</span>
-              <span v-if="m.model" class="model-tag">{{ m.model }}</span>
-            </div>
-
-            <!-- 气泡 -->
-            <div :class="['msg-bubble', m.role === 'USER' ? 'user-bubble' : 'ai-bubble']">
-              <template v-if="editingIndex === index">
-                <div class="edit-wrap">
-                  <t-textarea
-                    v-model="editText"
-                    :autosize="{ minRows: 2, maxRows: 8 }"
-                  />
-                  <div class="edit-actions">
-                    <t-button
-                      size="small"
-                      theme="primary"
-                      :loading="streaming"
-                      @click="saveEdit"
-                    >
-                      <template #icon><AppIcon :size="14"><CheckmarkOutline /></AppIcon></template>
-                      保存并重新生成
-                    </t-button>
-                    <t-button size="small" variant="outline" @click="cancelEdit">
-                      <template #icon><AppIcon :size="14"><CloseOutline /></AppIcon></template>
-                      取消
-                    </t-button>
-                  </div>
-                </div>
-              </template>
-
-              <template v-else>
-                <MarkdownView v-if="m.role === 'ASSISTANT'" :content="m.content" />
-                <div v-else class="user-text">{{ m.content }}</div>
-
-                <!-- 消息脚注 + 操作 -->
-                <div class="msg-footer">
-                  <span class="msg-time">
-                    {{ dayjs(m.insertedAt).format('MM-DD HH:mm:ss') }}
-                  </span>
-                  <div class="msg-actions">
-                    <button
-                      v-if="m.role === 'USER'"
-                      class="msg-action-btn"
-                      :disabled="streaming"
-                      @click="startEdit(index)"
-                      title="编辑此消息并重新生成"
-                    >
-                      <AppIcon :size="13"><CreateOutline /></AppIcon>
-                      <span>编辑</span>
-                    </button>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-
-        <!-- 流式生成中 bubble -->
-        <div v-if="streaming" class="msg-row msg-row-ai">
-          <div class="msg-avatar ai-avatar ai-avatar-pulse">
-            <AppIcon :size="16"><SparklesSharp /></AppIcon>
-          </div>
-          <div class="msg-bubble-wrap ai-wrap">
-            <div class="msg-role-row">
-              <span class="role-name">Deepseek AI</span>
-              <span class="model-tag">{{ selectedModel }}</span>
-              <span class="streaming-tag streaming-on">生成中…</span>
-            </div>
-            <div class="msg-bubble ai-bubble ai-bubble-streaming">
-              <div v-if="!streamingContent" style="height: 20px; display: flex; align-items: center;">
-                <t-loading loading size="small" />
+          <template v-for="(m, index) in messages" :key="m.nodeId">
+            <!-- 编辑态：保留原面板 -->
+            <div v-if="editingIndex === index" class="msg-row msg-row-user">
+              <div class="msg-avatar user-avatar">
+                <AppIcon :size="16"><PersonOutline /></AppIcon>
               </div>
-              <MarkdownView v-else :content="streamingContent" />
-              <span class="caret-blink"></span>
+              <div class="edit-wrap">
+                <t-textarea
+                  v-model="editText"
+                  :autosize="{ minRows: 2, maxRows: 8 }"
+                />
+                <div class="edit-actions">
+                  <t-button
+                    size="small"
+                    theme="primary"
+                    :loading="streaming"
+                    @click="saveEdit"
+                  >
+                    <template #icon><AppIcon :size="14"><CheckmarkOutline /></AppIcon></template>
+                    保存并重新生成
+                  </t-button>
+                  <t-button size="small" variant="outline" @click="cancelEdit">
+                    <template #icon><AppIcon :size="14"><CloseOutline /></AppIcon></template>
+                    取消
+                  </t-button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div ref="bottomRef" class="scroll-anchor"></div>
+            <!-- 普通消息：t-chat-item -->
+            <t-chat-item
+              v-else
+              :role="m.role === 'USER' ? 'user' : 'assistant'"
+              :variant="m.role === 'USER' ? 'base' : 'outline'"
+              :datetime="dayjs(m.insertedAt).format('MM-DD HH:mm:ss')"
+              :name="m.role === 'ASSISTANT' ? aiNameNode(m) : ''"
+            >
+              <template #avatar>
+                <div :class="['msg-avatar', m.role === 'USER' ? 'user-avatar' : 'ai-avatar']">
+                  <AppIcon :size="16">
+                    <component :is="m.role === 'USER' ? PersonOutline : SparklesSharp" />
+                  </AppIcon>
+                </div>
+              </template>
+              <template #content>
+                <MarkdownView v-if="m.role === 'ASSISTANT'" :content="m.content" />
+                <span v-else class="user-text">{{ m.content }}</span>
+              </template>
+              <template v-if="m.role === 'USER'" #actions>
+                <t-button
+                  variant="text"
+                  size="small"
+                  :disabled="streaming"
+                  title="编辑此消息并重新生成"
+                  @click="startEdit(index)"
+                >
+                  <template #icon><AppIcon :size="13"><CreateOutline /></AppIcon></template>
+                  编辑
+                </t-button>
+              </template>
+            </t-chat-item>
+          </template>
+
+          <!-- 流式生成中 -->
+          <t-chat-item
+            v-if="streaming"
+            role="assistant"
+            variant="outline"
+            :name="aiStreamingNameNode()"
+            :text-loading="!streamingContent"
+            animation="gradient"
+          >
+            <template #avatar>
+              <div class="msg-avatar ai-avatar ai-avatar-pulse">
+                <AppIcon :size="16"><SparklesSharp /></AppIcon>
+              </div>
+            </template>
+            <template #content>
+              <MarkdownView :content="streamingContent" />
+            </template>
+          </t-chat-item>
+        </t-chat-list>
       </div>
 
-      <!-- 底部控制 + 输入区 -->
-      <div class="chat-input-area">
+      <!-- 底部控制 + 输入区（无 API Key 时只读，如 ShareView） -->
+      <div v-if="apiKeys.length > 0" class="chat-input-area">
         <!-- 控制栏：模型 + Key -->
         <div class="composer-toolbar">
           <div class="toolbar-label">继续对话</div>
@@ -382,28 +389,14 @@ const canSend = computed(
           </t-space>
         </div>
 
-        <!-- 输入框 + 发送按钮 -->
-        <div class="composer-input-wrap">
-          <t-textarea
-            v-model="inputText"
-            :autosize="{ minRows: 1, maxRows: 5 }"
-            placeholder="输入消息继续对话…（Enter 发送，Shift+Enter 换行）"
-            class="composer-input"
-            @keyup.enter.exact.prevent="sendMessage"
-          />
-          <t-button
-            theme="primary"
-            class="send-btn"
-            :loading="streaming"
-            :disabled="!canSend"
-            @click="sendMessage"
-          >
-            <template #icon v-if="!streaming">
-              <AppIcon :size="16"><SendOutline /></AppIcon>
-            </template>
-            {{ streaming ? '生成中' : '发送' }}
-          </t-button>
-        </div>
+        <!-- TDesign Chat 输入框（Enter 发送，Shift+Enter 换行） -->
+        <t-chat-input
+          v-model="inputText"
+          :autosize="{ minRows: 1, maxRows: 5 }"
+          placeholder="输入消息继续对话…（Enter 发送，Shift+Enter 换行）"
+          :stop-disabled="true"
+          @send="onInputSend"
+        />
 
         <div v-if="selectedKeyId == null" class="composer-hint">
           <AppIcon :size="12" style="color: var(--warning);"><CheckmarkOutline /></AppIcon>
@@ -508,29 +501,42 @@ const canSend = computed(
   color: var(--text-muted);
 }
 
-/* ============ 消息流 ============ */
+/* ============ 消息流（TDesign Chat） ============ */
 .chat-thread {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  padding: 24px 20px;
   display: flex;
-  flex-direction: column;
-  gap: 22px;
   background:
     radial-gradient(circle at 100% 0%, rgba(79, 70, 229, 0.035) 0%, transparent 50%),
     var(--bg);
 }
-
-.msg-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  width: 100%;
+.chat-list {
+  flex: 1;
+  min-width: 0;
 }
-.msg-row-user { flex-direction: row-reverse; }
+.chat-thread :deep(.t-chat) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+.chat-thread :deep(.t-chat__list) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 20px;
+  box-sizing: border-box;
+}
+/* 消息条目间距与宽度 */
+.chat-thread :deep(.t-chat-item) {
+  margin-bottom: 18px;
+}
+.chat-thread :deep(.t-chat-item__inner),
+.chat-thread :deep(.t-chat__text) {
+  max-width: 100%;
+}
 
-/* 头像 */
+/* ============ 头像（沿用原配色，嵌入 t-chat-item #avatar 插槽） ============ */
 .msg-avatar {
   width: 34px;
   height: 34px;
@@ -539,7 +545,6 @@ const canSend = computed(
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 .ai-avatar {
   background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
@@ -566,24 +571,11 @@ const canSend = computed(
   color: var(--text-secondary);
 }
 
-/* 气泡主体 */
-.msg-bubble-wrap {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.user-wrap { align-items: flex-end; }
-.ai-wrap   { align-items: flex-start; }
-
-/* 角色标签行（仅 AI） */
-.msg-role-row {
-  display: flex;
+/* ============ 名称/时间行补充 ============ */
+.chat-item-name {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
-}
-.role-name {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text);
@@ -614,121 +606,33 @@ const canSend = computed(
   50% { opacity: 1; }
 }
 
-/* 气泡 */
-.msg-bubble {
-  max-width: 82%;
-  padding: 12px 16px;
-  border-radius: 14px;
-  position: relative;
-  line-height: 1.7;
-}
-
-.user-bubble {
-  background: linear-gradient(135deg, var(--primary) 0%, #6366F1 100%);
-  color: #fff;
-  border-top-right-radius: 4px;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.22),
-    0 2px 4px rgba(79, 70, 229, 0.14);
-}
-.ai-bubble {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-top-left-radius: 4px;
-  box-shadow: var(--shadow-xs);
-}
-.ai-bubble-streaming {
-  min-width: 180px;
-}
-
-/* 用户纯文本（非 markdown） */
+/* 用户消息纯文本 */
 .user-text {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.75;
   font-size: 14px;
-  color: #fff;
-}
-/* 用户消息内的 code */
-.user-text :deep(code) {
-  background: rgba(255,255,255,0.22);
-  padding: 2px 7px;
-  border-radius: 6px;
-  font-family: 'JetBrains Mono', Consolas, monospace;
-  font-size: 0.88em;
 }
 
-/* 流式光标 */
-.caret-blink {
-  display: inline-block;
-  width: 2px;
-  height: 16px;
-  background: var(--primary);
-  margin-left: 4px;
-  vertical-align: text-bottom;
-  animation: blink 1s step-end infinite;
-  border-radius: 1px;
-}
-@keyframes blink {
-  50% { opacity: 0; }
-}
-
-/* 消息脚注 */
-.msg-footer {
+/* ============ 编辑行 ============ */
+.msg-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-subtle);
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 0 4px;
 }
-.user-bubble .msg-footer {
-  border-top-color: rgba(255,255,255,0.14);
-}
-.msg-time {
-  font-size: 11.5px;
-  color: var(--text-muted);
-}
-.user-bubble .msg-time {
-  color: rgba(255,255,255,0.75);
-}
-.msg-actions {
+.msg-row-user { flex-direction: row-reverse; }
+.edit-wrap {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 82%;
+  flex: 1;
 }
-.msg-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  font-size: 11.5px;
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-.msg-action-btn:hover:not(:disabled) {
-  background: var(--bg-2);
-  border-color: var(--border);
-  color: var(--text-secondary);
-}
-.user-bubble .msg-action-btn {
-  color: rgba(255,255,255,0.78);
-}
-.user-bubble .msg-action-btn:hover:not(:disabled) {
-  background: rgba(255,255,255,0.16);
-  border-color: rgba(255,255,255,0.22);
-  color: #fff;
-}
-
-/* 编辑面板 */
-.edit-wrap { display: flex; flex-direction: column; gap: 10px; min-width: 260px; }
 .edit-actions { display: flex; gap: 8px; }
-
-.scroll-anchor { height: 1px; }
 
 /* ============ 底部输入 ============ */
 .chat-input-area {
@@ -786,37 +690,6 @@ const canSend = computed(
   height: 30px;
 }
 
-.composer-input-wrap {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 10px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  transition: all var(--transition-fast);
-}
-.composer-input-wrap:focus-within {
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: var(--shadow-focus);
-}
-.composer-input {
-  flex: 1;
-  background: transparent !important;
-}
-.composer-input :deep(.t-textarea__inner) {
-  background: transparent !important;
-  padding: 6px 4px !important;
-  line-height: 1.6;
-  border: none !important;
-  box-shadow: none !important;
-}
-.send-btn {
-  height: 40px;
-  flex-shrink: 0;
-}
-
 .composer-hint {
   display: inline-flex;
   align-items: center;
@@ -828,9 +701,8 @@ const canSend = computed(
 }
 
 @media (max-width: 640px) {
-  .chat-thread { padding: 16px 12px; gap: 18px; }
+  .chat-thread :deep(.t-chat__list) { padding: 16px 12px; }
   .chat-header { padding: 12px 16px; }
   .chat-input-area { padding: 12px 14px 16px; }
-  .msg-bubble { max-width: 88%; padding: 10px 14px; }
 }
 </style>

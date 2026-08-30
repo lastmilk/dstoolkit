@@ -7,7 +7,7 @@
     "noUncheckedIndexedAccess": true,
 
     // TDesign 全局组件类型（模板里直接使用 t-* 组件）
-    "types": ["tdesign-vue-next/global.d.ts"],
+    "types": ["tdesign-vue-next/global.d.ts", "@tdesign-vue-next/chat/global"],
 
     // Path mapping for cleaner imports.
     "paths": {
