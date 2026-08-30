@@ -1,43 +1,37 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
-  NIcon,
-  NButton,
-  NModal,
-  NInput,
-  NSpin,
-  NSkeleton,
-  NTag,
-  NTooltip,
-} from 'naive-ui'
+  ElIcon,
+  ElButton,
+  ElDialog,
+  ElInput,
+  ElTag,
+  ElTooltip,
+} from 'element-plus'
 import {
-  SparklesOutline,
-  RocketOutline,
-  TrophyOutline,
-  CheckmarkCircle,
-  KeyOutline,
-  ArrowForwardOutline,
-  CloseOutline,
-  TimeOutline,
-  CloudOutline,
-  ColorPaletteOutline,
-  LockClosedOutline,
-  LinkOutline,
-  BarChartOutline,
-  CodeSlashOutline,
-  PersonCircleOutline,
-  GitPullRequestOutline,
-  RefreshOutline,
-  CheckmarkCircleOutline,
-  OpenOutline,
-  GiftOutline,
-  CubeOutline,
-  HeadsetOutline,
-  ShieldCheckmarkOutline,
-  StarOutline,
-} from '@vicons/ionicons5'
+  Star,
+  Lightning,
+  Trophy,
+  CircleCheck,
+  Key,
+  Right,
+  Close,
+  Timer,
+  Upload,
+  Brush,
+  Lock,
+  Link,
+  DataLine,
+  Edit,
+  User,
+  Refresh,
+  Present,
+  Box,
+  Service,
+  Medal,
+} from '@element-plus/icons-vue'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { toast } from '@/utils/toast'
 
 // ═══════════ 类型 ═══════════
 type Period = 'annual' | 'permanent'
@@ -77,7 +71,7 @@ const tiers: Tier[] = [
     name: 'Free',
     badge: '免费版',
     tagline: '适合个人本地使用，开箱即用的对话管理',
-    icon: RocketOutline,
+    icon: Lightning,
     color: '#64748B',
     gradient: 'linear-gradient(135deg, #64748B 0%, #94A3B8 100%)',
     highlight: false,
@@ -85,11 +79,11 @@ const tiers: Tier[] = [
       { period: 'permanent', price: 0, label: '免费', unit: '永久' },
     ],
     features: [
-      { icon: CheckmarkCircle, text: '本地对话存储（IndexedDB）', highlight: true },
-      { icon: CloudOutline, text: '50MB 对话云存储 + 200 轮对话' },
-      { icon: SparklesOutline, text: 'AI 摘要 5 次/天（免费体验）', highlight: true },
-      { icon: BarChartOutline, text: '基础统计图表' },
-      { icon: HeadsetOutline, text: '社区支持' },
+      { icon: CircleCheck, text: '本地对话存储（IndexedDB）', highlight: true },
+      { icon: Upload, text: '50MB 对话云存储 + 200 轮对话' },
+      { icon: Star, text: 'AI 摘要 5 次/天（免费体验）', highlight: true },
+      { icon: DataLine, text: '基础统计图表' },
+      { icon: Service, text: '社区支持' },
     ],
   },
   {
@@ -97,7 +91,7 @@ const tiers: Tier[] = [
     name: 'Pro',
     badge: '高级版',
     tagline: '适合个人轻度使用，解锁核心升级体验',
-    icon: RocketOutline,
+    icon: Lightning,
     color: '#0EA5E9',
     gradient: 'linear-gradient(135deg, #0EA5E9 0%, #38BDF8 100%)',
     highlight: false,
@@ -105,12 +99,12 @@ const tiers: Tier[] = [
       { period: 'permanent', price: 39, label: '永久', unit: '一次买断' },
     ],
     features: [
-      { icon: CheckmarkCircle, text: 'Free 版全部功能', highlight: true },
-      { icon: CloudOutline, text: '100MB 对话云存储 + 1000 轮对话' },
-      { icon: ColorPaletteOutline, text: '网页完整版分享 + 5 种主题' },
-      { icon: LockClosedOutline, text: '分享密码保护' },
-      { icon: BarChartOutline, text: '更多高级图表' },
-      { icon: HeadsetOutline, text: '优先邮件支持' },
+      { icon: CircleCheck, text: 'Free 版全部功能', highlight: true },
+      { icon: Upload, text: '100MB 对话云存储 + 1000 轮对话' },
+      { icon: Brush, text: '网页完整版分享 + 5 种主题' },
+      { icon: Lock, text: '分享密码保护' },
+      { icon: DataLine, text: '更多高级图表' },
+      { icon: Service, text: '优先邮件支持' },
     ],
   },
   {
@@ -118,7 +112,7 @@ const tiers: Tier[] = [
     name: 'Plus',
     badge: '顶级版',
     tagline: '适合重度分享用户，加入专属短链与内测',
-    icon: SparklesOutline,
+    icon: Star,
     color: '#8B5CF6',
     gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
     highlight: false,
@@ -127,14 +121,14 @@ const tiers: Tier[] = [
       { period: 'permanent', price: 99, label: '永久', unit: '一次买断' },
     ],
     features: [
-      { icon: CheckmarkCircle, text: 'Free 版全部功能', highlight: true },
-      { icon: CloudOutline, text: '100MB 对话云存储 + 1000 轮对话' },
-      { icon: ColorPaletteOutline, text: '网页完整版分享 + 5 种主题' },
-      { icon: LockClosedOutline, text: '分享密码保护' },
-      { icon: LinkOutline, text: '个人专属短链（新增）', highlight: true },
-      { icon: BarChartOutline, text: '更多高级图表' },
-      { icon: CubeOutline, text: '优先功能内测资格' },
-      { icon: HeadsetOutline, text: '专属客服通道' },
+      { icon: CircleCheck, text: 'Free 版全部功能', highlight: true },
+      { icon: Upload, text: '100MB 对话云存储 + 1000 轮对话' },
+      { icon: Brush, text: '网页完整版分享 + 5 种主题' },
+      { icon: Lock, text: '分享密码保护' },
+      { icon: Link, text: '个人专属短链（新增）', highlight: true },
+      { icon: DataLine, text: '更多高级图表' },
+      { icon: Box, text: '优先功能内测资格' },
+      { icon: Service, text: '专属客服通道' },
     ],
   },
   {
@@ -142,7 +136,7 @@ const tiers: Tier[] = [
     name: 'Ultimate',
     badge: '超能版',
     tagline: '适合开发者与重度用户，解锁全部高级权益',
-    icon: TrophyOutline,
+    icon: Trophy,
     color: '#4F46E5',
     gradient: 'linear-gradient(135deg, #4F46E5 0%, #6366F1 50%, #0EA5E9 100%)',
     highlight: true,
@@ -151,16 +145,16 @@ const tiers: Tier[] = [
       { period: 'permanent', price: 199, label: '永久', unit: '一次买断' },
     ],
     features: [
-      { icon: CheckmarkCircle, text: 'Free 版全部功能', highlight: true },
-      { icon: CloudOutline, text: '300MB 对话云存储 + 1000 轮对话（升级）', highlight: true },
-      { icon: ColorPaletteOutline, text: '网页完整版分享 + 5 种主题' },
-      { icon: LockClosedOutline, text: '分享密码保护' },
-      { icon: LinkOutline, text: '个人专属短链' },
-      { icon: CodeSlashOutline, text: 'RESTful API 访问权限（新增）', highlight: true },
-      { icon: PersonCircleOutline, text: '网站作者专属好友位（新增）', highlight: true },
-      { icon: GitPullRequestOutline, text: '开源版 PR 提交权限（新增）', highlight: true },
-      { icon: BarChartOutline, text: '更多高级图表' },
-      { icon: ShieldCheckmarkOutline, text: '1 对 1 专属支持 + 功能定制建议权' },
+      { icon: CircleCheck, text: 'Free 版全部功能', highlight: true },
+      { icon: Upload, text: '300MB 对话云存储 + 1000 轮对话（升级）', highlight: true },
+      { icon: Brush, text: '网页完整版分享 + 5 种主题' },
+      { icon: Lock, text: '分享密码保护' },
+      { icon: Link, text: '个人专属短链' },
+      { icon: Edit, text: 'RESTful API 访问权限（新增）', highlight: true },
+      { icon: User, text: '网站作者专属好友位（新增）', highlight: true },
+      { icon: Edit, text: '开源版 PR 提交权限（新增）', highlight: true },
+      { icon: DataLine, text: '更多高级图表' },
+      { icon: Medal, text: '1 对 1 专属支持 + 功能定制建议权' },
     ],
   },
   {
@@ -168,7 +162,7 @@ const tiers: Tier[] = [
     name: 'Team',
     badge: '团队版',
     tagline: '适合团队协作，多席位共享与统一管理',
-    icon: PersonCircleOutline,
+    icon: User,
     color: '#0F766E',
     gradient: 'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
     highlight: false,
@@ -176,12 +170,12 @@ const tiers: Tier[] = [
       { period: 'annual', price: 199, label: '年费', unit: '/ 席位 / 年' },
     ],
     features: [
-      { icon: CheckmarkCircle, text: 'Ultimate 版全部功能', highlight: true },
-      { icon: CloudOutline, text: '10GB 对话云存储 + 无限轮次', highlight: true },
-      { icon: PersonCircleOutline, text: '多席位共享（起 5 席）' },
-      { icon: CodeSlashOutline, text: '团队 API 500 次/分钟' },
-      { icon: ShieldCheckmarkOutline, text: '团队管理后台 + 审计日志' },
-      { icon: HeadsetOutline, text: '专属客户成功经理' },
+      { icon: CircleCheck, text: 'Ultimate 版全部功能', highlight: true },
+      { icon: Upload, text: '10GB 对话云存储 + 无限轮次', highlight: true },
+      { icon: User, text: '多席位共享（起 5 席）' },
+      { icon: Edit, text: '团队 API 500 次/分钟' },
+      { icon: Medal, text: '团队管理后台 + 审计日志' },
+      { icon: Service, text: '专属客户成功经理' },
     ],
   },
 ]
@@ -291,7 +285,7 @@ const cardKeyShopUrl = computed(
 )
 
 // ═══════════ 方法 ═══════════
-async function loadPaymentConfig() {
+async function loadPaymentConfig(): Promise<void> {
   configLoading.value = true
   try {
     const res: any = await request.get('/payment/config')
@@ -305,14 +299,12 @@ async function loadPaymentConfig() {
       cardKeyDocsUrl: res.cardKeyDocsUrl,
     }
   } catch {
-    // 后端未配置，全部回退到卡密
     paymentConfig.value = {
       methods: { wechat: false, alipay: false, cardkey: true },
       cardKeyShopUrl: 'https://www.kufaka.com/shop/DLJTWXUW',
     }
   } finally {
     configLoading.value = false
-    // 如果默认选中的微信不可用，自动切换到可用方式
     if (!methodAvailability.value.wechat && methodAvailability.value.alipay) {
       selectedPayment.value = 'alipay'
     } else if (!methodAvailability.value.wechat && !methodAvailability.value.alipay) {
@@ -321,15 +313,15 @@ async function loadPaymentConfig() {
   }
 }
 
-function selectTier(tierId: string) {
+function selectTier(tierId: string): void {
   selectedTier.value = tierId
 }
 
-function selectBilling(tierId: string, period: Period) {
+function selectBilling(tierId: string, period: Period): void {
   selectedBilling.value[tierId] = period
 }
 
-function selectPayment(method: PaymentMethod) {
+function selectPayment(method: PaymentMethod): void {
   selectedPayment.value = method
 }
 
@@ -339,11 +331,11 @@ function getBilling(tier: Tier): BillingOption {
   return tier.billing.find((b) => b.period === period) as BillingOption
 }
 
-function startCheckout() {
+function startCheckout(): void {
   const method = selectedPayment.value
   const available = methodAvailability.value[method]
   if (!available) {
-    message.info('当前支付方式暂未开通，已为你切换到卡密充值')
+    toast.info('当前支付方式暂未开通，已为你切换到卡密充值')
     selectedPayment.value = 'cardkey'
     modalState.value = 'cardkey'
     showModal.value = true
@@ -354,33 +346,29 @@ function startCheckout() {
     showModal.value = true
     return
   }
-  // 微信 / 支付宝：调起二维码支付
   modalState.value = 'qr'
   showModal.value = true
   countdown.value = 900
   createOrder()
 }
 
-async function createOrder() {
+async function createOrder(): Promise<void> {
   creatingOrder.value = true
   try {
-    // 真实实现会调 /payment/order 创建订单并返回二维码 URL
     await request.post('/payment/order', {
       tier: selectedTier.value,
       period: currentBilling.value.period,
       method: selectedPayment.value,
     })
-    // 后端预留未实现时静默通过，前端展示占位二维码
     startTimer()
   } catch {
-    // 后端未实现下单接口，前端继续展示二维码占位
     startTimer()
   } finally {
     creatingOrder.value = false
   }
 }
 
-function startTimer() {
+function startTimer(): void {
   if (timer) window.clearInterval(timer)
   timer = window.setInterval(() => {
     countdown.value -= 1
@@ -390,7 +378,7 @@ function startTimer() {
   }, 1000)
 }
 
-function stopTimer() {
+function stopTimer(): void {
   if (timer) {
     window.clearInterval(timer)
     timer = null
@@ -403,16 +391,16 @@ function formatCountdown(s: number): string {
   return `${m}:${String(sec).padStart(2, '0')}`
 }
 
-function closePayment() {
+function closePayment(): void {
   showModal.value = false
   stopTimer()
   cardKeyInput.value = ''
 }
 
-async function redeemCardKey() {
+async function redeemCardKey(): Promise<void> {
   const key = cardKeyInput.value.trim()
   if (!key) {
-    message.warning('请输入卡密')
+    toast.warning('请输入卡密')
     return
   }
   redeeming.value = true
@@ -422,11 +410,10 @@ async function redeemCardKey() {
       tier: selectedTier.value,
       period: currentBilling.value.period,
     })
-    message.success(res?.message || '卡密兑换成功，权益已到账')
+    toast.success(res?.message || '卡密兑换成功，权益已到账')
     modalState.value = 'success'
   } catch {
-    // 后端未实现 redeem 接口时给出友好提示
-    message.error(
+    toast.error(
       '卡密兑换接口尚未启用，请联系管理员手动绑定，或前往卡密购买页确认商品',
     )
   } finally {
@@ -434,32 +421,32 @@ async function redeemCardKey() {
   }
 }
 
-function confirmPaid() {
-  message.success('支付完成，权益将在几分钟内到账')
+function confirmPaid(): void {
+  toast.success('支付完成，权益将在几分钟内到账')
   closePayment()
 }
 
-function switchPaymentInModal() {
+function switchPaymentInModal(): void {
   closePayment()
 }
 
-function openCardKeyShop() {
+function openCardKeyShop(): void {
   window.open(cardKeyShopUrl.value, '_blank')
 }
 
-function openCardKeyDocs() {
+function openCardKeyDocs(): void {
   const url = paymentConfig.value?.cardKeyDocsUrl
   if (url) window.open(url, '_blank')
 }
 
-async function purchaseCreditPack(packId: string) {
+async function purchaseCreditPack(packId: string): Promise<void> {
   purchasingPack.value = packId
   try {
     const res: any = await request.post('/subscription/credits/purchase', { packId })
-    message.success(res?.message || '充值成功，积分已到账')
+    toast.success(res?.message || '充值成功，积分已到账')
   } catch (e: any) {
     const msg = e?.response?.data?.error || '购买失败，请稍后重试'
-    message.error(msg)
+    toast.error(msg)
   } finally {
     purchasingPack.value = null
   }
@@ -478,7 +465,7 @@ onUnmounted(stopTimer)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><SparklesOutline /></NIcon>
+            <el-icon :size="12"><Star /></el-icon>
             <span>PRICING // 升级方案</span>
           </div>
           <h1 class="chronos-page-title">
@@ -494,7 +481,7 @@ onUnmounted(stopTimer)
             <div class="emblem-ring r1"></div>
             <div class="emblem-ring r2"></div>
             <div class="emblem-core">
-              <NIcon size="28" style="color: var(--primary);"><GiftOutline /></NIcon>
+              <el-icon :size="28" style="color: var(--primary);"><Present /></el-icon>
             </div>
           </div>
         </div>
@@ -508,6 +495,7 @@ onUnmounted(stopTimer)
         :key="tier.id"
         :class="[
           'tier-card',
+          'glass-card',
           { highlighted: tier.highlight, selected: selectedTier === tier.id },
         ]"
         :style="{
@@ -516,41 +504,35 @@ onUnmounted(stopTimer)
         }"
         @click="selectTier(tier.id)"
       >
-        <!-- 顶部装饰条 -->
         <div class="tier-accent-bar"></div>
 
-        <!-- 推荐 / 选中标记 -->
         <div class="tier-badges">
-          <NTag
+          <el-tag
             v-if="tier.highlight"
             size="small"
             round
-            :bordered="false"
+            effect="dark"
             class="tier-tag-recommend"
           >
-            <template #icon>
-              <NIcon size="12"><StarOutline /></NIcon>
-            </template>
+            <el-icon :size="12"><Star /></el-icon>
             推荐
-          </NTag>
-          <NTag
+          </el-tag>
+          <el-tag
             v-if="selectedTier === tier.id"
             size="small"
             round
-            :bordered="false"
+            type="success"
+            effect="light"
             class="tier-tag-selected"
           >
-            <template #icon>
-              <NIcon size="12"><CheckmarkCircleOutline /></NIcon>
-            </template>
+            <el-icon :size="12"><CircleCheck /></el-icon>
             已选择
-          </NTag>
+          </el-tag>
         </div>
 
-        <!-- 套餐头 -->
         <header class="tier-head">
           <div class="tier-icon" :style="{ background: tier.gradient }">
-            <NIcon size="22"><component :is="tier.icon" /></NIcon>
+            <el-icon :size="22"><component :is="tier.icon" /></el-icon>
           </div>
           <div class="tier-name-block">
             <div class="tier-name">{{ tier.name }}</div>
@@ -560,7 +542,6 @@ onUnmounted(stopTimer)
 
         <p class="tier-tagline">{{ tier.tagline }}</p>
 
-        <!-- 计费切换 -->
         <div v-if="tier.billing.length > 1" class="billing-toggle">
           <button
             v-for="b in tier.billing"
@@ -575,32 +556,29 @@ onUnmounted(stopTimer)
           </button>
         </div>
 
-        <!-- 价格 -->
         <div class="tier-price">
           <span class="currency">¥</span>
           <span class="price-num">{{ getBilling(tier).price }}</span>
           <span class="price-unit">{{ getBilling(tier).unit }}</span>
         </div>
 
-        <!-- 特权列表 -->
         <ul class="tier-features">
           <li
             v-for="(f, i) in tier.features"
             :key="i"
             :class="{ highlight: f.highlight }"
           >
-            <NIcon size="14" class="feature-icon"><component :is="f.icon" /></NIcon>
+            <el-icon :size="14" class="feature-icon"><component :is="f.icon" /></el-icon>
             <span>{{ f.text }}</span>
           </li>
         </ul>
 
-        <!-- CTA -->
         <button
           :class="['tier-cta', { primary: tier.highlight }]"
           @click.stop="selectTier(tier.id)"
         >
           升级到 {{ tier.name }}
-          <NIcon size="14"><ArrowForwardOutline /></NIcon>
+          <el-icon :size="14"><Right /></el-icon>
         </button>
       </article>
     </section>
@@ -618,20 +596,18 @@ onUnmounted(stopTimer)
         <article
           v-for="pack in creditPacks"
           :key="pack.id"
-          :class="['credit-pack-card', { popular: pack.popular }]"
+          :class="['credit-pack-card', 'glass-card', { popular: pack.popular }]"
         >
-          <NTag
+          <el-tag
             v-if="pack.popular"
             size="small"
             round
-            :bordered="false"
+            effect="dark"
             class="pack-tag-popular"
           >
-            <template #icon>
-              <NIcon size="12"><StarOutline /></NIcon>
-            </template>
+            <el-icon :size="12"><Star /></el-icon>
             热门
-          </NTag>
+          </el-tag>
 
           <div class="pack-credits">
             <span class="pack-credits-num">{{ pack.credits }}</span>
@@ -645,23 +621,23 @@ onUnmounted(stopTimer)
 
           <p class="pack-desc">约可生成 {{ packSummaryCount(pack.credits) }} 次 AI 摘要</p>
 
-          <NButton
+          <el-button
             type="primary"
             size="large"
-            block
+            style="width: 100%;"
             :loading="purchasingPack === pack.id"
             :disabled="purchasingPack !== null && purchasingPack !== pack.id"
             class="pack-cta"
             @click="purchaseCreditPack(pack.id)"
           >
             购买
-          </NButton>
+          </el-button>
         </article>
       </div>
     </section>
 
     <!-- ═══════════ 支付方式 ═══════════ -->
-    <section class="payment-section">
+    <section class="payment-section glass-card">
       <div class="section-head">
         <h2 class="section-title">选择支付方式</h2>
         <p class="section-sub">
@@ -671,11 +647,8 @@ onUnmounted(stopTimer)
         </p>
       </div>
 
-      <div class="payment-methods">
-        <NSpin v-if="configLoading" size="small">
-          <div style="height: 96px;"></div>
-        </NSpin>
-        <template v-else>
+      <div class="payment-methods" v-loading="configLoading">
+        <template v-if="!configLoading">
           <label
             v-for="m in paymentMethods"
             :key="m.id"
@@ -697,28 +670,25 @@ onUnmounted(stopTimer)
             />
 
             <div :class="['payment-brand-icon', `brand-${m.brand}`]">
-              <!-- 微信 -->
               <svg v-if="m.brand === 'wechat'" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                 <path fill="currentColor" d="M8.69 4C4.99 4 2 6.47 2 9.5c0 1.74.96 3.3 2.46 4.32-.13.43-.4 1.36-.46 1.55-.08.27.1.27.21.16.09-.07 1.43-1.05 1.93-1.42.78.22 1.62.34 2.5.34h.27a4.94 4.94 0 0 1-.18-2.3c-.18-.01-.36-.02-.54-.05-2.06-.3-3.62-1.66-3.62-3.27 0-1.81 1.96-3.27 4.38-3.27 2.06 0 3.8 1.06 4.24 2.49a6.5 6.5 0 0 1 2.49-.49h.27C16.34 5.85 12.81 4 8.69 4m9.79 5.27c-3.3 0-5.97 2.06-5.97 4.6 0 1.42.79 2.69 2.04 3.55-.1.35-.32 1.12-.36 1.27-.06.22.08.22.18.13.07-.06 1.18-.87 1.6-1.18.65.18 1.34.29 2.06.29 3.3 0 5.97-2.06 5.97-4.6 0-2.54-2.67-4.6-5.97-4.6m-9.69.81a.88.88 0 0 0 0 1.76.88.88 0 0 0 0-1.76m5.5 1.32a.73.73 0 1 0 0 1.46.73.73 0 0 0 0-1.46m4.27 0a.73.73 0 1 0 0 1.46.73.73 0 0 0 0-1.46Z"/>
               </svg>
-              <!-- 支付宝 -->
               <svg v-else-if="m.brand === 'alipay'" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                 <path fill="currentColor" d="M20.5 14.5c-.86-1.93-2.06-3.92-3.34-5.86C16.84 8.05 17 7.42 17 6.7c0-2.45-1.55-4.55-4.85-4.55-3.32 0-4.85 2.1-4.85 4.55 0 1.65.83 3.07 2.34 3.81.27 1.34.96 2.84 1.79 4.27-.34.08-.71.13-1.1.13-2.16 0-3.69-.69-3.69-1.7 0-.55.39-.99 1.06-1.32v-.62c-1.36.51-2.2 1.4-2.2 2.51 0 1.61 2.04 2.62 5.06 2.62.64 0 1.24-.07 1.79-.2.45.7.92 1.37 1.36 1.99H4.5C3.67 17.4 3 16.73 3 15.9V8.1C3 7.27 3.67 6.6 4.5 6.6h15c.83 0 1.5.67 1.5 1.5v6.4h-1.07c.36.66.7 1.34 1 2.04.21.51.34 1 .41 1.45l-.84-1.49Zm-7.7-10.5c1.6 0 2.65 1.06 2.65 2.5 0 1.45-1.05 2.5-2.65 2.5S10.15 7.95 10.15 6.5c0-1.44 1.05-2.5 2.65-2.5Z"/>
               </svg>
-              <!-- 卡密 -->
-              <NIcon v-else size="22"><KeyOutline /></NIcon>
+              <el-icon v-else :size="22"><Key /></el-icon>
             </div>
 
             <div class="payment-info">
               <div class="payment-name">
                 {{ m.name }}
-                <NTag
+                <el-tag
                   v-if="m.badge"
-                  size="tiny"
+                  size="small"
                   round
-                  :bordered="false"
+                  effect="light"
                   class="payment-badge"
-                >{{ m.badge }}</NTag>
+                >{{ m.badge }}</el-tag>
               </div>
               <div class="payment-desc">
                 <template v-if="!methodAvailability[m.id]">未开通 · 自动切换到卡密</template>
@@ -733,24 +703,22 @@ onUnmounted(stopTimer)
         </template>
       </div>
 
-      <!-- 卡密说明（仅当卡密选中时显示） -->
       <transition name="fade-slide">
         <div v-if="!configLoading && selectedPayment === 'cardkey'" class="cardkey-hint">
-          <NIcon size="16" class="hint-icon"><KeyOutline /></NIcon>
+          <el-icon :size="16" class="hint-icon"><Key /></el-icon>
           <div class="hint-text">
             <div class="hint-title">卡密充值说明</div>
             <div class="hint-desc">
               卡密为你提供免支付的兜底方案，永久有效，适合无法使用微信/支付宝的用户。
               卡密购买地址：<a :href="cardKeyShopUrl" target="_blank" rel="noopener" class="hint-link">
                 {{ cardKeyShopUrl }}
-                <NIcon size="11"><OpenOutline /></NIcon>
+                <el-icon :size="11"><Link /></el-icon>
               </a>
             </div>
           </div>
         </div>
       </transition>
 
-      <!-- 结算按钮 -->
       <div class="checkout-bar">
         <div class="checkout-summary">
           <span class="summary-label">应付金额</span>
@@ -760,7 +728,7 @@ onUnmounted(stopTimer)
             <span class="unit">/ {{ currentBilling.label }}</span>
           </div>
         </div>
-        <NButton
+        <el-button
           type="primary"
           size="large"
           :loading="creatingOrder"
@@ -768,42 +736,40 @@ onUnmounted(stopTimer)
           class="checkout-btn"
           @click="startCheckout"
         >
-          <template #icon><NIcon size="16"><ArrowForwardOutline /></NIcon></template>
+          <template #icon><el-icon :size="16"><Right /></el-icon></template>
           立即升级 {{ currentTier.name }}
-        </NButton>
+        </el-button>
       </div>
     </section>
 
     <!-- ═══════════ 底部说明 ═══════════ -->
     <section class="pricing-footer">
       <div class="footer-item">
-        <NIcon size="18"><ShieldCheckmarkOutline /></NIcon>
+        <el-icon :size="18"><Medal /></el-icon>
         <span>所有方案均享受 Free 版全部功能，权益即时生效</span>
       </div>
       <div class="footer-item">
-        <NIcon size="18"><RefreshOutline /></NIcon>
+        <el-icon :size="18"><Refresh /></el-icon>
         <span>年费方案到期前 7 天将通过站内消息提醒续费</span>
       </div>
       <div class="footer-item">
-        <NIcon size="18"><HeadsetOutline /></NIcon>
+        <el-icon :size="18"><Service /></el-icon>
         <span>购买与权益问题请通过个人中心反馈，管理员会尽快处理</span>
       </div>
     </section>
 
     <!-- ═══════════ 支付模态框 ═══════════ -->
-    <NModal
-      :show="showModal"
-      :mask-closable="false"
-      :close-on-esc="true"
-      @update:show="(v) => !v && closePayment()"
+    <el-dialog
+      v-model="showModal"
+      :close-on-click-modal="false"
+      :close-on-press-escape="true"
+      @closed="closePayment"
+      width="480px"
+      class="pay-modal-wrapper"
     >
       <div class="pay-modal">
-        <!-- 头部 -->
         <div class="pay-modal-head">
           <div class="pay-modal-title">
-            <NIcon v-if="modalState === 'qr'" size="18" class="head-icon">
-              <component :is="selectedPayment === 'wechat' ? null : null" />
-            </NIcon>
             <span v-if="modalState === 'qr'">
               {{ selectedPayment === 'wechat' ? '微信支付' : '支付宝' }}
             </span>
@@ -811,15 +777,14 @@ onUnmounted(stopTimer)
             <span v-else>支付完成</span>
           </div>
           <button class="pay-modal-close" @click="closePayment" aria-label="关闭">
-            <NIcon size="18"><CloseOutline /></NIcon>
+            <el-icon :size="18"><Close /></el-icon>
           </button>
         </div>
 
-        <!-- 订单摘要 -->
         <div class="pay-summary">
           <div class="pay-summary-left">
             <div class="pay-tier-icon" :style="{ background: currentTier.gradient }">
-              <NIcon size="18"><component :is="currentTier.icon" /></NIcon>
+              <el-icon :size="18"><component :is="currentTier.icon" /></el-icon>
             </div>
             <div>
               <div class="pay-tier-name">
@@ -834,12 +799,10 @@ onUnmounted(stopTimer)
           </div>
         </div>
 
-        <!-- 状态：二维码 -->
         <div v-if="modalState === 'qr'" class="pay-body">
-          <div class="qr-block">
+          <div class="qr-block" v-loading="creatingOrder">
             <div class="qr-frame">
               <div class="qr-placeholder">
-                <!-- 占位二维码图案 -->
                 <svg viewBox="0 0 100 100" width="180" height="180" aria-hidden="true">
                   <defs>
                     <pattern id="qrpat" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -850,19 +813,16 @@ onUnmounted(stopTimer)
                     </pattern>
                   </defs>
                   <rect x="0" y="0" width="100" height="100" fill="url(#qrpat)"/>
-                  <!-- 三个定位角 -->
                   <rect x="4" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
                   <rect x="10" y="10" width="10" height="10" fill="#0F172A"/>
                   <rect x="74" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
                   <rect x="80" y="10" width="10" height="10" fill="#0F172A"/>
                   <rect x="4" y="74" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
                   <rect x="10" y="80" width="10" height="10" fill="#0F172A"/>
-                  <!-- 中央 logo -->
                   <rect x="40" y="40" width="20" height="20" rx="4" fill="#FFFFFF"/>
                   <rect x="44" y="44" width="12" height="12" rx="2" :fill="currentTier.color"/>
                 </svg>
               </div>
-              <NSpin v-if="creatingOrder" class="qr-loading" size="medium" />
             </div>
             <div class="qr-hint">
               请使用
@@ -870,7 +830,7 @@ onUnmounted(stopTimer)
               扫描二维码完成支付
             </div>
             <div class="qr-timer">
-              <NIcon size="13"><TimeOutline /></NIcon>
+              <el-icon :size="13"><Timer /></el-icon>
               <span class="timer-text" :class="{ urgent: countdown < 60 }">
                 {{ countdown > 0 ? `${formatCountdown(countdown)} 后过期` : '已过期，请重新发起' }}
               </span>
@@ -879,25 +839,24 @@ onUnmounted(stopTimer)
                 class="qr-refresh"
                 @click="startCheckout"
               >
-                <NIcon size="12"><RefreshOutline /></NIcon> 重新生成
+                <el-icon :size="12"><Refresh /></el-icon> 重新生成
               </button>
             </div>
           </div>
         </div>
 
-        <!-- 状态：卡密 -->
         <div v-else-if="modalState === 'cardkey'" class="pay-body">
           <div class="cardkey-block">
             <div class="cardkey-icon">
-              <NIcon size="32"><KeyOutline /></NIcon>
+              <el-icon :size="32"><Key /></el-icon>
             </div>
             <div class="cardkey-title">输入卡密</div>
             <p class="cardkey-desc">
               请输入与所选套餐匹配的卡密（{{ currentTier.name }} · {{ currentBilling.label }}），
               提交后系统将自动校验并为你开通对应权益。
             </p>
-            <NInput
-              v-model:value="cardKeyInput"
+            <el-input
+              v-model="cardKeyInput"
               type="textarea"
               placeholder="粘贴你购买后获得的卡密（形如 DSTK-XXXX-XXXX-XXXX）"
               :rows="3"
@@ -905,31 +864,31 @@ onUnmounted(stopTimer)
               class="cardkey-input"
             />
             <div class="cardkey-actions">
-              <NButton
-                quaternary
+              <el-button
+                type="default"
+                plain
                 size="small"
                 @click="openCardKeyDocs"
               >
-                <NIcon size="14"><OpenOutline /></NIcon>
+                <el-icon :size="14"><Link /></el-icon>
                 查看卡密说明
-              </NButton>
-              <NButton
+              </el-button>
+              <el-button
                 size="small"
                 type="primary"
                 @click="openCardKeyShop"
               >
                 前往购买卡密
-                <NIcon size="12"><ArrowForwardOutline /></NIcon>
-              </NButton>
+                <el-icon :size="12"><Right /></el-icon>
+              </el-button>
             </div>
           </div>
         </div>
 
-        <!-- 状态：成功 -->
         <div v-else class="pay-body">
           <div class="pay-success">
             <div class="success-icon">
-              <NIcon size="48"><CheckmarkCircleOutline /></NIcon>
+              <el-icon :size="48"><CircleCheck /></el-icon>
             </div>
             <div class="success-title">兑换成功</div>
             <p class="success-desc">
@@ -939,35 +898,34 @@ onUnmounted(stopTimer)
           </div>
         </div>
 
-        <!-- 底部操作 -->
         <div class="pay-modal-foot">
           <template v-if="modalState === 'qr'">
-            <NButton quaternary @click="switchPaymentInModal">
-              <NIcon size="14"><RefreshOutline /></NIcon>
+            <el-button type="default" plain @click="switchPaymentInModal">
+              <el-icon :size="14"><Refresh /></el-icon>
               切换支付方式
-            </NButton>
-            <NButton type="primary" @click="confirmPaid">
+            </el-button>
+            <el-button type="primary" @click="confirmPaid">
               我已完成支付
-            </NButton>
+            </el-button>
           </template>
           <template v-else-if="modalState === 'cardkey'">
-            <NButton quaternary @click="closePayment">取消</NButton>
-            <NButton
+            <el-button type="default" plain @click="closePayment">取消</el-button>
+            <el-button
               type="primary"
               :loading="redeeming"
               :disabled="!cardKeyInput.trim()"
               @click="redeemCardKey"
             >
-              <NIcon size="14"><CheckmarkCircle /></NIcon>
+              <el-icon :size="14"><CircleCheck /></el-icon>
               提交兑换
-            </NButton>
+            </el-button>
           </template>
           <template v-else>
-            <NButton type="primary" @click="closePayment">完成</NButton>
+            <el-button type="primary" @click="closePayment">完成</el-button>
           </template>
         </div>
       </div>
-    </NModal>
+    </el-dialog>
   </div>
 </template>
 

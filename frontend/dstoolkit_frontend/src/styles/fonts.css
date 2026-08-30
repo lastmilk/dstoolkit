@@ -1,0 +1,100 @@
+/* ============================================================
+   Harmony Sans SC / HarmonyOS Sans 字体配置
+   支持 6 种字重：Thin(100) / Light(300) / Regular(400) / Medium(500) / Bold(700) / Black(900)
+   通过 CDN 引入，兼顾中文字形显示效果
+   ============================================================ */
+
+/* 使用 Google Fonts + 思源黑体兜底方案 + Harmony Sans @font-face */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* Harmony Sans SC - 通过 CSS 变量定义字重映射 */
+:root {
+  --font-family-harmony: 'HarmonyOS Sans', 'Harmony Sans SC',
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+
+  --font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  /* 字重语义化变量 */
+  --font-weight-thin: 100;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+}
+
+/*
+ * HarmonyOS Sans 通过 CSS Font Loading API 在线加载
+ * 国内用户可访问华为官方 CDN，此处使用社区镜像
+ * 如果无法加载，将自动回退到系统中文字体栈
+ */
+
+/* Thin 100 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Thin.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Light 300 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Regular 400 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium 500 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold 700 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Black 900 */
+@font-face {
+  font-family: 'HarmonyOS Sans';
+  src: url('https://cdn.jsdelivr.net/gh/iroachie/HarmonyOS-Sans@latest/HarmonyOS_Sans_SC/HarmonyOS_Sans_SC_Black.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 语义化字重 class */
+.font-thin    { font-weight: var(--font-weight-thin); }
+.font-light   { font-weight: var(--font-weight-light); }
+.font-regular { font-weight: var(--font-weight-regular); }
+.font-medium  { font-weight: var(--font-weight-medium); }
+.font-bold    { font-weight: var(--font-weight-bold); }
+.font-black   { font-weight: var(--font-weight-black); }
+
+/* 标题字重映射 */
+.h1-display { font-weight: var(--font-weight-black); letter-spacing: -0.02em; }
+.h2-display { font-weight: var(--font-weight-bold);  letter-spacing: -0.015em; }
+.h3-display { font-weight: var(--font-weight-bold);  letter-spacing: -0.01em; }
+.h4-display { font-weight: var(--font-weight-medium); letter-spacing: -0.005em; }

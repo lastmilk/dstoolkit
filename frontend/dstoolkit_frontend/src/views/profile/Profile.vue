@@ -1,131 +1,123 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, h } from 'vue'
 import {
-  NCard,
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NSpace,
-  NText,
-  NTag,
-  NDataTable,
-  NPopconfirm,
-  NCode,
-  NSelect,
-  NModal,
-  NIcon,
-  type DataTableColumns,
-  type SelectOption,
-} from 'naive-ui'
-import { h } from 'vue'
+  ElCard,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElButton,
+  ElSpace,
+  ElTag,
+  ElTable,
+  ElTableColumn,
+  ElSelect,
+  ElOption,
+  ElDialog,
+  ElIcon,
+} from 'element-plus'
 import {
-  PersonCircleOutline,
-  KeyOutline,
-  ShieldOutline,
-  CloudOutline,
-  CloudOfflineOutline,
-  SaveOutline,
-  LockClosedOutline,
-  AddOutline,
-  TrashOutline,
-  CopyOutline,
-  RibbonOutline,
-  CalendarOutline,
-  TimeOutline,
-  HourglassOutline,
-  CreateOutline,
-  CheckmarkCircleOutline,
-  CloseCircleOutline,
-  RocketOutline,
-  FingerPrintOutline,
-  LogOutOutline,
-  GiftOutline,
-  PeopleOutline,
-  CashOutline,
-  LinkOutline,
-} from '@vicons/ionicons5'
+  User,
+  Key,
+  Medal,
+  Upload,
+  Download,
+  Edit,
+  Lock,
+  Plus,
+  Delete,
+  CopyDocument,
+  Calendar,
+  Timer,
+  EditPen,
+  CircleCheck,
+  CircleClose,
+  Lightning,
+  UserFilled,
+  SwitchButton,
+  Present,
+  Wallet,
+  Link,
+} from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { toast } from '@/utils/toast'
+import * as sweetalert from '@/utils/sweetalert'
 import type { ApiKeyItem, ApiTokenItem, CreatedApiToken } from '@/types'
 
 const auth = useAuthStore()
 const router = useRouter()
 
-function handleLogout() {
+function handleLogout(): void {
   auth.logout()
-  message.success('已退出登录')
+  toast.success('已退出登录')
   router.push('/login')
 }
 
-const newUsername = ref(auth.user?.username || '')
-async function saveUsername() {
+const newUsername = ref<string>(auth.user?.username || '')
+async function saveUsername(): Promise<void> {
   if (!newUsername.value) return
   await auth.updateProfile(newUsername.value)
-  message.success('用户信息已更新')
+  toast.success('用户信息已更新')
 }
 
-const oldPwd = ref('')
-const newPwd = ref('')
-const confirmPwd = ref('')
-async function savePassword() {
+const oldPwd = ref<string>('')
+const newPwd = ref<string>('')
+const confirmPwd = ref<string>('')
+async function savePassword(): Promise<void> {
   if (newPwd.value !== confirmPwd.value) {
-    message.error('两次新密码不一致')
+    toast.error('两次新密码不一致')
     return
   }
   await auth.changePassword(oldPwd.value, newPwd.value)
-  message.success('登录密码已更新')
+  toast.success('登录密码已更新')
   oldPwd.value = ''
   newPwd.value = ''
   confirmPwd.value = ''
 }
 
 const apiKeys = ref<ApiKeyItem[]>([])
-const keyName = ref('')
-const keyValue = ref('')
-async function loadApiKeys() {
+const keyName = ref<string>('')
+const keyValue = ref<string>('')
+async function loadApiKeys(): Promise<void> {
   const res: any = await request.get('/apikeys')
   apiKeys.value = res.apiKeys
 }
-async function addKey() {
+async function addKey(): Promise<void> {
   if (!keyName.value || !keyValue.value) {
-    message.error('请填写名称和 Key')
+    toast.error('请填写名称和 Key')
     return
   }
   await request.post('/apikeys', { name: keyName.value, key: keyValue.value })
   keyName.value = ''
   keyValue.value = ''
   await loadApiKeys()
-  message.success('密钥已添加')
+  toast.success('密钥已添加')
 }
-async function deleteKey(id: number) {
+async function deleteKey(id: number): Promise<void> {
+  const confirmed = await sweetalert.confirmDanger('确认删除此密钥？', '删除后不可恢复')
+  if (!confirmed) return
   await request.delete(`/apikeys/${id}`)
   await loadApiKeys()
-  message.success('密钥已删除')
+  toast.success('密钥已删除')
 }
 
-const columns: DataTableColumns<ApiKeyItem> = [
-  { title: '名称', key: 'name' },
-  { title: '密钥（掩码）', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
-  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
-  {
-    title: '操作',
-    key: 'actions',
-    render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteKey(r.id) }, { default: () => '确认删除此密钥？', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '删除' }) }),
-  },
-]
+function renderCode(code: string) {
+  return h('code', { style: 'font-family: JetBrains Mono, monospace; font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: var(--text-secondary);' }, code)
+}
+
+function renderDeleteButton(row: any) {
+  return h(ElButton, { size: 'small', type: 'danger', plain: true, onClick: () => deleteKey(row.id) }, () => '删除')
+}
 
 const apiTokens = ref<ApiTokenItem[]>([])
-const tokenName = ref('')
+const tokenName = ref<string>('')
 const tokenExpiry = ref<number>(30)
-const tokenCreating = ref(false)
+const tokenCreating = ref<boolean>(false)
 const newlyCreated = ref<CreatedApiToken | null>(null)
-const showTokenModal = ref(false)
+const showTokenModal = ref<boolean>(false)
 
-const expiryOptions: SelectOption[] = [
+const expiryOptions = [
   { label: '7 天', value: 7 },
   { label: '30 天', value: 30 },
   { label: '90 天', value: 90 },
@@ -133,14 +125,14 @@ const expiryOptions: SelectOption[] = [
   { label: '永久有效', value: 0 },
 ]
 
-async function loadApiTokens() {
+async function loadApiTokens(): Promise<void> {
   const res: any = await request.get('/tokens')
   apiTokens.value = res.tokens
 }
 
-async function createToken() {
+async function createToken(): Promise<void> {
   if (!tokenName.value.trim()) {
-    message.error('请填写令牌名称')
+    toast.error('请填写令牌名称')
     return
   }
   tokenCreating.value = true
@@ -153,53 +145,40 @@ async function createToken() {
     showTokenModal.value = true
     tokenName.value = ''
     await loadApiTokens()
-    message.success('API 令牌已生成，请立即保存')
+    toast.success('API 令牌已生成，请立即保存')
   } finally {
     tokenCreating.value = false
   }
 }
 
-async function deleteToken(id: number) {
+async function deleteToken(id: number): Promise<void> {
+  const confirmed = await sweetalert.confirmDanger('确认撤销该令牌？', '撤销后立即失效，不可恢复')
+  if (!confirmed) return
   await request.delete(`/tokens/${id}`)
   await loadApiTokens()
-  message.success('令牌已撤销')
+  toast.success('令牌已撤销')
 }
 
-async function copyNewToken() {
+async function copyNewToken(): Promise<void> {
   if (!newlyCreated.value) return
   try {
     await navigator.clipboard.writeText(newlyCreated.value.token)
-    message.success('已复制到剪贴板')
+    toast.success('已复制到剪贴板')
   } catch {
-    message.error('复制失败，请手动选择文本复制')
+    toast.error('复制失败，请手动选择文本复制')
   }
 }
 
-const tokenColumns: DataTableColumns<ApiTokenItem> = [
-  { title: '名称', key: 'name', width: 160 },
-  { title: '令牌前缀', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
-  {
-    title: '状态',
-    key: 'status',
-    width: 100,
-    render: (r) => {
-      if (r.expiresAt && new Date(r.expiresAt) < new Date()) {
-        return h(NTag, { type: 'error', size: 'small' }, { default: () => '已过期' })
-      }
-      return h(NTag, { type: 'success', size: 'small' }, { default: () => '有效' })
-    },
-  },
-  { title: '创建时间', key: 'createdAt', width: 170, render: (r) => new Date(r.createdAt).toLocaleString() },
-  { title: '最后使用', key: 'lastUsedAt', width: 170, render: (r) => (r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleString() : '—') },
-  { title: '过期时间', key: 'expiresAt', width: 170, render: (r) => (r.expiresAt ? new Date(r.expiresAt).toLocaleString() : '永久') },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 90,
-    render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteToken(r.id) }, { default: () => '确认撤销该令牌？撤销后立即失效。', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '撤销' }) }),
-  },
-]
+function renderTokenStatus(row: any) {
+  if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+    return h(ElTag, { type: 'danger', size: 'small' }, () => '已过期')
+  }
+  return h(ElTag, { type: 'success', size: 'small' }, () => '有效')
+}
+
+function renderRevokeButton(row: any) {
+  return h(ElButton, { size: 'small', type: 'danger', plain: true, onClick: () => deleteToken(row.id) }, () => '撤销')
+}
 
 interface ReferralLinkItem {
   id: number
@@ -217,7 +196,7 @@ interface ReferralRewardItem {
   createdAt: string
 }
 
-const referralLoading = ref(true)
+const referralLoading = ref<boolean>(true)
 const referralInfo = ref<{
   referralCode: string
   referralLink: string
@@ -226,12 +205,12 @@ const referralInfo = ref<{
   stats: { referredCount: number; totalEarned: number; rewardCount: number }
 } | null>(null)
 
-const bindCode = ref('')
-const binding = ref(false)
-const generatingLink = ref(false)
+const bindCode = ref<string>('')
+const binding = ref<boolean>(false)
+const generatingLink = ref<boolean>(false)
 const copiedField = ref<string | null>(null)
 
-async function loadReferral() {
+async function loadReferral(): Promise<void> {
   referralLoading.value = true
   try {
     const res: any = await request.get('/referral/info')
@@ -243,47 +222,47 @@ async function loadReferral() {
   }
 }
 
-async function bindReferral() {
-  const code = bindCode.value.trim()
+async function bindReferral(): Promise<void> {
+  const code: string = bindCode.value.trim()
   if (!code) {
-    message.error('请输入邀请码')
+    toast.error('请输入邀请码')
     return
   }
   binding.value = true
   try {
     const res: any = await request.post('/referral/bind', { code })
-    message.success(res.message || '邀请绑定成功')
+    toast.success(res.message || '邀请绑定成功')
     bindCode.value = ''
     await loadReferral()
   } catch (e: any) {
-    const msg = e?.response?.data?.error || '绑定失败'
-    message.error(msg)
+    const msg: string = e?.response?.data?.error || '绑定失败'
+    toast.error(msg)
   } finally {
     binding.value = false
   }
 }
 
-async function generateLink() {
+async function generateLink(): Promise<void> {
   generatingLink.value = true
   try {
     await request.post('/referral/links')
-    message.success('新邀请链接已生成')
+    toast.success('新邀请链接已生成')
     await loadReferral()
   } catch (e: any) {
-    message.error('生成失败，请稍后重试')
+    toast.error('生成失败，请稍后重试')
   } finally {
     generatingLink.value = false
   }
 }
 
-async function copyText(text: string, field: string) {
+async function copyText(text: string, field: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
     copiedField.value = field
-    message.success('已复制到剪贴板')
+    toast.success('已复制到剪贴板')
     setTimeout(() => { if (copiedField.value === field) copiedField.value = null }, 2000)
   } catch {
-    message.error('复制失败，请手动选择文本复制')
+    toast.error('复制失败，请手动选择文本复制')
   }
 }
 
@@ -294,22 +273,15 @@ const rewardTypeMap: Record<string, string> = {
   PURCHASE: '购买分成',
 }
 
-const referralLinkColumns: DataTableColumns<ReferralLinkItem> = [
-  { title: '邀请码', key: 'code', render: (r) => h(NCode, { code: r.code, language: 'text' }) },
-  { title: '点击数', key: 'clicks' },
-  { title: '注册数', key: 'signupCount' },
-  { title: '累计积分', key: 'totalCommissionEarned' },
-  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
-]
+function renderRewardCredits(credits: number) {
+  return h('span', { style: 'color: var(--success); font-weight: 700;' }, `+${credits}`)
+}
 
-const referralRewardColumns: DataTableColumns<ReferralRewardItem> = [
-  { title: '类型', key: 'type', render: (r) => rewardTypeMap[r.type] || r.type },
-  { title: '积分', key: 'credits', render: (r) => h('span', { style: 'color: var(--success); font-weight: 700;' }, `+${r.credits}`) },
-  { title: '说明', key: 'detail', render: (r) => r.detail ?? '—' },
-  { title: '时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
-]
+function renderRewardType(type: string) {
+  return rewardTypeMap[type] || type
+}
 
-onMounted(() => {
+onMounted((): void => {
   loadApiKeys()
   loadApiTokens()
   loadReferral()
@@ -323,7 +295,7 @@ onMounted(() => {
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><FingerPrintOutline /></NIcon>
+            <el-icon :size="12"><UserFilled /></el-icon>
             <span>PROFILE // 个人中心</span>
           </div>
           <h1 class="chronos-page-title">
@@ -336,21 +308,21 @@ onMounted(() => {
         </div>
         <div class="banner-id">
           <div class="id-avatar">
-            <NIcon size="32" style="color: var(--primary);"><PersonCircleOutline /></NIcon>
+            <el-icon :size="32" style="color: var(--primary);"><User /></el-icon>
             <div class="id-ring r1"></div>
             <div class="id-ring r2"></div>
           </div>
           <div class="id-info">
             <div class="id-name">{{ auth.user?.username || '未命名用户' }}</div>
             <div class="id-tags">
-              <NTag v-if="auth.isAdmin" size="small" round class="tag-admin">
-                <NIcon size="11" style="margin-right: 2px;"><RibbonOutline /></NIcon>
+              <el-tag v-if="auth.isAdmin" size="small" round effect="plain" class="tag-admin">
+                <el-icon :size="11" style="margin-right: 2px;"><Medal /></el-icon>
                 管理员
-              </NTag>
+              </el-tag>
               <span :class="['id-mode-tag', auth.cloudSyncEnabled ? 'cloud' : 'local']">
-                <NIcon size="10" style="margin-right: 3px;">
-                  <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-                </NIcon>
+                <el-icon :size="10" style="margin-right: 3px;">
+                  <component :is="auth.cloudSyncEnabled ? Upload : Download" />
+                </el-icon>
                 云端{{ auth.cloudSyncEnabled ? '已连接' : '离线' }}
               </span>
             </div>
@@ -359,7 +331,7 @@ onMounted(() => {
       </div>
  
 
-    <div class="chronos-panel section-card page-enter">
+    <div class="chronos-panel section-card page-enter glass-card">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
@@ -367,7 +339,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon">
-          <NIcon size="19"><PersonCircleOutline /></NIcon>
+          <el-icon :size="19"><User /></el-icon>
         </div>
         <div style="flex: 1;">
           <h3>用户信息</h3>
@@ -380,39 +352,39 @@ onMounted(() => {
       <div class="account-grid">
         <div>
           <div class="sub-section-title">
-            <NIcon size="14" style="color: var(--primary);"><CreateOutline /></NIcon>
+            <el-icon :size="14" style="color: var(--primary);"><EditPen /></el-icon>
             更新用户名
           </div>
-          <NForm label-placement="top">
-            <NFormItem label="用户名">
-              <NInput v-model:value="newUsername" placeholder="请输入用户名" />
-            </NFormItem>
-            <NButton type="tertiary" @click="saveUsername">
-              <template #icon><NIcon size="14"><SaveOutline /></NIcon></template>
+          <el-form label-position="top">
+            <el-form-item label="用户名">
+              <el-input v-model="newUsername" placeholder="请输入用户名" />
+            </el-form-item>
+            <el-button type="default" plain @click="saveUsername">
+              <template #icon><el-icon :size="14"><Edit /></el-icon></template>
               保存
-            </NButton>
-          </NForm>
+            </el-button>
+          </el-form>
         </div>
 
         <div>
           <div class="sub-section-title">
-            <NIcon size="14" style="color: var(--accent);"><LockClosedOutline /></NIcon>
+            <el-icon :size="14" style="color: var(--accent);"><Lock /></el-icon>
             修改登录密码
           </div>
-          <NForm label-placement="top">
-            <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="确认新密码"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
-            <NButton type="tertiary" @click="savePassword">
-              <template #icon><NIcon size="14"><LockClosedOutline /></NIcon></template>
+          <el-form label-position="top">
+            <el-form-item label="原密码"><el-input v-model="oldPwd" type="password" show-password /></el-form-item>
+            <el-form-item label="新密码"><el-input v-model="newPwd" type="password" show-password /></el-form-item>
+            <el-form-item label="确认新密码"><el-input v-model="confirmPwd" type="password" show-password /></el-form-item>
+            <el-button type="default" plain @click="savePassword">
+              <template #icon><el-icon :size="14"><Lock /></el-icon></template>
               更新密码
-            </NButton>
-          </NForm>
+            </el-button>
+          </el-form>
         </div>
       </div>
     </div>
 
-    <div class="chronos-panel section-card page-enter delay-1">
+    <div class="chronos-panel section-card page-enter delay-1 glass-card">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
@@ -420,7 +392,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon accent">
-          <NIcon size="19"><KeyOutline /></NIcon>
+          <el-icon :size="19"><Key /></el-icon>
         </div>
         <div style="flex: 1;">
           <h3>API 密钥管理</h3>
@@ -431,24 +403,41 @@ onMounted(() => {
       </div>
 
       <div class="add-row">
-        <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="keyName" placeholder="如：工作密钥" style="width: 200px;" />
-          </NFormItem>
-          <NFormItem label="密钥内容" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="keyValue" placeholder="sk-..." style="width: 320px;" />
-          </NFormItem>
-          <NButton type="tertiary" @click="addKey">
-            <template #icon><NIcon size="14"><AddOutline /></NIcon></template>
+        <el-space :size="12" align="end" wrap>
+          <el-form-item label="名称" :show-message="false" style="margin-bottom: 0;">
+            <el-input v-model="keyName" placeholder="如：工作密钥" style="width: 200px;" />
+          </el-form-item>
+          <el-form-item label="密钥内容" :show-message="false" style="margin-bottom: 0;">
+            <el-input v-model="keyValue" placeholder="sk-..." style="width: 320px;" />
+          </el-form-item>
+          <el-button type="default" plain @click="addKey">
+            <template #icon><el-icon :size="14"><Plus /></el-icon></template>
             添加
-          </NButton>
-        </NSpace>
+          </el-button>
+        </el-space>
       </div>
 
-      <NDataTable :columns="columns" :data="apiKeys" :bordered="false" size="small" :single-line="false" />
+      <el-table :data="apiKeys" stripe size="small" style="width: 100%">
+        <el-table-column prop="name" label="名称" min-width="120" />
+        <el-table-column label="密钥（掩码）" min-width="200">
+          <template #default="{ row }">
+            {{ renderCode(row.masked) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" min-width="170">
+          <template #default="{ row }">
+            {{ new Date(row.createdAt).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            {{ renderDeleteButton(row) }}
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
-    <div class="chronos-panel section-card page-enter delay-2">
+    <div class="chronos-panel section-card page-enter delay-2 glass-card">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
@@ -456,7 +445,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon success">
-          <NIcon size="19"><ShieldOutline /></NIcon>
+          <el-icon :size="19"><Medal /></el-icon>
         </div>
         <div style="flex: 1;">
           <div class="section-title-row">
@@ -470,24 +459,63 @@ onMounted(() => {
       </div>
 
       <div class="add-row">
-        <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
-          </NFormItem>
-          <NFormItem label="有效期" :show-feedback="false" style="margin-bottom: 0;">
-            <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
-          </NFormItem>
-          <NButton type="tertiary" :loading="tokenCreating" @click="createToken">
-            <template #icon><NIcon size="14"><RocketOutline /></NIcon></template>
+        <el-space :size="12" align="end" wrap>
+          <el-form-item label="名称" :show-message="false" style="margin-bottom: 0;">
+            <el-input v-model="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
+          </el-form-item>
+          <el-form-item label="有效期" :show-message="false" style="margin-bottom: 0;">
+            <el-select v-model="tokenExpiry" style="width: 160px;">
+              <el-option
+                v-for="opt in expiryOptions"
+                :key="opt.value"
+                :label="opt.label"
+                :value="opt.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-button type="default" plain :loading="tokenCreating" @click="createToken">
+            <template #icon><el-icon :size="14"><Lightning /></el-icon></template>
             生成令牌
-          </NButton>
-        </NSpace>
+          </el-button>
+        </el-space>
       </div>
 
-      <NDataTable :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" :scroll-x="900" />
+      <el-table :data="apiTokens" stripe size="small" style="width: 100%">
+        <el-table-column prop="name" label="名称" width="160" />
+        <el-table-column label="令牌前缀" min-width="160">
+          <template #default="{ row }">
+            {{ renderCode(row.masked) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            {{ renderTokenStatus(row) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="创建时间" width="170">
+          <template #default="{ row }">
+            {{ new Date(row.createdAt).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column label="最后使用" width="170">
+          <template #default="{ row }">
+            {{ row.lastUsedAt ? new Date(row.lastUsedAt).toLocaleString() : '—' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="过期时间" width="170">
+          <template #default="{ row }">
+            {{ row.expiresAt ? new Date(row.expiresAt).toLocaleString() : '永久' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="90" fixed="right">
+          <template #default="{ row }">
+            {{ renderRevokeButton(row) }}
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
-    <div class="chronos-panel section-card page-enter delay-3">
+    <div class="chronos-panel section-card page-enter delay-3 glass-card">
       <div class="panel-corner tl"></div>
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
@@ -495,7 +523,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon referral">
-          <NIcon size="19"><GiftOutline /></NIcon>
+          <el-icon :size="19"><Present /></el-icon>
         </div>
         <div style="flex: 1;">
           <h3>邀请奖励</h3>
@@ -507,125 +535,158 @@ onMounted(() => {
 
       <div class="referral-stats">
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--accent);"><PeopleOutline /></NIcon>
+          <el-icon :size="18" style="color: var(--accent);"><User /></el-icon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.referredCount ?? 0 }}</div>
           <div class="referral-stat-label">邀请人数</div>
         </div>
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--success);"><CashOutline /></NIcon>
+          <el-icon :size="18" style="color: var(--success);"><Wallet /></el-icon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.totalEarned ?? 0 }}</div>
           <div class="referral-stat-label">累计积分</div>
         </div>
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--warning);"><GiftOutline /></NIcon>
+          <el-icon :size="18" style="color: var(--warning);"><Present /></el-icon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.rewardCount ?? 0 }}</div>
           <div class="referral-stat-label">奖励次数</div>
         </div>
       </div>
 
       <div class="referral-link-row" v-if="referralInfo">
-        <NInput
-          :value="referralInfo!.referralLink"
+        <el-input
+          :model-value="referralInfo!.referralLink"
           readonly
           placeholder="暂无邀请链接"
           style="flex: 1;"
         />
-        <NButton @click="copyText(referralInfo!.referralLink, 'main')">
-          <template #icon><NIcon size="14"><CopyOutline /></NIcon></template>
+        <el-button @click="copyText(referralInfo!.referralLink, 'main')">
+          <template #icon><el-icon :size="14"><CopyDocument /></el-icon></template>
           复制
-        </NButton>
-        <NButton type="tertiary" :loading="generatingLink" @click="generateLink">
-          <template #icon><NIcon size="14"><LinkOutline /></NIcon></template>
+        </el-button>
+        <el-button type="default" plain :loading="generatingLink" @click="generateLink">
+          <template #icon><el-icon :size="14"><Link /></el-icon></template>
           生成新链接
-        </NButton>
+        </el-button>
       </div>
 
       <div class="referral-bind-row">
-        <NInput
-          v-model:value="bindCode"
+        <el-input
+          v-model="bindCode"
           placeholder="输入好友的邀请码"
           style="flex: 1;"
         />
-        <NButton type="tertiary" :loading="binding" @click="bindReferral">
-          <template #icon><NIcon size="14"><CheckmarkCircleOutline /></NIcon></template>
+        <el-button type="default" plain :loading="binding" @click="bindReferral">
+          <template #icon><el-icon :size="14"><CircleCheck /></el-icon></template>
           绑定邀请码
-        </NButton>
+        </el-button>
       </div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
         绑定后双方各获 300/500 积分奖励
       </div>
 
       <div class="sub-section-title" style="margin-top: 4px;">
-        <NIcon size="14" style="color: var(--primary);"><LinkOutline /></NIcon>
+        <el-icon :size="14" style="color: var(--primary);"><Link /></el-icon>
         邀请链接
       </div>
-      <NDataTable
+      <el-table
         v-if="referralInfo && referralInfo.links.length"
-        :columns="referralLinkColumns"
         :data="referralInfo!.links"
-        :bordered="false"
+        stripe
         size="small"
-        :single-line="false"
-      />
+        style="width: 100%"
+      >
+        <el-table-column label="邀请码" min-width="140">
+          <template #default="{ row }">
+            {{ renderCode(row.code) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="clicks" label="点击数" min-width="80" />
+        <el-table-column prop="signupCount" label="注册数" min-width="80" />
+        <el-table-column prop="totalCommissionEarned" label="累计积分" min-width="100" />
+        <el-table-column label="创建时间" min-width="170">
+          <template #default="{ row }">
+            {{ new Date(row.createdAt).toLocaleString() }}
+          </template>
+        </el-table-column>
+      </el-table>
       <div v-else class="referral-empty">暂无邀请链接，点击上方生成</div>
 
       <div class="sub-section-title" style="margin-top: 20px;">
-        <NIcon size="14" style="color: var(--warning);"><GiftOutline /></NIcon>
+        <el-icon :size="14" style="color: var(--warning);"><Present /></el-icon>
         奖励记录
       </div>
-      <NDataTable
+      <el-table
         v-if="referralInfo && referralInfo.rewards.length"
-        :columns="referralRewardColumns"
         :data="referralInfo!.rewards"
-        :bordered="false"
+        stripe
         size="small"
-        :single-line="false"
-      />
+        style="width: 100%"
+      >
+        <el-table-column label="类型" min-width="100">
+          <template #default="{ row }">
+            {{ renderRewardType(row.type) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="积分" min-width="80">
+          <template #default="{ row }">
+            {{ renderRewardCredits(row.credits) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="说明" min-width="140">
+          <template #default="{ row }">
+            {{ row.detail ?? '—' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="时间" min-width="170">
+          <template #default="{ row }">
+            {{ new Date(row.createdAt).toLocaleString() }}
+          </template>
+        </el-table-column>
+      </el-table>
       <div v-else class="referral-empty">暂无奖励记录</div>
     </div>
 
     <div class="logout-row">
-      <NButton size="large" type="error" ghost @click="handleLogout">
-        <template #icon><NIcon size="16"><LogOutOutline /></NIcon></template>
+      <el-button size="large" type="danger" plain @click="handleLogout">
+        <template #icon><el-icon :size="16"><SwitchButton /></el-icon></template>
         退出登录
-      </NButton>
+      </el-button>
     </div>
 
-    <NModal
-      v-model:show="showTokenModal"
-      preset="card"
+    <el-dialog
+      v-model="showTokenModal"
       title="令牌已生成（仅此一次显示明文）"
-      style="width: 620px; max-width: 92vw;"
-      :mask-closable="false"
-      :bordered="false"
+      width="620px"
+      :close-on-click-modal="false"
       class="chronos-modal"
     >
-      <NSpace vertical :size="14">
+      <el-space vertical :size="14">
         <div class="token-warning">
-          <NIcon size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></NIcon>
+          <el-icon :size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><Timer /></el-icon>
           <div>
             请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新生成新令牌。
           </div>
         </div>
         <div class="token-display">
           <div class="token-label">
-            <TimeOutline style="font-size: 11px; margin-right: 5px;" />
+            <el-icon :size="11" style="margin-right: 5px;"><Timer /></el-icon>
             BEARER TOKEN
           </div>
-          <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap class="token-code" />
+          <div v-if="newlyCreated" class="token-code-wrap">
+            <code class="token-code">{{ newlyCreated.token }}</code>
+          </div>
         </div>
-        <NSpace justify="end" style="padding-top: 6px;">
-          <NButton @click="showTokenModal = false">
-            <template #icon><NIcon size="15"><CheckmarkCircleOutline /></NIcon></template>
+        <el-space justify="end" style="padding-top: 6px;">
+          <el-button @click="showTokenModal = false">
+            <template #icon><el-icon :size="15"><CircleCheck /></el-icon></template>
             我已保存
-          </NButton>
-          <NButton type="primary" @click="copyNewToken">
-            <template #icon><NIcon size="15"><CopyOutline /></NIcon></template>
+          </el-button>
+          <el-button type="primary" @click="copyNewToken">
+            <template #icon><el-icon :size="15"><CopyDocument /></el-icon></template>
             复制令牌
-          </NButton>
-        </NSpace>
-      </NSpace>
-    </NModal>
+          </el-button>
+        </el-space>
+      </el-space>
+    </el-dialog>
   </div>
 </template>
 
@@ -880,11 +941,16 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
 }
+.token-code-wrap {
+  word-break: break-all;
+}
 .token-code {
   color: #E2E8F0;
   font-size: 13px;
   background: transparent;
   padding: 0;
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  line-height: 1.6;
 }
 
 .section-icon.referral {

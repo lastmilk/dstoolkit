@@ -1,23 +1,18 @@
 <script setup lang="ts">
+/**
+ * 登录页（Element Plus 版本）
+ *  - 左侧品牌展示 + 功能亮点
+ *  - 右侧玻璃拟态表单
+ *  - 成功 / 错误提示走 vue-toastification
+ *  - 提交 loading 与 SweetAlert2 无冲突
+ */
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NSpace,
-  NIcon,
-} from 'naive-ui'
-import {
-  SparklesSharp,
-  SearchOutline,
-  BarChartOutline,
-  CloudUploadOutline,
-  LogInOutline,
-  ArrowForwardOutline,
-} from '@vicons/ionicons5'
+  MagicStick, Search, DataAnalysis, Upload, User, Lock, ArrowRight,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { toast } from '@/utils/toast'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -28,12 +23,25 @@ const password = ref('')
 const loading = ref(false)
 
 async function onSubmit() {
-  if (!username.value || !password.value) return
+  if (!username.value.trim()) {
+    toast.warning('请输入用户名')
+    return
+  }
+  if (!password.value) {
+    toast.warning('请输入密码')
+    return
+  }
   loading.value = true
   try {
-    await auth.login(username.value, password.value)
+    await auth.login(username.value.trim(), password.value)
+    toast.success(`欢迎回来，${auth.user?.username || '用户'}！`)
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
+  } catch (e: any) {
+    // 错误拦截器中 toast 已提示
+    if (!e?.handled) {
+      toast.error(e?.response?.data?.message || '登录失败，请检查账号密码')
+    }
   } finally {
     loading.value = false
   }
@@ -49,7 +57,7 @@ async function onSubmit() {
         <!-- Logo -->
         <div class="side-logo">
           <div class="side-logo-icon">
-            <NIcon size="24"><SparklesSharp /></NIcon>
+            <el-icon :size="24"><MagicStick /></el-icon>
           </div>
           <div class="side-logo-text">
             <div class="side-logo-name">Deepseek Toolkit</div>
@@ -71,27 +79,27 @@ async function onSubmit() {
 
         <!-- 功能亮点 -->
         <div class="side-features">
-          <div class="feat-card">
+          <div class="feat-card glass">
             <div class="feat-icon feat-icon-1">
-              <NIcon size="18"><SearchOutline /></NIcon>
+              <el-icon :size="18"><Search /></el-icon>
             </div>
             <div class="feat-text">
               <div class="feat-title">极速全文检索</div>
               <div class="feat-sub">支持正则与多维度筛选</div>
             </div>
           </div>
-          <div class="feat-card">
+          <div class="feat-card glass">
             <div class="feat-icon feat-icon-2">
-              <NIcon size="18"><BarChartOutline /></NIcon>
+              <el-icon :size="18"><DataAnalysis /></el-icon>
             </div>
             <div class="feat-text">
               <div class="feat-title">数据可视化</div>
               <div class="feat-sub">对话量 / 模型 / 时段分析</div>
             </div>
           </div>
-          <div class="feat-card">
+          <div class="feat-card glass">
             <div class="feat-icon feat-icon-3">
-              <NIcon size="18"><CloudUploadOutline /></NIcon>
+              <el-icon :size="18"><Upload /></el-icon>
             </div>
             <div class="feat-text">
               <div class="feat-title">Alpaca 导出</div>
@@ -113,7 +121,7 @@ async function onSubmit() {
         <!-- 移动端显示的小 Logo -->
         <div class="mobile-logo">
           <div class="mobile-logo-icon brand-gradient">
-            <NIcon size="20"><SparklesSharp /></NIcon>
+            <el-icon :size="20"><MagicStick /></el-icon>
           </div>
           <div class="mobile-logo-text">Toolkit</div>
         </div>
@@ -129,61 +137,70 @@ async function onSubmit() {
           </p>
         </div>
 
-        <NForm @keyup.enter="onSubmit" class="auth-form">
-          <NFormItem label="用户名">
-            <NInput
-              v-model:value="username"
-              placeholder="输入用户名或注册时的账号"
-              clearable
+        <div class="auth-form glass-strong" @keyup.enter="onSubmit">
+          <el-form label-position="top" size="large">
+            <el-form-item label="用户名">
+              <el-input
+                v-model="username"
+                placeholder="输入用户名或注册时的账号"
+                clearable
+              >
+                <template #prefix>
+                  <el-icon><User /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item label="密码">
+              <el-input
+                v-model="password"
+                type="password"
+                show-password
+                placeholder="输入账号密码"
+                @keyup.enter="onSubmit"
+              >
+                <template #prefix>
+                  <el-icon><Lock /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-button
+              type="primary"
+              size="large"
+              :loading="loading"
+              @click="onSubmit"
+              class="submit-btn"
             >
-              <template #prefix>
-                <NIcon size="16" style="color: var(--text-muted);">
-                  <LogInOutline />
-                </NIcon>
+              <template v-if="!loading" #icon>
+                <el-icon><ArrowRight /></el-icon>
               </template>
-            </NInput>
-          </NFormItem>
-
-          <NFormItem label="密码">
-            <NInput
-              v-model:value="password"
-              type="password"
-              show-password-on="click"
-              placeholder="输入账号密码"
-            />
-          </NFormItem>
-
-          <NButton
-            type="primary"
-            block
-            size="large"
-            :loading="loading"
-            @click="onSubmit"
-            class="submit-btn"
-          >
-            <template #icon v-if="!loading">
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
-            </template>
-            登录
-          </NButton>
-        </NForm>
+              登录
+            </el-button>
+          </el-form>
+        </div>
 
         <div class="auth-divider">
           <span>还没有账号？</span>
         </div>
 
         <div class="auth-alt">
-          <NButton block ghost size="large" @click="router.push('/register')">
+          <el-button size="large" @click="router.push('/register')" class="alt-btn">
             创建新账号
             <template #icon>
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
+              <el-icon><ArrowRight /></el-icon>
             </template>
-          </NButton>
+          </el-button>
         </div>
 
-        <p class="auth-tip">
-          💡 首个注册的用户将自动成为系统管理员
-        </p>
+        <el-alert
+          type="info"
+          :closable="false"
+          show-icon
+          class="auth-tip-alert"
+          title="💡 提示"
+          description="首个注册的用户将自动成为系统管理员"
+        />
       </div>
     </main>
   </div>
@@ -247,18 +264,21 @@ async function onSubmit() {
   justify-content: center;
   background: rgba(255,255,255,0.14);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.22);
   border-radius: 12px;
 }
 .side-logo-name {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.01em;
+  color: #fff;
 }
 .side-logo-sub {
   font-size: 12px;
   opacity: 0.78;
   margin-top: 1px;
+  color: rgba(255,255,255,0.78);
 }
 
 /* 主标题区 */
@@ -268,11 +288,12 @@ async function onSubmit() {
 }
 .side-title {
   font-size: 44px;
-  font-weight: 800;
+  font-weight: var(--font-weight-black);
   line-height: 1.15;
   letter-spacing: -0.02em;
   color: #fff;
   margin: 0 0 20px;
+  font-family: var(--font-family-harmony);
 }
 .accent-inline {
   background: linear-gradient(135deg, #C4B5FD 0%, #FBCFE8 60%, #FDE68A 100%);
@@ -300,15 +321,19 @@ async function onSubmit() {
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
   backdrop-filter: blur(8px);
-  border-radius: 12px;
-  transition: all var(--transition);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px !important;
+  transition: all var(--transition) !important;
+  box-shadow: none !important;
+  color: #fff;
 }
 .feat-card:hover {
-  background: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.10) !important;
   transform: translateX(4px);
+  border-color: rgba(255,255,255,0.20) !important;
 }
 .feat-icon {
   width: 40px;
@@ -325,7 +350,7 @@ async function onSubmit() {
 
 .feat-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   color: #fff;
 }
 .feat-sub {
@@ -353,7 +378,7 @@ async function onSubmit() {
 
 .auth-form-wrap {
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
 }
 
 .mobile-logo {
@@ -374,7 +399,7 @@ async function onSubmit() {
 }
 .mobile-logo-text {
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   color: var(--text);
 }
 
@@ -384,7 +409,7 @@ async function onSubmit() {
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: var(--font-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--primary);
@@ -402,10 +427,12 @@ async function onSubmit() {
 }
 .form-title {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   line-height: 1.2;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
+  color: var(--text);
+  font-family: var(--font-family-harmony);
 }
 .form-subtitle {
   font-size: 14px;
@@ -415,16 +442,17 @@ async function onSubmit() {
 
 .auth-form {
   padding: 24px;
-  background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
   margin-bottom: 16px;
 }
 
 .submit-btn {
   margin-top: 4px;
   height: 44px;
+  width: 100%;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
 }
 
 .auth-divider {
@@ -439,12 +467,37 @@ async function onSubmit() {
 .auth-alt {
   margin-bottom: 16px;
 }
+.alt-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: var(--radius);
+  font-weight: var(--font-weight-medium);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+.alt-btn:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
 
-.auth-tip {
+.auth-tip-alert {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-top: 16px;
+}
+:deep(.auth-tip-alert .el-alert__content) {
   text-align: center;
+  align-items: center;
+}
+:deep(.auth-tip-alert .el-alert__description) {
   font-size: 12px;
   color: var(--text-muted);
-  margin: 0;
+  margin-top: 2px;
 }
 
 /* ============ 响应式 ============ */

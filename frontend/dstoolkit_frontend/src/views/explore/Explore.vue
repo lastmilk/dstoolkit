@@ -1,37 +1,34 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
-  NSpace,
-  NInput,
-  NSwitch,
-  NText,
-  NSpin,
-  NButton,
-  NCheckbox,
-  NRadioGroup,
-  NRadio,
-  NRadioButton,
-  NPagination,
-  NIcon,
-  NTag,
-} from 'naive-ui'
+  ElSpace,
+  ElInput,
+  ElSwitch,
+  ElButton,
+  ElCheckbox,
+  ElRadioGroup,
+  ElRadio,
+  ElPagination,
+  ElIcon,
+  ElTag,
+} from 'element-plus'
 import dayjs from 'dayjs'
 import {
-  SearchOutline,
-  CloudOutline,
-  CloudOfflineOutline,
-  FilterOutline,
-  TimeOutline,
-  SearchCircleOutline,
-  ChevronDownOutline,
-  RocketOutline,
-  SparklesOutline,
-  ChevronBackOutline,
-  ChevronForwardOutline,
-  FolderOpenOutline,
-  RefreshOutline,
-  ListOutline,
-} from '@vicons/ionicons5'
+  Search,
+  Upload,
+  Download,
+  Filter,
+  Timer,
+  ZoomIn,
+  ArrowDown,
+  Promotion,
+  MagicStick,
+  DArrowLeft,
+  DArrowRight,
+  FolderOpened,
+  Refresh,
+  List,
+} from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useSearchModelStore, type SearchModel } from '@/stores/searchModel'
 import {
@@ -48,7 +45,7 @@ import {
   type SearchFilters,
 } from '@/utils/db'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { toast } from '@/utils/toast'
 import TurnTree from '@/components/TurnTree.vue'
 import ChatViewer from '@/components/ChatViewer.vue'
 import type { ParsedConversation } from '@/types'
@@ -241,10 +238,11 @@ function onSearchInputBlur() {
   hideSuggestions()
 }
 
-function onSearchInputKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') {
+function onSearchInputKeydown(e: Event | KeyboardEvent) {
+  const ke = e as KeyboardEvent
+  if (ke.key === 'Escape') {
     showSuggestions.value = false
-  } else if (e.key === 'Enter' && showSuggestions.value && suggestions.value.length > 0) {
+  } else if (ke.key === 'Enter' && showSuggestions.value && suggestions.value.length > 0) {
     // 让默认 Enter 行为继续；下拉点击通过 mousedown 处理
   }
 }
@@ -326,11 +324,11 @@ async function doSearch() {
   }
 }
 
-function onModelChange(val: string | number | null | Array<string | number>) {
-  const m = (Array.isArray(val) ? val[0] : val) as SearchModel | undefined
+function onModelChange(val: string | number | boolean | undefined) {
+  const m = val as SearchModel | undefined
   if (!m || m === 'cloud_v2') return
   if (m === 'cloud_v1' && !auth.cloudSyncEnabled) {
-    message.warning('请先在个人中心开启云端存储开关')
+    toast.warning('请先在个人中心开启云端存储开关')
     searchModelStore.setModel('local_v1')
     return
   }
@@ -340,7 +338,7 @@ function onModelChange(val: string | number | null | Array<string | number>) {
 function onModeChange(m: 'timeline' | 'search') {
   if (m === 'search' && !query.value.trim()) {
     mode.value = 'timeline'
-    message.info('请输入搜索词后再切换到搜索模式')
+    toast.info('请输入搜索词后再切换到搜索模式')
     return
   }
   mode.value = m
@@ -450,7 +448,7 @@ async function loadMore() {
     hasMore.value = cloudConfigStates.value.some((s) => s.hasMore)
   } catch (e) {
     console.warn('Failed to load more conversations:', e)
-    message.error('加载更多失败，请重试')
+    toast.error('加载更多失败，请重试')
   } finally {
     loadingMore.value = false
   }
@@ -476,7 +474,7 @@ async function loadConversationsByFolder(folderId: number) {
     } as ParsedConversation))
     mode.value = 'timeline'
   } catch (e) {
-    message.error('加载文件夹对话失败')
+    toast.error('加载文件夹对话失败')
   } finally {
     loading.value = false
   }
@@ -502,7 +500,7 @@ function selectTag(id: number) {
   activeFolderId.value = null
   const tag = tags.value.find((t) => t.id === id)
   if (tag) {
-    message.info(`按标签筛选需要对话已打标签：${tag.name}`)
+    toast.info(`按标签筛选需要对话已打标签：${tag.name}`)
   }
 }
 
@@ -534,14 +532,14 @@ async function generateSummary() {
   try {
     const res: any = await request.post(`/summaries/${(conv as any).id}`)
     summaryJobId.value = res.jobId
-    message.success(res.message || 'AI 摘要生成中，请稍候')
+    toast.success(res.message || 'AI 摘要生成中，请稍候')
     pollSummaryJob()
   } catch (e: any) {
-    const msg = e?.response?.data?.error || '摘要生成失败'
+    const msg: string = e?.response?.data?.error || '摘要生成失败'
     if (e?.response?.status === 402) {
-      message.error(msg + '，请前往定价页购买积分')
+      toast.error(msg + '，请前往定价页购买积分')
     } else {
-      message.error(msg)
+      toast.error(msg)
     }
   }
 }
@@ -562,7 +560,7 @@ function pollSummaryJob() {
         if (summaryPollTimer) clearInterval(summaryPollTimer)
         summaryPollTimer = null
         summaryJobId.value = null
-        message.error('摘要生成失败')
+        toast.error('摘要生成失败')
       }
     } catch {
       if (summaryPollTimer) clearInterval(summaryPollTimer)
@@ -605,7 +603,7 @@ onUnmounted(() => {
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><RocketOutline /></NIcon>
+            <el-icon :size="12"><Promotion /></el-icon>
             <span>EXPLORER // 对话浏览</span>
           </div>
           <h1 class="chronos-page-title">
@@ -638,23 +636,24 @@ onUnmounted(() => {
     <!-- ========== 顶部：加载/统计状态 ========== -->
     <div class="explore-status-bar">
       <div v-if="loading" class="status-chip status-chip-loading">
-        <NSpin :size="14" />
+        <el-icon class="is-loading" :size="14"><Refresh /></el-icon>
         <span>{{ loadProgress || '加载中…' }}</span>
       </div>
       <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
-        <NIcon size="14" style="color: var(--success);"><SparklesOutline /></NIcon>
+        <el-icon :size="14" style="color: var(--success);"><MagicStick /></el-icon>
         <span>就绪 · 加载耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
       </div>
       <div class="flex-spacer"></div>
-      <NTag
+      <el-tag
         v-if="totalConvs != null || conversations.length > 0"
         class="chronos-tag"
         round
         size="small"
+        effect="plain"
       >
-        <NIcon size="11" style="margin-right: 4px;"><TimeOutline /></NIcon>
+        <el-icon :size="11" style="margin-right: 4px;"><Timer /></el-icon>
         {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个对话 · 搜索服务就绪
-      </NTag>
+      </el-tag>
     </div>
 
     <!-- ========== 搜索控制栏 ========== -->
@@ -667,21 +666,21 @@ onUnmounted(() => {
       <div class="search-row">
         <div class="search-input-wrap">
           <div class="search-input-icon">
-            <NIcon size="18"><SearchOutline /></NIcon>
+            <el-icon :size="18"><Search /></el-icon>
           </div>
-          <NInput
-            :value="query"
+          <el-input
+            :model-value="query"
             placeholder="输入关键词，搜索历史对话内容…（支持正则表达式）"
             clearable
             class="search-input"
-            @update:value="onQueryInput"
+            @update:model-value="onQueryInput"
             @keyup.enter="debounceTimer = null; doSearch()"
             @blur="onSearchInputBlur"
             @keydown="onSearchInputKeydown"
           />
           <div class="search-regex-toggle">
             <span class="regex-label">正则</span>
-            <NSwitch v-model:value="useRegex" size="small" />
+            <el-switch v-model="useRegex" size="small" />
           </div>
           <div v-if="showSuggestions" class="search-suggestions">
             <div
@@ -691,58 +690,58 @@ onUnmounted(() => {
               @mousedown.prevent="selectSuggestion(s.text)"
               @mouseenter="showSuggestionsNow"
             >
-              <NIcon size="14" class="suggestion-icon">
-                <component :is="s.type === 'history' ? TimeOutline : SearchOutline" />
-              </NIcon>
+              <el-icon :size="14" class="suggestion-icon">
+                <component :is="s.type === 'history' ? Timer : Search" />
+              </el-icon>
               <span class="suggestion-text">{{ s.text }}</span>
-              <NTag size="tiny" class="suggestion-type">{{ suggestionTypeLabel(s.type) }}</NTag>
+              <el-tag size="small" effect="plain" class="suggestion-type">{{ suggestionTypeLabel(s.type) }}</el-tag>
             </div>
           </div>
         </div>
-        <NButton type="tertiary" size="medium" :loading="loading" @click="doSearch">
-          <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
+        <el-button size="default" plain :loading="loading" @click="doSearch">
+          <template #icon><el-icon :size="16"><Search /></el-icon></template>
           搜索
-        </NButton>
+        </el-button>
       </div>
 
       <div class="search-options">
         <div class="opt-group">
           <label class="opt-label">搜索模式</label>
-          <NRadioGroup
-            :value="searchModelStore.model"
+          <el-radio-group
+            :model-value="searchModelStore.model"
             size="small"
-            @update:value="onModelChange"
+            @update:model-value="onModelChange"
           >
-            <NRadio value="local_v1" size="small">本地 v1</NRadio>
-            <NRadio value="cloud_v1" size="small">云端 v1</NRadio>
-            <NRadio :value="'cloud_v2'" :disabled="true" size="small">云端 v2 ⏳</NRadio>
-          </NRadioGroup>
+            <el-radio value="local_v1" size="small">本地 v1</el-radio>
+            <el-radio value="cloud_v1" size="small">云端 v1</el-radio>
+            <el-radio value="cloud_v2" disabled size="small">云端 v2 ⏳</el-radio>
+          </el-radio-group>
         </div>
 
         <div class="opt-group opt-mode">
-          <NRadioGroup
-            :value="mode"
+          <el-radio-group
+            :model-value="mode"
             size="small"
-            @update:value="(v: string | number) => onModeChange(v as 'timeline' | 'search')"
+            @update:model-value="(v: string | number | boolean | undefined) => onModeChange((v ?? 'timeline') as 'timeline' | 'search')"
           >
-            <NRadioButton value="timeline">
-              <NIcon size="14" style="margin-right: 4px;"><TimeOutline /></NIcon>
+            <el-radio-button value="timeline">
+              <el-icon :size="14" style="margin-right: 4px;"><Timer /></el-icon>
               全部对话
-            </NRadioButton>
-            <NRadioButton value="search">
-              <NIcon size="14" style="margin-right: 4px;"><SearchCircleOutline /></NIcon>
+            </el-radio-button>
+            <el-radio-button value="search">
+              <el-icon :size="14" style="margin-right: 4px;"><ZoomIn /></el-icon>
               搜索结果
-            </NRadioButton>
-          </NRadioGroup>
+            </el-radio-button>
+          </el-radio-group>
         </div>
 
         <div class="opt-group opt-datasource">
           <span
             :class="['source-pill', auth.cloudSyncEnabled ? 'source-cloud' : 'source-local']"
           >
-            <NIcon size="12">
-              <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-            </NIcon>
+            <el-icon :size="12">
+              <component :is="auth.cloudSyncEnabled ? Upload : Download" />
+            </el-icon>
             {{ auth.cloudSyncEnabled ? '云端模式' : '本地模式' }}
           </span>
         </div>
@@ -750,7 +749,7 @@ onUnmounted(() => {
 
       <div v-if="auth.cloudSyncEnabled && aiFilters.length > 0" class="ai-filter-row">
         <div class="filter-label">
-          <NIcon size="14"><SparklesOutline /></NIcon>
+          <el-icon :size="14"><MagicStick /></el-icon>
           <span>AI 智能过滤</span>
         </div>
         <div class="ai-filter-chips">
@@ -768,23 +767,23 @@ onUnmounted(() => {
 
       <div class="filter-row">
         <div class="filter-label">
-          <NIcon size="14"><FilterOutline /></NIcon>
+          <el-icon :size="14"><Filter /></el-icon>
           <span>筛选范围</span>
         </div>
-        <NSpace align="center" :size="12" wrap>
+        <el-space align="center" :size="12" wrap>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.title" />
+            <el-checkbox v-model="searchFilters.title" />
             <span>会话标题</span>
           </label>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.user" />
+            <el-checkbox v-model="searchFilters.user" />
             <span>用户消息</span>
           </label>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.assistant" />
+            <el-checkbox v-model="searchFilters.assistant" />
             <span>模型回复</span>
           </label>
-        </NSpace>
+        </el-space>
       </div>
     </div>
 
@@ -806,9 +805,9 @@ onUnmounted(() => {
             type="button"
             @click="sidebarCollapsed = !sidebarCollapsed"
           >
-            <NIcon size="14">
-              <component :is="sidebarCollapsed ? ChevronForwardOutline : ChevronBackOutline" />
-            </NIcon>
+            <el-icon :size="14">
+              <component :is="sidebarCollapsed ? DArrowRight : DArrowLeft" />
+            </el-icon>
           </button>
         </div>
         <div v-show="!sidebarCollapsed" class="sidebar-body">
@@ -818,7 +817,7 @@ onUnmounted(() => {
             type="button"
             @click="clearSidebarFilters"
           >
-            <NIcon size="14"><ListOutline /></NIcon>
+            <el-icon :size="14"><List /></el-icon>
             <span>全部对话</span>
           </button>
           <div class="sidebar-section">
@@ -832,7 +831,7 @@ onUnmounted(() => {
               type="button"
               @click="selectFolder(f.id)"
             >
-              <NIcon size="14" class="sidebar-row-icon"><FolderOpenOutline /></NIcon>
+              <el-icon :size="14" class="sidebar-row-icon"><FolderOpened /></el-icon>
               <span class="sidebar-row-name">{{ f.name }}</span>
               <span class="sidebar-row-count">{{ f.conversationCount }}</span>
             </button>
@@ -840,18 +839,19 @@ onUnmounted(() => {
           <div class="sidebar-section">
             <div class="sidebar-section-title">标签</div>
             <div v-if="tags.length === 0" class="sidebar-empty">暂无标签</div>
-            <NSpace v-else :size="6" wrap>
-              <NTag
+            <el-space v-else :size="6" wrap>
+              <el-tag
                 v-for="t in tags"
                 :key="t.id"
                 size="small"
-                checkable
-                :checked="activeTagId === t.id"
-                @update:checked="() => selectTag(t.id)"
+                effect="plain"
+                :class="{ 'is-checked': activeTagId === t.id }"
+                style="cursor: pointer;"
+                @click="() => selectTag(t.id)"
               >
                 {{ t.name }}
-              </NTag>
-            </NSpace>
+              </el-tag>
+            </el-space>
           </div>
         </div>
       </aside>
@@ -868,50 +868,49 @@ onUnmounted(() => {
             <span class="hud-pulse"></span>
             {{ mode === 'timeline' ? '全部对话' : `搜索结果 (${totalCount})` }}
           </div>
-          <NText depth="3" style="font-size: 12px;">
+          <span style="font-size: 12px; color: var(--text-secondary);">
             {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
-          </NText>
+          </span>
         </div>
-        <div class="tree-body">
-          <NSpin :show="loading" style="height: 100%;">
-            <TurnTree
-              :conversations="pagedTreeConversations"
-              :search-hits="searchHits"
-              :auto-expand-paths="autoExpandPaths"
-              @select-subturn="onSelectSubturn"
-            />
-          </NSpin>
+        <div class="tree-body" v-loading="loading" style="height: 100%;">
+          <TurnTree
+            :conversations="pagedTreeConversations"
+            :search-hits="searchHits"
+            :auto-expand-paths="autoExpandPaths"
+            @select-subturn="onSelectSubturn"
+          />
         </div>
         <div class="tree-footer">
           <div class="pager-info">
-            <NIcon size="12" style="color: var(--primary);"><TimeOutline /></NIcon>
+            <el-icon :size="12" style="color: var(--primary);"><Timer /></el-icon>
             第 {{ currentPage }} / {{ pageCount }} 页
           </div>
-          <NPagination
-            :page="currentPage"
+          <el-pagination
+            :current-page="currentPage"
             :page-size="pageSize"
-            :item-count="totalCount"
+            :total="totalCount"
             :page-count="pageCount"
             :page-sizes="[20, 50, 100, 200]"
-            :show-size-picker="!isMobile"
+            layout="sizes, prev, pager, next"
+            :hide-on-single-page="false"
             :disabled="loading"
             size="small"
-            @update:page="onPageChange"
-            @update:page-size="(s: number) => { pageSize = s; currentPage = 1 }"
+            @current-change="onPageChange"
+            @size-change="(s: number) => { pageSize = s; currentPage = 1 }"
           />
-          <NButton
+          <el-button
             v-if="hasMore"
-            size="tiny"
+            size="small"
             type="primary"
-            ghost
+            plain
             :loading="loadingMore"
             @click="loadMore"
           >
             <template #icon v-if="!loadingMore">
-              <NIcon size="13"><ChevronDownOutline /></NIcon>
+              <el-icon :size="13"><ArrowDown /></el-icon>
             </template>
             加载更多
-          </NButton>
+          </el-button>
         </div>
       </div>
 
@@ -924,7 +923,7 @@ onUnmounted(() => {
         <!-- 移动端详情返回栏 -->
         <div v-if="isMobile && showDetail" class="mobile-detail-bar">
           <button class="detail-back-btn" type="button" @click="showDetail = false">
-            <NIcon size="18"><ChevronBackOutline /></NIcon>
+            <el-icon :size="18"><DArrowLeft /></el-icon>
             <span>返回列表</span>
           </button>
           <div class="detail-bar-title">{{ activeConv?.title || '对话详情' }}</div>
@@ -939,35 +938,36 @@ onUnmounted(() => {
           <div class="panel-corner bl"></div>
           <div class="panel-corner br"></div>
           <div v-if="summaryLoading" class="summary-loading">
-            <NSpin :size="14" />
+            <el-icon class="is-loading" :size="14"><Refresh /></el-icon>
             <span>加载摘要…</span>
           </div>
           <div v-else-if="activeSummary" class="summary-content">
             <div class="summary-tldr">{{ activeSummary.tldr }}</div>
             <div v-if="activeSummary.summary" class="summary-text">{{ activeSummary.summary }}</div>
             <div v-if="activeSummary.tags && activeSummary.tags.length" class="summary-tags">
-              <NTag
+              <el-tag
                 v-for="(t, i) in activeSummary.tags"
                 :key="i"
                 size="small"
                 round
+                effect="plain"
               >
                 {{ t }}
-              </NTag>
+              </el-tag>
             </div>
             <div class="summary-footer">
               <span class="summary-confidence">置信度 {{ activeSummary.confidence }}</span>
-              <NButton size="tiny" type="primary" ghost @click="generateSummary">
-                <template #icon><NIcon size="12"><RefreshOutline /></NIcon></template>
+              <el-button size="small" type="primary" plain @click="generateSummary">
+                <template #icon><el-icon :size="12"><Refresh /></el-icon></template>
                 重新生成
-              </NButton>
+              </el-button>
             </div>
           </div>
           <div v-else class="summary-empty">
-            <NButton size="small" type="primary" @click="generateSummary">
-              <template #icon><NIcon size="14"><SparklesOutline /></NIcon></template>
+            <el-button size="default" type="primary" @click="generateSummary">
+              <template #icon><el-icon :size="14"><MagicStick /></el-icon></template>
               生成 AI 摘要
-            </NButton>
+            </el-button>
             <span class="summary-hint">消耗 10 积分（FREE 用户每日免费 5 次）</span>
           </div>
         </div>
@@ -980,9 +980,9 @@ onUnmounted(() => {
             <div class="loader-ring"></div>
             <div class="loader-ring delay"></div>
           </div>
-          <NText depth="3" style="margin-top: 20px; font-size: 13px; color: var(--text-secondary);">
+          <span style="margin-top: 20px; font-size: 13px; color: var(--text-secondary);">
             正在加载对话详情…
-          </NText>
+          </span>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
       </div>
@@ -1187,16 +1187,18 @@ onUnmounted(() => {
   flex: 1;
   background: transparent !important;
 }
-.search-input :deep(.n-input__input-el) {
+.search-input :deep(.el-input__wrapper) {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.search-input :deep(.el-input__inner) {
   background: transparent !important;
   height: 42px;
   color: var(--text) !important;
 }
-.search-input :deep(.n-input__border),
-.search-input :deep(.n-input__state-border) {
-  display: none;
-}
-.search-input :deep(.n-input__placeholder) {
+.search-input :deep(.el-input__wrapper::placeholder),
+.search-input :deep(.el-input__inner::placeholder) {
   color: var(--text-muted) !important;
 }
 .search-regex-toggle {
@@ -1603,7 +1605,7 @@ onUnmounted(() => {
   font-weight: 500;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-.tree-footer :deep(.n-pagination) {
+.tree-footer :deep(.el-pagination) {
   flex: 1;
   justify-content: center;
 }
@@ -1858,8 +1860,8 @@ onUnmounted(() => {
     padding: 10px 12px;
   }
   .tree-footer .pager-info { order: 0; }
-  .tree-footer :deep(.n-button) { order: 1; }
-  .tree-footer :deep(.n-pagination) {
+  .tree-footer :deep(.el-button) { order: 1; }
+  .tree-footer :deep(.el-pagination) {
     order: 2;
     flex: 1 1 100%;
     width: 100%;
@@ -1901,7 +1903,7 @@ onUnmounted(() => {
   .search-input-wrap {
     flex: 1 1 100%;
   }
-  .search-row :deep(.n-button) {
+  .search-row :deep(.el-button) {
     flex: 1 1 100%;
     width: 100%;
   }

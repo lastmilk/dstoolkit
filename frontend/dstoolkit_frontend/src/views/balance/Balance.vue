@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import {
-  NSpace,
-  NSelect,
-  NButton,
-  NText,
-  NStatistic,
-  NEmpty,
-  NSpin,
-  NIcon,
-} from 'naive-ui'
+  ElSpace,
+  ElSelect,
+  ElOption,
+  ElButton,
+  ElStatistic,
+  ElEmpty,
+  ElIcon,
+} from 'element-plus'
 import {
-  WalletOutline,
-  RefreshOutline,
-  CheckmarkCircleOutline,
-  CloseCircleOutline,
-  CashOutline,
-  GiftOutline,
-  CardOutline,
-  KeyOutline,
-  RocketOutline,
-  SparklesOutline,
-} from '@vicons/ionicons5'
+  Wallet,
+  Refresh,
+  CircleCheck,
+  CircleClose,
+  Coin,
+  Present,
+  CreditCard,
+  Key,
+  Lightning,
+  MagicStick,
+} from '@element-plus/icons-vue'
 import { request } from '@/utils/request'
 import type { ApiKeyItem } from '@/types'
 
@@ -30,12 +29,12 @@ const keyId = ref<number | null>(null)
 const loading = ref(false)
 const result = ref<any>(null)
 
-async function loadKeys() {
+async function loadKeys(): Promise<void> {
   const res: any = await request.get('/apikeys')
   apiKeys.value = res.apiKeys
 }
 
-async function query() {
+async function query(): Promise<void> {
   if (!keyId.value) return
   loading.value = true
   result.value = null
@@ -71,32 +70,38 @@ onMounted(loadKeys)
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
       <div class="panel-corner br"></div>
-      <NSpace align="center" :size="12" wrap class="query-wrap">
+      <el-space align="center" :size="12" wrap class="query-wrap">
         <div class="key-picker-label">
-          <NIcon size="16" style="color: var(--primary);"><KeyOutline /></NIcon>
+          <el-icon :size="16" style="color: var(--primary);"><Key /></el-icon>
           <span>密钥选择</span>
         </div>
-        <NSelect
-          v-model:value="keyId"
-          :options="apiKeys.map((k) => ({ label: `${k.name} (${k.masked})`, value: k.id }))"
+        <el-select
+          v-model="keyId"
           placeholder="选择 API Key"
           class="key-select"
           clearable
-        />
-        <NButton type="primary" :loading="loading" :disabled="!keyId" @click="query">
-          <template #icon><NIcon size="15"><RefreshOutline /></NIcon></template>
+        >
+          <el-option
+            v-for="k in apiKeys"
+            :key="k.id"
+            :label="`${k.name} (${k.masked})`"
+            :value="k.id"
+          />
+        </el-select>
+        <el-button type="primary" :loading="loading" :disabled="!keyId" @click="query">
+          <template #icon><el-icon :size="15"><Refresh /></el-icon></template>
           查询余额
-        </NButton>
-      </NSpace>
+        </el-button>
+      </el-space>
     </div>
 
-    <NEmpty
+    <el-empty
       v-if="apiKeys.length === 0"
       description="暂无密钥，请到个人中心添加 API Key"
       style="padding: 60px 0;"
     />
 
-    <NSpin :show="loading">
+    <div v-loading="loading">
       <template v-if="result">
         <div
           class="chronos-panel status-card page-enter"
@@ -106,12 +111,12 @@ onMounted(loadKeys)
           <div class="panel-corner tr"></div>
           <div class="panel-corner bl"></div>
           <div class="panel-corner br"></div>
-          <NSpace align="center" :size="12">
+          <el-space align="center" :size="12">
             <div :class="['status-icon', result.isAvailable ? 'icon-success' : 'icon-danger']">
-              <NIcon size="24">
-                <CheckmarkCircleOutline v-if="result.isAvailable" />
-                <CloseCircleOutline v-else />
-              </NIcon>
+              <el-icon :size="24">
+                <CircleCheck v-if="result.isAvailable" />
+                <CircleClose v-else />
+              </el-icon>
             </div>
             <div class="status-text">
               <div class="status-title">
@@ -120,18 +125,18 @@ onMounted(loadKeys)
                   {{ result.isAvailable ? 'NORMAL' : 'LOW' }}
                 </span>
               </div>
-              <NText depth="3" style="font-size: 13px; color: var(--text-muted);">
+              <span style="font-size: 13px; color: var(--text-muted);">
                 更新时间：{{ new Date().toLocaleString() }} · 数据正常
-              </NText>
+              </span>
             </div>
-          </NSpace>
+          </el-space>
         </div>
 
         <div class="balance-grid">
           <div
             v-for="(b, i) in result.balanceInfos || []"
             :key="i"
-            class="chronos-panel balance-card page-enter"
+            class="chronos-panel balance-card page-enter glass-card"
             :style="{ animationDelay: `${50 * (Number(i) + 1)}ms` }"
           >
             <div class="panel-corner tl"></div>
@@ -143,19 +148,19 @@ onMounted(loadKeys)
             <div class="balance-head">
               <div>
                 <div class="balance-eyebrow">
-                  <NIcon size="12" style="color: var(--primary);"><RocketOutline /></NIcon>
+                  <el-icon :size="12" style="color: var(--primary);"><Lightning /></el-icon>
                   CURRENT BALANCE
                 </div>
                 <div class="balance-label">当前余额</div>
                 <div class="balance-amount">
                   <span class="amount-num">
-                    <NStatistic :value="b.totalBalance" :precision="2" />
+                    <el-statistic :value="b.totalBalance" :precision="2" />
                   </span>
                   <span class="amount-unit">{{ b.currency || 'CNY' }}</span>
                 </div>
               </div>
               <div class="balance-icon">
-                <NIcon size="20"><CashOutline /></NIcon>
+                <el-icon :size="20"><Coin /></el-icon>
               </div>
             </div>
 
@@ -168,14 +173,14 @@ onMounted(loadKeys)
             <div class="balance-rows">
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--success);"><GiftOutline /></NIcon>
+                  <el-icon :size="14" style="color: var(--success);"><Present /></el-icon>
                   <span>赠款余额</span>
                 </div>
                 <span class="row-val success">{{ b.grantedBalance }}</span>
               </div>
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--primary);"><CardOutline /></NIcon>
+                  <el-icon :size="14" style="color: var(--primary);"><CreditCard /></el-icon>
                   <span>充值余额</span>
                 </div>
                 <span class="row-val primary">{{ b.toppedUpBalance }}</span>
@@ -184,7 +189,7 @@ onMounted(loadKeys)
           </div>
         </div>
       </template>
-    </NSpin>
+    </div>
   </div>
 </template>
 

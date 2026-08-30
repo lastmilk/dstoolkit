@@ -2,49 +2,60 @@
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import {
-  NCard, NSpace, NSpin, NInput, NButton, NText, NEmpty, NConfigProvider,
-} from 'naive-ui'
+  ElCard, ElSpace, ElInput, ElButton, ElEmpty, ElIcon,
+} from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import { request } from '@/utils/request'
 import ChatViewer from '@/components/ChatViewer.vue'
 import type { ParsedConversation } from '@/types'
 
-const route = useRoute()
-const slug = computed(() => String(route.params.slug || ''))
+interface ShareResponse {
+  share: {
+    theme?: string
+    title?: string
+    viewCount?: number
+  }
+  conversation: ParsedConversation
+}
 
-const loading = ref(true)
-const error = ref('')
-const requiresPassword = ref(false)
-const password = ref('')
-const theme = ref('default')
-const title = ref('')
-const viewCount = ref(0)
+const route = useRoute()
+const slug = computed<string>(() => String(route.params.slug || ''))
+
+const loading = ref<boolean>(true)
+const error = ref<string>('')
+const requiresPassword = ref<boolean>(false)
+const password = ref<string>('')
+const theme = ref<string>('default')
+const title = ref<string>('')
+const viewCount = ref<number>(0)
 const conversation = ref<ParsedConversation | null>(null)
 
-async function fetchShare() {
+async function fetchShare(): Promise<void> {
   loading.value = true
   error.value = ''
   try {
-    const res: any = await request.get(`/public/shares/${slug.value}`, {
+    const res: ShareResponse = await request.get(`/public/shares/${slug.value}`, {
       headers: password.value ? { 'X-Share-Password': password.value } : undefined,
-    })
+    }) as ShareResponse
     theme.value = res.share.theme || 'default'
     title.value = res.share.title || ''
     viewCount.value = res.share.viewCount || 0
     conversation.value = res.conversation
     requiresPassword.value = false
-  } catch (e: any) {
-    const status = e?.response?.status
-    if (status === 401 && e?.response?.data?.requiresPassword) {
+  } catch (e: unknown) {
+    const err = e as { response?: { status?: number; data?: { requiresPassword?: boolean; error?: string } } }
+    const status: number | undefined = err?.response?.status
+    if (status === 401 && err?.response?.data?.requiresPassword) {
       requiresPassword.value = true
     } else {
-      error.value = e?.response?.data?.error || '加载失败'
+      error.value = err?.response?.data?.error || '加载失败'
     }
   } finally {
     loading.value = false
   }
 }
 
-function submitPassword() {
+function submitPassword(): void {
   if (!password.value) return
   fetchShare()
 }
@@ -59,51 +70,52 @@ onMounted(fetchShare)
         <span class="logo">Deepseek</span>
         <span class="sub">dstoolkit · 分享</span>
       </div>
-      <NText depth="3" style="font-size: 12px;">浏览 {{ viewCount }} 次</NText>
+      <span style="font-size: 12px; color: var(--text-muted);">浏览 {{ viewCount }} 次</span>
     </header>
 
     <main class="share-main">
       <div v-if="loading" class="share-loading">
-        <NSpin size="large" />
-        <NText depth="3" style="margin-top: 12px;">正在加载分享…</NText>
+        <ElIcon class="is-loading" :size="40"><Loading /></ElIcon>
+        <span style="margin-top: 12px; color: var(--text-muted);">正在加载分享…</span>
       </div>
 
-      <div v-else-if="requiresPassword" class="share-pw neu-card">
+      <div v-else-if="requiresPassword" class="share-pw neu-card glass-card">
         <h3>此分享需要密码</h3>
-        <NText depth="3" style="font-size: 13px; margin-bottom: 12px; display: block;">
+        <span style="font-size: 13px; margin-bottom: 12px; display: block; color: var(--text-muted);">
           请输入分享者设置的访问密码
-        </NText>
-        <NSpace align="end">
-          <NInput
-            v-model:value="password"
+        </span>
+        <ElSpace align="end">
+          <ElInput
+            v-model="password"
             type="password"
             placeholder="访问密码"
             style="width: 240px;"
             @keyup.enter="submitPassword"
+            show-password
           />
-          <NButton type="primary" @click="submitPassword">验证</NButton>
-        </NSpace>
+          <ElButton type="primary" @click="submitPassword">验证</ElButton>
+        </ElSpace>
       </div>
 
       <div v-else-if="error" class="share-error">
-        <NEmpty :description="error" />
+        <ElEmpty :description="error" />
       </div>
 
       <div v-else-if="conversation" class="share-conv">
-        <div class="share-title neu-card">
+        <div class="share-title neu-card glass-card">
           <h2>{{ title }}</h2>
-          <NText depth="3" style="font-size: 13px;">
+          <span style="font-size: 13px; color: var(--text-muted);">
             {{ conversation.messages.length }} 条消息 · {{ conversation.turns?.length ?? conversation.turnCount ?? 0 }} 轮对话
-          </NText>
+          </span>
         </div>
         <ChatViewer :conversation="conversation" :api-keys="[]" />
       </div>
     </main>
 
     <footer class="share-footer">
-      <NText depth="3" style="font-size: 12px;">
+      <span style="font-size: 12px; color: var(--text-muted);">
         由 dstoolkit 生成 · 主题：{{ theme }}
-      </NText>
+      </span>
     </footer>
   </div>
 </template>

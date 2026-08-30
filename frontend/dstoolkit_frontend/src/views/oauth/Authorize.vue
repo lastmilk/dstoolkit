@@ -1,19 +1,34 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { NButton, NIcon, NSpin } from 'naive-ui'
-import { ShieldCheckmarkOutline, PhonePortraitOutline, CloseOutline } from '@vicons/ionicons5'
+import { ElButton, ElIcon } from 'element-plus'
+import { Lock, Phone, Close, Loading } from '@element-plus/icons-vue'
 import { request } from '@/utils/request'
 import { useAuthStore } from '@/stores/auth'
+
+interface OAuthQuery {
+  client_id?: string
+  redirect_uri?: string
+  scope?: string
+  state?: string
+  code_challenge?: string
+  code_challenge_method?: string
+  [key: string]: string | undefined
+}
+
+interface AuthorizeResponse {
+  redirectUrl: string
+  [key: string]: unknown
+}
 
 const route = useRoute()
 const auth = useAuthStore()
 
-const loading = ref(false)
-const errorMsg = ref('')
-const clientName = ref('DsToolKit App')
+const loading = ref<boolean>(false)
+const errorMsg = ref<string>('')
+const clientName = ref<string>('DsToolKit App')
 
-const q = computed(() => route.query as Record<string, string>)
+const q = computed<OAuthQuery>(() => route.query as OAuthQuery)
 
 const SCOPE_LABELS: Record<string, string> = {
   'read:conversations': '读取你的对话列表与消息内容',
@@ -23,53 +38,51 @@ const SCOPE_LABELS: Record<string, string> = {
   offline_access: '离线访问（签发刷新令牌）',
 }
 
-const scopeList = computed(() =>
+const scopeList = computed<string[]>(() =>
   String(q.value.scope || '')
     .split(' ')
     .filter(Boolean),
 )
 
-const clientLabel = computed(() => {
+const clientLabel = computed<string>(() => {
   if (q.value.client_id === 'dstk-mobile-app') return 'DsToolKit 移动应用'
   if (q.value.client_id === 'dstk-browser-ext') return 'DsToolKit 浏览器插件'
   return q.value.client_id || '未知应用'
 })
 
-onMounted(() => {
-  // 参数完整性校验
+onMounted((): void => {
   if (!q.value.client_id || !q.value.redirect_uri || !q.value.code_challenge) {
     errorMsg.value = '缺少必要的授权参数（client_id / redirect_uri / code_challenge）'
     return
   }
-  // 未登录 → 跳登录页，登录后回跳本页
   if (!auth.isLoggedIn) {
-    const current = location.pathname + location.search
+    const current: string = location.pathname + location.search
     location.href = `/login?redirect=${encodeURIComponent(current)}`
   }
 })
 
-async function onApprove() {
+async function onApprove(): Promise<void> {
   loading.value = true
   errorMsg.value = ''
   try {
-    const res: any = await request.post('/oauth/authorize', {
+    const res: AuthorizeResponse = await request.post('/oauth/authorize', {
       clientId: q.value.client_id,
       redirectUri: q.value.redirect_uri,
       scope: q.value.scope || '',
       state: q.value.state || '',
       codeChallenge: q.value.code_challenge,
       codeChallengeMethod: q.value.code_challenge_method || 'S256',
-    })
-    // 跳转回 App 自定义 scheme（dstoolkit://oauth-callback?code=...）
+    }) as AuthorizeResponse
     location.href = res.redirectUrl
-  } catch (e: any) {
-    errorMsg.value = e?.response?.data?.error || '授权失败，请重试'
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { error?: string } } }
+    errorMsg.value = err?.response?.data?.error || '授权失败，请重试'
     loading.value = false
   }
 }
 
-function onDeny() {
-  const url = new URL(q.value.redirect_uri || 'dstoolkit://oauth-callback')
+function onDeny(): void {
+  const url: URL = new URL(q.value.redirect_uri || 'dstoolkit://oauth-callback')
   url.searchParams.set('error', 'access_denied')
   if (q.value.state) url.searchParams.set('state', q.value.state)
   location.href = url.toString()
@@ -78,9 +91,9 @@ function onDeny() {
 
 <template>
   <div class="oauth-shell">
-    <div class="oauth-card">
+    <div class="oauth-card glass-card">
       <div class="oauth-icon">
-        <NIcon size="36"><PhonePortraitOutline /></NIcon>
+        <ElIcon :size="36"><Phone /></ElIcon>
       </div>
       <h2 class="oauth-title">授权请求</h2>
       <p class="oauth-desc">
@@ -90,7 +103,7 @@ function onDeny() {
       <div class="oauth-scopes">
         <div v-if="scopeList.length === 0" class="scope-item">基础账号信息</div>
         <div v-for="s in scopeList" :key="s" class="scope-item">
-          <span class="scope-icon"><NIcon size="16"><ShieldCheckmarkOutline /></NIcon></span>
+          <span class="scope-icon"><ElIcon :size="16"><Lock /></ElIcon></span>
           {{ SCOPE_LABELS[s] || s }}
         </div>
       </div>
@@ -100,18 +113,18 @@ function onDeny() {
       </div>
 
       <div class="oauth-actions">
-        <NButton size="large" quaternary @click="onDeny" :disabled="loading">
-          <template #icon><NIcon><CloseOutline /></NIcon></template>
+        <ElButton size="large" text @click="onDeny" :disabled="loading">
+          <template #icon><ElIcon><Close /></ElIcon></template>
           拒绝
-        </NButton>
-        <NButton size="large" type="primary" @click="onApprove" :loading="loading" :disabled="!!errorMsg">
+        </ElButton>
+        <ElButton size="large" type="primary" @click="onApprove" :loading="loading" :disabled="!!errorMsg">
           同意授权
-        </NButton>
+        </ElButton>
       </div>
 
       <p class="oauth-hint">授权后将返回 DsToolKit 应用，你随时可在应用内退出登录以撤销访问。</p>
       <div v-if="loading" class="oauth-loading">
-        <NSpin size="small" />
+        <ElIcon class="is-loading" :size="20"><Loading /></ElIcon>
       </div>
     </div>
   </div>

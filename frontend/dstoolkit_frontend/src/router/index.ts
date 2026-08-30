@@ -17,8 +17,13 @@ const router = createRouter({
     {
       path: '/portal',
       name: 'portal',
-      component: () => import('@/views/portal/Portal.vue'),
+      component: () => import('@/portal/layouts/PortalLayout.vue'),
       meta: { public: true },
+      children: [
+        { path: '', name: 'portal-home', component: () => import('@/portal/pages/Home.vue') },
+        { path: 'features', name: 'portal-features', component: () => import('@/portal/pages/Features.vue') },
+        { path: 'pricing', name: 'portal-pricing', component: () => import('@/portal/pages/Pricing.vue') },
+      ],
     },
     {
       path: '/login',

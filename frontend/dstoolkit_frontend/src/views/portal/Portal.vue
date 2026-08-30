@@ -1,54 +1,62 @@
 <script setup lang="ts">
+import type { Component } from 'vue'
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NIcon } from 'naive-ui'
+import { ElIcon } from 'element-plus'
 import {
-  SparklesSharp,
-  SearchOutline,
-  BarChartOutline,
-  CodeSlashOutline,
-  CloudOutline,
-  ChatbubbleEllipsesOutline,
-  StorefrontOutline,
-  ArrowForwardOutline,
-} from '@vicons/ionicons5'
+  MagicStick,
+  Search,
+  DataAnalysis,
+  EditPen,
+  UploadFilled,
+  ChatLineRound,
+  Shop,
+  Right,
+} from '@element-plus/icons-vue'
+
+interface FeatureItem {
+  icon: Component
+  color: string
+  title: string
+  desc: string
+}
 
 const router = useRouter()
-const year = computed(() => new Date().getFullYear())
+const year = computed<number>(() => new Date().getFullYear())
 
-const features = [
+const features: FeatureItem[] = [
   {
-    icon: SearchOutline,
+    icon: Search,
     color: 'pf-1',
     title: '极速全文检索',
     desc: '支持正则、关键词、多条件筛选，几秒定位到历史对话。',
   },
   {
-    icon: BarChartOutline,
+    icon: DataAnalysis,
     color: 'pf-2',
     title: '数据可视化',
     desc: '对话量、模型分布、活跃时段一图掌握，洞察使用趋势。',
   },
   {
-    icon: CodeSlashOutline,
+    icon: EditPen,
     color: 'pf-3',
     title: 'Alpaca 格式导出',
     desc: '一键将对话转换为标准 Alpaca JSON，直接用于模型微调。',
   },
   {
-    icon: CloudOutline,
+    icon: UploadFilled,
     color: 'pf-4',
     title: '本地 / 云端双模式',
     desc: '支持纯本地存储与云端同步，数据完全可控。',
   },
   {
-    icon: ChatbubbleEllipsesOutline,
+    icon: ChatLineRound,
     color: 'pf-5',
     title: '继续对话',
     desc: '无缝跳转至平台，直接在原有语境下续写对话。',
   },
   {
-    icon: StorefrontOutline,
+    icon: Shop,
     color: 'pf-6',
     title: '模型市场',
     desc: '丰富的模型与能力扩展资源，一站获取。',
@@ -61,9 +69,9 @@ const features = [
     <nav class="portal-nav-top">
       <div class="portal-nav-inner">
         <div class="portal-nav-brand">
-          <NIcon size="22" class="brand-logo-icon">
-            <SparklesSharp />
-          </NIcon>
+          <ElIcon :size="22" class="brand-logo-icon">
+            <MagicStick />
+          </ElIcon>
           <span>Deepseek Toolkit</span>
         </div>
         <div class="portal-nav-links">
@@ -83,7 +91,7 @@ const features = [
 
     <section class="portal-hero">
       <div class="portal-eyebrow">
-        <NIcon size="14"><SparklesSharp /></NIcon>
+        <ElIcon :size="14"><MagicStick /></ElIcon>
         对话即资产
       </div>
       <h1 class="portal-title">
@@ -98,7 +106,7 @@ const features = [
           @click.prevent="router.push('/register')"
         >
           立即开始
-          <NIcon size="16"><ArrowForwardOutline /></NIcon>
+          <ElIcon :size="16"><Right /></ElIcon>
         </a>
         <a class="portal-btn ghost" href="#features">了解功能</a>
       </div>
@@ -110,9 +118,9 @@ const features = [
         <p class="portal-section-sub">六大核心能力，让你的 AI 对话真正可管理、可复用</p>
       </div>
       <div class="portal-feature-grid">
-        <div v-for="(f, i) in features" :key="i" class="portal-feature">
+        <div v-for="(f, i) in features" :key="i" class="portal-feature glass-card">
           <div :class="['portal-feature-icon', f.color]">
-            <NIcon size="22"><component :is="f.icon" /></NIcon>
+            <ElIcon :size="22"><component :is="f.icon" /></ElIcon>
           </div>
           <h3 class="portal-feature-title">{{ f.title }}</h3>
           <p class="portal-feature-desc">{{ f.desc }}</p>
@@ -121,7 +129,7 @@ const features = [
     </section>
 
     <section id="cta" class="portal-cta-section">
-      <div class="portal-cta-card">
+      <div class="portal-cta-card glass-card">
         <h3>准备好把 AI 对话变成你的资产了吗？</h3>
         <p>免费注册，立即使用所有功能；首个注册用户自动成为管理员。</p>
         <a
@@ -129,7 +137,7 @@ const features = [
           @click.prevent="router.push('/register')"
         >
           立即免费注册
-          <NIcon size="16"><ArrowForwardOutline /></NIcon>
+          <ElIcon :size="16"><Right /></ElIcon>
         </a>
       </div>
     </section>

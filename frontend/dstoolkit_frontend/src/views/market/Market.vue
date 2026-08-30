@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { NSpace, NEmpty, NSpin, NText, NIcon, NButton } from 'naive-ui'
+import { ElEmpty, ElIcon, ElButton } from 'element-plus'
 import {
-  StorefrontOutline,
-  OpenOutline,
-  PricetagsOutline,
-  SparklesOutline,
-  RocketOutline,
-  HammerOutline,
-  CodeSlashOutline,
-  BookOutline,
-  ColorPaletteOutline,
-  ConstructOutline,
-  BriefcaseOutline,
-  ExtensionPuzzleOutline,
-} from '@vicons/ionicons5'
+  ShoppingCart,
+  Open,
+  Goods,
+  Star,
+  Lightning,
+  Operation,
+  Notebook,
+  Brush,
+  Box,
+  Grid,
+} from '@element-plus/icons-vue'
 import { request } from '@/utils/request'
 import type { MarketEntry } from '@/types'
 
 const entries = ref<MarketEntry[]>([])
-const loading = ref(false)
+const loading = ref<boolean>(false)
 
-async function load() {
+async function load(): Promise<void> {
   loading.value = true
   try {
     const res: any = await request.get('/market')
@@ -31,23 +29,23 @@ async function load() {
   }
 }
 
-const DEFAULT_STYLE = { icon: SparklesOutline, color: '#6366F1', bg: 'rgba(99,102,241,0.10)' } as const
+const DEFAULT_STYLE = { icon: Star, color: '#6366F1', bg: 'rgba(99,102,241,0.10)' } as const
 function getCategoryStyle(category: string): { icon: any; color: string; bg: string } {
   const map: Record<string, { icon: any; color: string; bg: string }> = {
-    '开发工具': { icon: CodeSlashOutline, color: '#00D4FF', bg: 'rgba(0,212,255,0.12)' },
-    '学习资源': { icon: BookOutline, color: '#A855F7', bg: 'rgba(168,85,247,0.12)' },
-    '创意设计': { icon: ColorPaletteOutline, color: '#FF5A8C', bg: 'rgba(255,90,140,0.12)' },
-    '效率工具': { icon: RocketOutline, color: '#10B981', bg: 'rgba(16,185,129,0.12)' },
-    '社区交流': { icon: BriefcaseOutline, color: '#38BDF8', bg: 'rgba(56,189,248,0.12)' },
-    '基础设施': { icon: ConstructOutline, color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
-    '模型插件': { icon: ExtensionPuzzleOutline, color: '#14B8A6', bg: 'rgba(20,184,166,0.12)' },
+    '开发工具': { icon: Operation, color: '#00D4FF', bg: 'rgba(0,212,255,0.12)' },
+    '学习资源': { icon: Notebook, color: '#A855F7', bg: 'rgba(168,85,247,0.12)' },
+    '创意设计': { icon: Brush, color: '#FF5A8C', bg: 'rgba(255,90,140,0.12)' },
+    '效率工具': { icon: Lightning, color: '#10B981', bg: 'rgba(16,185,129,0.12)' },
+    '社区交流': { icon: ShoppingCart, color: '#38BDF8', bg: 'rgba(56,189,248,0.12)' },
+    '基础设施': { icon: Box, color: '#F59E0B', bg: 'rgba(245,158,11,0.12)' },
+    '模型插件': { icon: Grid, color: '#14B8A6', bg: 'rgba(20,184,166,0.12)' },
     '其他': DEFAULT_STYLE,
   }
   return map[category] ?? DEFAULT_STYLE
 }
-function categoryBg(category: string) { return getCategoryStyle(category).bg }
-function categoryColor(category: string) { return getCategoryStyle(category).color }
-function categoryIcon(category: string) { return getCategoryStyle(category).icon }
+function categoryBg(category: string): string { return getCategoryStyle(category).bg }
+function categoryColor(category: string): string { return getCategoryStyle(category).color }
+function categoryIcon(category: string): any { return getCategoryStyle(category).icon }
 
 onMounted(load)
 </script>
@@ -59,7 +57,7 @@ onMounted(load)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><RocketOutline /></NIcon>
+            <el-icon :size="12"><Lightning /></el-icon>
             <span>MODEL MARKET // 模型市场</span>
           </div>
           <h1 class="chronos-page-title">
@@ -79,8 +77,8 @@ onMounted(load)
         </div>
     </div>
 
-    <NSpin :show="loading">
-      <NEmpty
+    <div v-loading="loading">
+      <el-empty
         v-if="!loading && entries.length === 0"
         description="暂无收录资源"
         style="padding: 60px 0;"
@@ -95,7 +93,7 @@ onMounted(load)
           :href="e.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="chronos-panel market-card page-enter"
+          class="chronos-panel market-card page-enter glass-card"
           :style="{ animationDelay: `${40 * Math.min(idx, 10)}ms` }"
         >
           <div class="panel-corner tl"></div>
@@ -109,40 +107,40 @@ onMounted(load)
               class="market-icon"
               :style="{ background: categoryBg(e.category), color: categoryColor(e.category) }"
             >
-              <NIcon size="24"><component :is="categoryIcon(e.category)" /></NIcon>
+              <el-icon :size="24"><component :is="categoryIcon(e.category)" /></el-icon>
             </div>
             <div class="card-head-text">
               <h3>
                 {{ e.name }}
-                <NIcon size="14" style="color: var(--text-muted);"><OpenOutline /></NIcon>
+                <el-icon :size="14" style="color: var(--text-muted);"><Open /></el-icon>
               </h3>
               <span
                 class="category-tag"
                 :style="{ background: categoryBg(e.category), color: categoryColor(e.category) }"
               >
-                <NIcon size="10" style="margin-right: 3px;"><PricetagsOutline /></NIcon>
+                <el-icon :size="10" style="margin-right: 3px;"><Goods /></el-icon>
                 {{ e.category }}
               </span>
             </div>
           </div>
 
-          <NText depth="3" class="card-desc">
+          <span class="card-desc">
             {{ e.description || '暂无描述，点击查看更多' }}
-          </NText>
+          </span>
 
           <div class="card-foot">
             <div class="foot-tag">
-              <SparklesOutline style="font-size: 14px;" />
+              <Star style="font-size: 14px;" />
               <span>推荐</span>
             </div>
-            <NButton size="small" type="primary" round>
-              <template #icon><NIcon size="13"><OpenOutline /></NIcon></template>
+            <el-button size="small" type="primary" round>
+              <template #icon><el-icon :size="13"><Open /></el-icon></template>
               使用
-            </NButton>
+            </el-button>
           </div>
         </a>
       </div>
-    </NSpin>
+    </div>
   </div>
 </template>
 
