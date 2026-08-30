@@ -98,7 +98,7 @@ export const useThemeStore = defineStore('theme', {
       if (next) this.setTheme(next)
     },
 
-    /** 将当前主题应用到 <html data-theme=… style=…> + NaiveUI store（current getter 即可） */
+    /** 将当前主题应用到 <html data-theme=… theme-mode=… style=…> */
     applyToDom() {
       if (typeof document === 'undefined') return
       const theme = this.current
@@ -107,7 +107,14 @@ export const useThemeStore = defineStore('theme', {
       // 1) data-theme：global.css 中按 [data-theme=…] 做额外覆盖
       html.setAttribute('data-theme', theme.id)
 
-      // 2) 内联样式：覆盖 :root 的 CSS 变量
+      // 2) theme-mode：启用 TDesign 内置暗色模式（仅暗色主题设置）
+      if (theme.dark) {
+        html.setAttribute('theme-mode', 'dark')
+      } else {
+        html.removeAttribute('theme-mode')
+      }
+
+      // 3) 内联样式：覆盖 :root 的 CSS 变量（应用侧 + TDesign）
       const style = Object.entries(theme.vars)
         .map(([k, v]) => `${k}:${v}`)
         .join(';')

@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NIcon,
-  NTag,
-} from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   SparklesSharp,
   PersonAddOutline,
@@ -20,7 +13,7 @@ import {
   PieChartOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -54,7 +47,7 @@ async function onSubmit() {
       <div class="auth-side-content">
         <div class="side-logo">
           <div class="side-logo-icon">
-            <NIcon size="24"><SparklesSharp /></NIcon>
+            <AppIcon :size="24"><SparklesSharp /></AppIcon>
           </div>
           <div class="side-logo-text">
             <div class="side-logo-name">Deepseek Toolkit</div>
@@ -77,7 +70,7 @@ async function onSubmit() {
         <div class="side-features">
           <div class="feat-card">
             <div class="feat-icon feat-icon-1">
-              <NIcon size="18"><ShieldCheckmarkOutline /></NIcon>
+              <AppIcon :size="18"><ShieldCheckmarkOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">隐私安全</div>
@@ -86,7 +79,7 @@ async function onSubmit() {
           </div>
           <div class="feat-card">
             <div class="feat-icon feat-icon-2">
-              <NIcon size="18"><RocketOutline /></NIcon>
+              <AppIcon :size="18"><RocketOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">开箱即用</div>
@@ -95,7 +88,7 @@ async function onSubmit() {
           </div>
           <div class="feat-card">
             <div class="feat-icon feat-icon-3">
-              <NIcon size="18"><PieChartOutline /></NIcon>
+              <AppIcon :size="18"><PieChartOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">洞察可视化</div>
@@ -115,7 +108,7 @@ async function onSubmit() {
       <div class="auth-form-wrap page-enter">
         <div class="mobile-logo">
           <div class="mobile-logo-icon brand-gradient">
-            <NIcon size="20"><SparklesSharp /></NIcon>
+            <AppIcon :size="20"><SparklesSharp /></AppIcon>
           </div>
           <div class="mobile-logo-text">Toolkit</div>
         </div>
@@ -134,7 +127,7 @@ async function onSubmit() {
         <!-- 管理员提示 -->
         <div class="admin-banner">
           <div class="admin-banner-icon brand-gradient">
-            <NIcon size="14"><ShieldCheckmarkOutline /></NIcon>
+            <AppIcon :size="14"><ShieldCheckmarkOutline /></AppIcon>
           </div>
           <div class="admin-banner-text">
             <strong>你是首个注册用户？</strong>
@@ -142,53 +135,51 @@ async function onSubmit() {
           </div>
         </div>
 
-        <NForm @keyup.enter="onSubmit" class="auth-form">
-          <NFormItem label="用户名">
-            <NInput
-              v-model:value="username"
+        <t-form @keyup.enter="onSubmit" class="auth-form">
+          <t-form-item label="用户名">
+            <t-input
+              v-model="username"
               placeholder="至少 2 个字符"
               clearable
             >
               <template #prefix>
-                <NIcon size="16" style="color: var(--text-muted);">
+                <AppIcon :size="16" style="color: var(--text-muted);">
                   <PersonAddOutline />
-                </NIcon>
+                </AppIcon>
               </template>
-            </NInput>
-          </NFormItem>
+            </t-input>
+          </t-form-item>
 
-          <NFormItem label="登录密码">
-            <NInput
-              v-model:value="password"
+          <t-form-item label="登录密码">
+            <t-input
+              v-model="password"
               type="password"
-              show-password-on="click"
               placeholder="至少 6 位，建议包含字母数字"
             >
               <template #prefix>
-                <NIcon size="16" style="color: var(--text-muted);">
+                <AppIcon :size="16" style="color: var(--text-muted);">
                   <LockClosedOutline />
-                </NIcon>
+                </AppIcon>
               </template>
-            </NInput>
-          </NFormItem>
+            </t-input>
+          </t-form-item>
 
-          <NFormItem label="确认密码">
-            <NInput
-              v-model:value="confirm"
+          <t-form-item label="确认密码">
+            <t-input
+              v-model="confirm"
               type="password"
-              show-password-on="click"
               placeholder="请再次输入密码"
             >
               <template #prefix>
-                <NIcon size="16" style="color: var(--text-muted);">
+                <AppIcon :size="16" style="color: var(--text-muted);">
                   <LockClosedOutline />
-                </NIcon>
+                </AppIcon>
               </template>
-            </NInput>
-          </NFormItem>
+            </t-input>
+          </t-form-item>
 
-          <NButton
-            type="primary"
+          <t-button
+            theme="primary"
             block
             size="large"
             :loading="loading"
@@ -196,23 +187,23 @@ async function onSubmit() {
             class="submit-btn"
           >
             <template #icon v-if="!loading">
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
+              <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
             </template>
             创建账号并登录
-          </NButton>
-        </NForm>
+          </t-button>
+        </t-form>
 
         <div class="auth-divider">
           <span>已有账号？</span>
         </div>
 
         <div class="auth-alt">
-          <NButton block ghost size="large" @click="router.push('/login')">
+          <t-button block variant="outline" size="large" @click="router.push('/login')">
             返回登录
             <template #icon>
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
+              <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
             </template>
-          </NButton>
+          </t-button>
         </div>
 
         <p class="auth-tip">

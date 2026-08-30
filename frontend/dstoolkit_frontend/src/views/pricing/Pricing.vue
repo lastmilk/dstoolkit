@@ -1,15 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import {
-  NIcon,
-  NButton,
-  NModal,
-  NInput,
-  NSpin,
-  NSkeleton,
-  NTag,
-  NTooltip,
-} from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   SparklesOutline,
   RocketOutline,
@@ -37,7 +28,7 @@ import {
   StarOutline,
 } from '@vicons/ionicons5'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 
 // ═══════════ 类型 ═══════════
 type Period = 'annual' | 'permanent'
@@ -478,7 +469,7 @@ onUnmounted(stopTimer)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><SparklesOutline /></NIcon>
+            <AppIcon :size="12"><SparklesOutline /></AppIcon>
             <span>PRICING // 升级方案</span>
           </div>
           <h1 class="chronos-page-title">
@@ -494,7 +485,7 @@ onUnmounted(stopTimer)
             <div class="emblem-ring r1"></div>
             <div class="emblem-ring r2"></div>
             <div class="emblem-core">
-              <NIcon size="28" style="color: var(--primary);"><GiftOutline /></NIcon>
+              <AppIcon :size="28" style="color: var(--primary);"><GiftOutline /></AppIcon>
             </div>
           </div>
         </div>
@@ -521,36 +512,36 @@ onUnmounted(stopTimer)
 
         <!-- 推荐 / 选中标记 -->
         <div class="tier-badges">
-          <NTag
+          <t-tag
             v-if="tier.highlight"
             size="small"
-            round
-            :bordered="false"
+            shape="round"
+            variant="light"
             class="tier-tag-recommend"
           >
             <template #icon>
-              <NIcon size="12"><StarOutline /></NIcon>
+              <AppIcon :size="12"><StarOutline /></AppIcon>
             </template>
             推荐
-          </NTag>
-          <NTag
+          </t-tag>
+          <t-tag
             v-if="selectedTier === tier.id"
             size="small"
-            round
-            :bordered="false"
+            shape="round"
+            variant="light"
             class="tier-tag-selected"
           >
             <template #icon>
-              <NIcon size="12"><CheckmarkCircleOutline /></NIcon>
+              <AppIcon :size="12"><CheckmarkCircleOutline /></AppIcon>
             </template>
             已选择
-          </NTag>
+          </t-tag>
         </div>
 
         <!-- 套餐头 -->
         <header class="tier-head">
           <div class="tier-icon" :style="{ background: tier.gradient }">
-            <NIcon size="22"><component :is="tier.icon" /></NIcon>
+            <AppIcon :size="22"><component :is="tier.icon" /></AppIcon>
           </div>
           <div class="tier-name-block">
             <div class="tier-name">{{ tier.name }}</div>
@@ -589,7 +580,7 @@ onUnmounted(stopTimer)
             :key="i"
             :class="{ highlight: f.highlight }"
           >
-            <NIcon size="14" class="feature-icon"><component :is="f.icon" /></NIcon>
+            <AppIcon :size="14" class="feature-icon"><component :is="f.icon" /></AppIcon>
             <span>{{ f.text }}</span>
           </li>
         </ul>
@@ -600,7 +591,7 @@ onUnmounted(stopTimer)
           @click.stop="selectTier(tier.id)"
         >
           升级到 {{ tier.name }}
-          <NIcon size="14"><ArrowForwardOutline /></NIcon>
+          <AppIcon :size="14"><ArrowForwardOutline /></AppIcon>
         </button>
       </article>
     </section>
@@ -620,18 +611,18 @@ onUnmounted(stopTimer)
           :key="pack.id"
           :class="['credit-pack-card', { popular: pack.popular }]"
         >
-          <NTag
+          <t-tag
             v-if="pack.popular"
             size="small"
-            round
-            :bordered="false"
+            shape="round"
+            variant="light"
             class="pack-tag-popular"
           >
             <template #icon>
-              <NIcon size="12"><StarOutline /></NIcon>
+              <AppIcon :size="12"><StarOutline /></AppIcon>
             </template>
             热门
-          </NTag>
+          </t-tag>
 
           <div class="pack-credits">
             <span class="pack-credits-num">{{ pack.credits }}</span>
@@ -645,8 +636,8 @@ onUnmounted(stopTimer)
 
           <p class="pack-desc">约可生成 {{ packSummaryCount(pack.credits) }} 次 AI 摘要</p>
 
-          <NButton
-            type="primary"
+          <t-button
+            theme="primary"
             size="large"
             block
             :loading="purchasingPack === pack.id"
@@ -655,7 +646,7 @@ onUnmounted(stopTimer)
             @click="purchaseCreditPack(pack.id)"
           >
             购买
-          </NButton>
+          </t-button>
         </article>
       </div>
     </section>
@@ -672,9 +663,9 @@ onUnmounted(stopTimer)
       </div>
 
       <div class="payment-methods">
-        <NSpin v-if="configLoading" size="small">
+        <t-loading v-if="configLoading" loading size="small">
           <div style="height: 96px;"></div>
-        </NSpin>
+        </t-loading>
         <template v-else>
           <label
             v-for="m in paymentMethods"
@@ -706,19 +697,19 @@ onUnmounted(stopTimer)
                 <path fill="currentColor" d="M20.5 14.5c-.86-1.93-2.06-3.92-3.34-5.86C16.84 8.05 17 7.42 17 6.7c0-2.45-1.55-4.55-4.85-4.55-3.32 0-4.85 2.1-4.85 4.55 0 1.65.83 3.07 2.34 3.81.27 1.34.96 2.84 1.79 4.27-.34.08-.71.13-1.1.13-2.16 0-3.69-.69-3.69-1.7 0-.55.39-.99 1.06-1.32v-.62c-1.36.51-2.2 1.4-2.2 2.51 0 1.61 2.04 2.62 5.06 2.62.64 0 1.24-.07 1.79-.2.45.7.92 1.37 1.36 1.99H4.5C3.67 17.4 3 16.73 3 15.9V8.1C3 7.27 3.67 6.6 4.5 6.6h15c.83 0 1.5.67 1.5 1.5v6.4h-1.07c.36.66.7 1.34 1 2.04.21.51.34 1 .41 1.45l-.84-1.49Zm-7.7-10.5c1.6 0 2.65 1.06 2.65 2.5 0 1.45-1.05 2.5-2.65 2.5S10.15 7.95 10.15 6.5c0-1.44 1.05-2.5 2.65-2.5Z"/>
               </svg>
               <!-- 卡密 -->
-              <NIcon v-else size="22"><KeyOutline /></NIcon>
+              <AppIcon v-else :size="22"><KeyOutline /></AppIcon>
             </div>
 
             <div class="payment-info">
               <div class="payment-name">
                 {{ m.name }}
-                <NTag
+                <t-tag
                   v-if="m.badge"
-                  size="tiny"
-                  round
-                  :bordered="false"
+                  size="small"
+                  shape="round"
+                  variant="light"
                   class="payment-badge"
-                >{{ m.badge }}</NTag>
+                >{{ m.badge }}</t-tag>
               </div>
               <div class="payment-desc">
                 <template v-if="!methodAvailability[m.id]">未开通 · 自动切换到卡密</template>
@@ -736,14 +727,14 @@ onUnmounted(stopTimer)
       <!-- 卡密说明（仅当卡密选中时显示） -->
       <transition name="fade-slide">
         <div v-if="!configLoading && selectedPayment === 'cardkey'" class="cardkey-hint">
-          <NIcon size="16" class="hint-icon"><KeyOutline /></NIcon>
+          <AppIcon :size="16" class="hint-icon"><KeyOutline /></AppIcon>
           <div class="hint-text">
             <div class="hint-title">卡密充值说明</div>
             <div class="hint-desc">
               卡密为你提供免支付的兜底方案，永久有效，适合无法使用微信/支付宝的用户。
               卡密购买地址：<a :href="cardKeyShopUrl" target="_blank" rel="noopener" class="hint-link">
                 {{ cardKeyShopUrl }}
-                <NIcon size="11"><OpenOutline /></NIcon>
+                <AppIcon :size="11"><OpenOutline /></AppIcon>
               </a>
             </div>
           </div>
@@ -760,50 +751,53 @@ onUnmounted(stopTimer)
             <span class="unit">/ {{ currentBilling.label }}</span>
           </div>
         </div>
-        <NButton
-          type="primary"
+        <t-button
+          theme="primary"
           size="large"
           :loading="creatingOrder"
           :disabled="configLoading"
           class="checkout-btn"
           @click="startCheckout"
         >
-          <template #icon><NIcon size="16"><ArrowForwardOutline /></NIcon></template>
+          <template #icon><AppIcon :size="16"><ArrowForwardOutline /></AppIcon></template>
           立即升级 {{ currentTier.name }}
-        </NButton>
+        </t-button>
       </div>
     </section>
 
     <!-- ═══════════ 底部说明 ═══════════ -->
     <section class="pricing-footer">
       <div class="footer-item">
-        <NIcon size="18"><ShieldCheckmarkOutline /></NIcon>
+        <AppIcon :size="18"><ShieldCheckmarkOutline /></AppIcon>
         <span>所有方案均享受 Free 版全部功能，权益即时生效</span>
       </div>
       <div class="footer-item">
-        <NIcon size="18"><RefreshOutline /></NIcon>
+        <AppIcon :size="18"><RefreshOutline /></AppIcon>
         <span>年费方案到期前 7 天将通过站内消息提醒续费</span>
       </div>
       <div class="footer-item">
-        <NIcon size="18"><HeadsetOutline /></NIcon>
+        <AppIcon :size="18"><HeadsetOutline /></AppIcon>
         <span>购买与权益问题请通过个人中心反馈，管理员会尽快处理</span>
       </div>
     </section>
 
     <!-- ═══════════ 支付模态框 ═══════════ -->
-    <NModal
-      :show="showModal"
-      :mask-closable="false"
-      :close-on-esc="true"
-      @update:show="(v) => !v && closePayment()"
+    <t-dialog
+      v-model:visible="showModal"
+      :footer="false"
+      :close-btn="false"
+      :close-on-overlay-click="false"
+      destroy-on-close
+      dialog-class-name="pay-modal"
+      @close="closePayment"
     >
-      <div class="pay-modal">
+      <template #header>
         <!-- 头部 -->
         <div class="pay-modal-head">
           <div class="pay-modal-title">
-            <NIcon v-if="modalState === 'qr'" size="18" class="head-icon">
+            <AppIcon v-if="modalState === 'qr'" :size="18" class="head-icon">
               <component :is="selectedPayment === 'wechat' ? null : null" />
-            </NIcon>
+            </AppIcon>
             <span v-if="modalState === 'qr'">
               {{ selectedPayment === 'wechat' ? '微信支付' : '支付宝' }}
             </span>
@@ -811,163 +805,164 @@ onUnmounted(stopTimer)
             <span v-else>支付完成</span>
           </div>
           <button class="pay-modal-close" @click="closePayment" aria-label="关闭">
-            <NIcon size="18"><CloseOutline /></NIcon>
+            <AppIcon :size="18"><CloseOutline /></AppIcon>
           </button>
         </div>
+      </template>
 
-        <!-- 订单摘要 -->
-        <div class="pay-summary">
-          <div class="pay-summary-left">
-            <div class="pay-tier-icon" :style="{ background: currentTier.gradient }">
-              <NIcon size="18"><component :is="currentTier.icon" /></NIcon>
-            </div>
-            <div>
-              <div class="pay-tier-name">
-                {{ currentTier.name }} · {{ currentTier.badge }}
-              </div>
-              <div class="pay-tier-period">{{ currentBilling.label }} · {{ currentBilling.unit }}</div>
-            </div>
+      <!-- 订单摘要 -->
+      <div class="pay-summary">
+        <div class="pay-summary-left">
+          <div class="pay-tier-icon" :style="{ background: currentTier.gradient }">
+            <AppIcon :size="18"><component :is="currentTier.icon" /></AppIcon>
           </div>
-          <div class="pay-summary-price">
-            <span class="cur">¥</span>
-            <span class="num">{{ currentPrice }}</span>
+          <div>
+            <div class="pay-tier-name">
+              {{ currentTier.name }} · {{ currentTier.badge }}
+            </div>
+            <div class="pay-tier-period">{{ currentBilling.label }} · {{ currentBilling.unit }}</div>
           </div>
         </div>
-
-        <!-- 状态：二维码 -->
-        <div v-if="modalState === 'qr'" class="pay-body">
-          <div class="qr-block">
-            <div class="qr-frame">
-              <div class="qr-placeholder">
-                <!-- 占位二维码图案 -->
-                <svg viewBox="0 0 100 100" width="180" height="180" aria-hidden="true">
-                  <defs>
-                    <pattern id="qrpat" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                      <rect width="10" height="10" fill="#0F172A"/>
-                      <rect x="2" y="2" width="6" height="6" fill="#FFFFFF"/>
-                      <rect x="2" y="2" width="3" height="3" fill="#0F172A"/>
-                      <rect x="6" y="6" width="2" height="2" fill="#0F172A"/>
-                    </pattern>
-                  </defs>
-                  <rect x="0" y="0" width="100" height="100" fill="url(#qrpat)"/>
-                  <!-- 三个定位角 -->
-                  <rect x="4" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
-                  <rect x="10" y="10" width="10" height="10" fill="#0F172A"/>
-                  <rect x="74" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
-                  <rect x="80" y="10" width="10" height="10" fill="#0F172A"/>
-                  <rect x="4" y="74" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
-                  <rect x="10" y="80" width="10" height="10" fill="#0F172A"/>
-                  <!-- 中央 logo -->
-                  <rect x="40" y="40" width="20" height="20" rx="4" fill="#FFFFFF"/>
-                  <rect x="44" y="44" width="12" height="12" rx="2" :fill="currentTier.color"/>
-                </svg>
-              </div>
-              <NSpin v-if="creatingOrder" class="qr-loading" size="medium" />
-            </div>
-            <div class="qr-hint">
-              请使用
-              <strong>{{ selectedPayment === 'wechat' ? '微信' : '支付宝' }}</strong>
-              扫描二维码完成支付
-            </div>
-            <div class="qr-timer">
-              <NIcon size="13"><TimeOutline /></NIcon>
-              <span class="timer-text" :class="{ urgent: countdown < 60 }">
-                {{ countdown > 0 ? `${formatCountdown(countdown)} 后过期` : '已过期，请重新发起' }}
-              </span>
-              <button
-                v-if="countdown <= 0"
-                class="qr-refresh"
-                @click="startCheckout"
-              >
-                <NIcon size="12"><RefreshOutline /></NIcon> 重新生成
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 状态：卡密 -->
-        <div v-else-if="modalState === 'cardkey'" class="pay-body">
-          <div class="cardkey-block">
-            <div class="cardkey-icon">
-              <NIcon size="32"><KeyOutline /></NIcon>
-            </div>
-            <div class="cardkey-title">输入卡密</div>
-            <p class="cardkey-desc">
-              请输入与所选套餐匹配的卡密（{{ currentTier.name }} · {{ currentBilling.label }}），
-              提交后系统将自动校验并为你开通对应权益。
-            </p>
-            <NInput
-              v-model:value="cardKeyInput"
-              type="textarea"
-              placeholder="粘贴你购买后获得的卡密（形如 DSTK-XXXX-XXXX-XXXX）"
-              :rows="3"
-              :autofocus="true"
-              class="cardkey-input"
-            />
-            <div class="cardkey-actions">
-              <NButton
-                quaternary
-                size="small"
-                @click="openCardKeyDocs"
-              >
-                <NIcon size="14"><OpenOutline /></NIcon>
-                查看卡密说明
-              </NButton>
-              <NButton
-                size="small"
-                type="primary"
-                @click="openCardKeyShop"
-              >
-                前往购买卡密
-                <NIcon size="12"><ArrowForwardOutline /></NIcon>
-              </NButton>
-            </div>
-          </div>
-        </div>
-
-        <!-- 状态：成功 -->
-        <div v-else class="pay-body">
-          <div class="pay-success">
-            <div class="success-icon">
-              <NIcon size="48"><CheckmarkCircleOutline /></NIcon>
-            </div>
-            <div class="success-title">兑换成功</div>
-            <p class="success-desc">
-              你已成功开通 <strong>{{ currentTier.name }} · {{ currentBilling.label }}</strong>，
-              相关权益将在几分钟内生效。如未即时到账，请刷新页面或联系管理员。
-            </p>
-          </div>
-        </div>
-
-        <!-- 底部操作 -->
-        <div class="pay-modal-foot">
-          <template v-if="modalState === 'qr'">
-            <NButton quaternary @click="switchPaymentInModal">
-              <NIcon size="14"><RefreshOutline /></NIcon>
-              切换支付方式
-            </NButton>
-            <NButton type="primary" @click="confirmPaid">
-              我已完成支付
-            </NButton>
-          </template>
-          <template v-else-if="modalState === 'cardkey'">
-            <NButton quaternary @click="closePayment">取消</NButton>
-            <NButton
-              type="primary"
-              :loading="redeeming"
-              :disabled="!cardKeyInput.trim()"
-              @click="redeemCardKey"
-            >
-              <NIcon size="14"><CheckmarkCircle /></NIcon>
-              提交兑换
-            </NButton>
-          </template>
-          <template v-else>
-            <NButton type="primary" @click="closePayment">完成</NButton>
-          </template>
+        <div class="pay-summary-price">
+          <span class="cur">¥</span>
+          <span class="num">{{ currentPrice }}</span>
         </div>
       </div>
-    </NModal>
+
+      <!-- 状态：二维码 -->
+      <div v-if="modalState === 'qr'" class="pay-body">
+        <div class="qr-block">
+          <div class="qr-frame">
+            <div class="qr-placeholder">
+              <!-- 占位二维码图案 -->
+              <svg viewBox="0 0 100 100" width="180" height="180" aria-hidden="true">
+                <defs>
+                  <pattern id="qrpat" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <rect width="10" height="10" fill="#0F172A"/>
+                    <rect x="2" y="2" width="6" height="6" fill="#FFFFFF"/>
+                    <rect x="2" y="2" width="3" height="3" fill="#0F172A"/>
+                    <rect x="6" y="6" width="2" height="2" fill="#0F172A"/>
+                  </pattern>
+                </defs>
+                <rect x="0" y="0" width="100" height="100" fill="url(#qrpat)"/>
+                <!-- 三个定位角 -->
+                <rect x="4" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
+                <rect x="10" y="10" width="10" height="10" fill="#0F172A"/>
+                <rect x="74" y="4" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
+                <rect x="80" y="10" width="10" height="10" fill="#0F172A"/>
+                <rect x="4" y="74" width="22" height="22" fill="#FFFFFF" stroke="#0F172A" stroke-width="3"/>
+                <rect x="10" y="80" width="10" height="10" fill="#0F172A"/>
+                <!-- 中央 logo -->
+                <rect x="40" y="40" width="20" height="20" rx="4" fill="#FFFFFF"/>
+                <rect x="44" y="44" width="12" height="12" rx="2" :fill="currentTier.color"/>
+              </svg>
+            </div>
+            <div v-if="creatingOrder" class="qr-loading">
+              <t-loading loading size="medium" />
+            </div>
+          </div>
+          <div class="qr-hint">
+            请使用
+            <strong>{{ selectedPayment === 'wechat' ? '微信' : '支付宝' }}</strong>
+            扫描二维码完成支付
+          </div>
+          <div class="qr-timer">
+            <AppIcon :size="13"><TimeOutline /></AppIcon>
+            <span class="timer-text" :class="{ urgent: countdown < 60 }">
+              {{ countdown > 0 ? `${formatCountdown(countdown)} 后过期` : '已过期，请重新发起' }}
+            </span>
+            <button
+              v-if="countdown <= 0"
+              class="qr-refresh"
+              @click="startCheckout"
+            >
+              <AppIcon :size="12"><RefreshOutline /></AppIcon> 重新生成
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 状态：卡密 -->
+      <div v-else-if="modalState === 'cardkey'" class="pay-body">
+        <div class="cardkey-block">
+          <div class="cardkey-icon">
+            <AppIcon :size="32"><KeyOutline /></AppIcon>
+          </div>
+          <div class="cardkey-title">输入卡密</div>
+          <p class="cardkey-desc">
+            请输入与所选套餐匹配的卡密（{{ currentTier.name }} · {{ currentBilling.label }}），
+            提交后系统将自动校验并为你开通对应权益。
+          </p>
+          <t-textarea
+            v-model="cardKeyInput"
+            placeholder="粘贴你购买后获得的卡密（形如 DSTK-XXXX-XXXX-XXXX）"
+            :autosize="{ minRows: 3 }"
+            :autofocus="true"
+            class="cardkey-input"
+          />
+          <div class="cardkey-actions">
+            <t-button
+              variant="text"
+              size="small"
+              @click="openCardKeyDocs"
+            >
+              <AppIcon :size="14"><OpenOutline /></AppIcon>
+              查看卡密说明
+            </t-button>
+            <t-button
+              size="small"
+              theme="primary"
+              @click="openCardKeyShop"
+            >
+              前往购买卡密
+              <AppIcon :size="12"><ArrowForwardOutline /></AppIcon>
+            </t-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 状态：成功 -->
+      <div v-else class="pay-body">
+        <div class="pay-success">
+          <div class="success-icon">
+            <AppIcon :size="48"><CheckmarkCircleOutline /></AppIcon>
+          </div>
+          <div class="success-title">兑换成功</div>
+          <p class="success-desc">
+            你已成功开通 <strong>{{ currentTier.name }} · {{ currentBilling.label }}</strong>，
+            相关权益将在几分钟内生效。如未即时到账，请刷新页面或联系管理员。
+          </p>
+        </div>
+      </div>
+
+      <!-- 底部操作 -->
+      <div class="pay-modal-foot">
+        <template v-if="modalState === 'qr'">
+          <t-button variant="text" @click="switchPaymentInModal">
+            <AppIcon :size="14"><RefreshOutline /></AppIcon>
+            切换支付方式
+          </t-button>
+          <t-button theme="primary" @click="confirmPaid">
+            我已完成支付
+          </t-button>
+        </template>
+        <template v-else-if="modalState === 'cardkey'">
+          <t-button variant="text" @click="closePayment">取消</t-button>
+          <t-button
+            theme="primary"
+            :loading="redeeming"
+            :disabled="!cardKeyInput.trim()"
+            @click="redeemCardKey"
+          >
+            <AppIcon :size="14"><CheckmarkCircle /></AppIcon>
+            提交兑换
+          </t-button>
+        </template>
+        <template v-else>
+          <t-button theme="primary" @click="closePayment">完成</t-button>
+        </template>
+      </div>
+    </t-dialog>
   </div>
 </template>
 
@@ -1590,19 +1585,28 @@ onUnmounted(stopTimer)
   color: var(--text-muted);
   line-height: 1.5;
 }
-.footer-item :deep(.n-icon) {
+.footer-item :deep(.app-icon) {
   color: var(--primary);
   flex-shrink: 0;
 }
 
 /* ═══════════ 支付模态框 ═══════════ */
-.pay-modal {
+/* pay-modal 经 dialog-class-name 挂在 t-dialog 卡片根节点（teleport 到 body），scoped 无法命中，需 :global */
+:global(.pay-modal.t-dialog) {
   width: 480px;
   max-width: 92vw;
   background: #fff;
+  border: none;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+:global(.pay-modal .t-dialog__header) {
+  display: block;
+  padding: 0;
+}
+:global(.pay-modal .t-dialog__body) {
+  padding: 0;
 }
 .pay-modal-head {
   display: flex;
@@ -1902,7 +1906,7 @@ onUnmounted(stopTimer)
   .price-num { font-size: 36px; }
   .checkout-bar { flex-direction: column; align-items: stretch; }
   .checkout-btn { width: 100%; }
-  .pay-modal { width: 100%; max-width: 100%; border-radius: 0; }
+  :global(.pay-modal.t-dialog) { width: 100%; max-width: 100%; border-radius: 0; }
   .pay-summary { flex-wrap: wrap; }
 .pricing-root {
   min-height: 100vh;

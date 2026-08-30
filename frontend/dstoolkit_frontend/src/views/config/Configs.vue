@@ -1,23 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { h } from 'vue'
-import {
-  NButton,
-  NSpace,
-  NCard,
-  NModal,
-  NForm,
-  NFormItem,
-  NInput,
-  NUpload,
-  NTag,
-  NText,
-  NEmpty,
-  NSpin,
-  NIcon,
-  type UploadFileInfo,
-} from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   CloudOutline,
   CloudOfflineOutline,
@@ -35,7 +19,7 @@ import {
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 import {
   saveLocalConfig,
   getLocalConfigs,
@@ -44,6 +28,7 @@ import {
   incrementalUpdateIndex,
 } from '@/utils/db'
 import type { DeepseekConfig, UploadResult } from '@/types'
+import type { UploadFile } from 'tdesign-vue-next'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -100,9 +85,9 @@ function openUpdate(item: ConfigItem) {
   modalVisible.value = true
 }
 
-function onFileChange(data: { fileList: UploadFileInfo[] }) {
-  const f = data.fileList[0]
-  modalFile.value = f?.file ?? null
+function onFileChange(files: Array<UploadFile>) {
+  const f = files[files.length - 1]
+  modalFile.value = f?.raw ?? null
 }
 
 async function submitModal() {
@@ -181,7 +166,7 @@ onMounted(reload)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><ServerOutline /></NIcon>
+            <AppIcon :size="12"><ServerOutline /></AppIcon>
             <span>ACCOUNT MANAGEMENT // 账号管理</span>
           </div>
           <h1 class="chronos-page-title">
@@ -194,22 +179,22 @@ onMounted(reload)
         </div>
         <div class="banner-actions">
           <span :class="['mode-pill', auth.cloudSyncEnabled ? 'cloud' : 'local']">
-            <NIcon size="12">
+            <AppIcon :size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-            </NIcon>
+            </AppIcon>
             {{ auth.cloudSyncEnabled ? '云端同步已开启' : '本地模式' }}
           </span>
-          <NButton type="primary" size="medium" @click="openCreate" class="chronos-btn-banner">
-            <template #icon><NIcon size="16"><AddOutline /></NIcon></template>
+          <t-button theme="primary" @click="openCreate" class="chronos-btn-banner">
+            <template #icon><AppIcon :size="16"><AddOutline /></AppIcon></template>
             导入新账号
-          </NButton>
+          </t-button>
         </div>
       </div>
     </div>
 
     <!-- 配置列表 -->
-    <NSpin :show="loading">
-      <NEmpty
+    <t-loading :loading="loading">
+      <t-empty
         v-if="!loading && configs.length === 0"
         description="还没有导入的账号，点击上方导入新账号"
         style="padding: 60px 0;"
@@ -232,13 +217,13 @@ onMounted(reload)
           <div class="config-head">
             <div class="config-head-left">
               <div class="config-avatar">
-                <NIcon size="20"><PersonCircleOutline /></NIcon>
+                <AppIcon :size="20"><PersonCircleOutline /></AppIcon>
                 <div class="avatar-ring"></div>
               </div>
               <div class="config-head-text">
                 <h3>{{ c.name }}</h3>
                 <span class="config-id-tag">
-                  <NIcon size="10" style="margin-right: 2px;"><HardwareChipOutline /></NIcon>
+                  <AppIcon :size="10" style="margin-right: 2px;"><HardwareChipOutline /></AppIcon>
                   {{ c.deepseekUserId.slice(0, 10) }}…
                 </span>
               </div>
@@ -247,83 +232,81 @@ onMounted(reload)
 
           <div class="config-meta">
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--primary);"><PersonCircleOutline /></NIcon>
-              <NText depth="3" class="meta-text">用户ID：{{ c.deepseekUserId.slice(0, 13) }}…</NText>
+              <AppIcon :size="14" style="color: var(--primary);"><PersonCircleOutline /></AppIcon>
+              <span class="meta-text">用户ID：{{ c.deepseekUserId.slice(0, 13) }}…</span>
             </div>
             <div v-if="c.deepseekMobile" class="meta-row">
-              <NIcon size="14" style="color: var(--accent);"><HardwareChipOutline /></NIcon>
-              <NText depth="3" class="meta-text">手机：{{ c.deepseekMobile }}</NText>
+              <AppIcon :size="14" style="color: var(--accent);"><HardwareChipOutline /></AppIcon>
+              <span class="meta-text">手机：{{ c.deepseekMobile }}</span>
             </div>
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--warning);"><CalendarOutline /></NIcon>
-              <NText depth="3" class="meta-text">最近更新：{{ fmtDate(c.updatedAt) }}</NText>
+              <AppIcon :size="14" style="color: var(--warning);"><CalendarOutline /></AppIcon>
+              <span class="meta-text">最近更新：{{ fmtDate(c.updatedAt) }}</span>
             </div>
           </div>
 
           <div class="card-actions">
-            <NButton size="small" @click="viewConversations" class="action-btn">
-              <template #icon><NIcon size="14"><EyeOutline /></NIcon></template>
+            <t-button size="small" @click="viewConversations" class="action-btn">
+              <template #icon><AppIcon :size="14"><EyeOutline /></AppIcon></template>
               查看
-            </NButton>
-            <NButton size="small" type="primary" ghost @click="openUpdate(c)" class="action-btn">
-              <template #icon><NIcon size="14"><RefreshOutline /></NIcon></template>
+            </t-button>
+            <t-button size="small" theme="primary" variant="outline" @click="openUpdate(c)" class="action-btn">
+              <template #icon><AppIcon :size="14"><RefreshOutline /></AppIcon></template>
               更新
-            </NButton>
-            <NButton size="small" type="error" ghost @click="removeConfig(c)" class="action-btn">
-              <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
+            </t-button>
+            <t-button size="small" theme="danger" variant="outline" @click="removeConfig(c)" class="action-btn">
+              <template #icon><AppIcon :size="14"><TrashOutline /></AppIcon></template>
               移除
-            </NButton>
+            </t-button>
           </div>
         </div>
       </div>
-    </NSpin>
+    </t-loading>
 
     <!-- 模态框 -->
-    <NModal
-      v-model:show="modalVisible"
-      preset="card"
-      :title="modalMode === 'create' ? '导入新的 Deepseek 账号' : '更新此账号数据（上传新数据包）'"
-      class="chronos-modal"
-      style="width: 480px; max-width: 92vw;"
-      :bordered="false"
+    <t-dialog
+      v-model:visible="modalVisible"
+      :header="modalMode === 'create' ? '导入新的 Deepseek 账号' : '更新此账号数据（上传新数据包）'"
+      width="480px"
+      :dialog-style="{ maxWidth: '92vw' }"
+      dialog-class-name="chronos-modal"
     >
-      <NForm label-placement="top">
-        <NFormItem label="账号名称" v-if="modalMode === 'create'">
-          <NInput v-model:value="modalName" placeholder="例如：工作主账号、个人账号" />
-        </NFormItem>
-        <NFormItem v-else label="账号名称">
-          <NInput :value="modalName" disabled />
-        </NFormItem>
-        <NFormItem label="数据包（zip 压缩包）">
-          <NUpload
-            :max="1"
+      <t-form label-align="top">
+        <t-form-item label="账号名称" v-if="modalMode === 'create'">
+          <t-input v-model="modalName" placeholder="例如：工作主账号、个人账号" />
+        </t-form-item>
+        <t-form-item v-else label="账号名称">
+          <t-input :value="modalName" disabled />
+        </t-form-item>
+        <t-form-item label="数据包（zip 压缩包）">
+          <t-upload
             accept=".zip"
-            :default-upload="false"
+            :auto-upload="false"
+            theme="custom"
             @change="onFileChange"
-            :file-list="[]"
           >
-            <NButton>
-              <template #icon><NIcon size="14"><FolderOpenOutline /></NIcon></template>
+            <t-button>
+              <template #icon><AppIcon :size="14"><FolderOpenOutline /></AppIcon></template>
               选择数据包
-            </NButton>
-          </NUpload>
+            </t-button>
+          </t-upload>
           <div v-if="modalFile" style="margin-top: 10px;">
             <span class="chronos-file-tag">
               📦 {{ modalFile.name }}
             </span>
           </div>
-        </NFormItem>
-      </NForm>
+        </t-form-item>
+      </t-form>
       <template #footer>
-        <NSpace justify="end">
-          <NButton @click="modalVisible = false">取消</NButton>
-          <NButton type="primary" :loading="submitting" @click="submitModal">
-            <template #icon v-if="!submitting"><NIcon size="14"><RocketOutline /></NIcon></template>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <t-button @click="modalVisible = false">取消</t-button>
+          <t-button theme="primary" :loading="submitting" @click="submitModal">
+            <template #icon v-if="!submitting"><AppIcon :size="14"><RocketOutline /></AppIcon></template>
             {{ modalMode === 'create' ? '导入' : '更新' }}
-          </NButton>
-        </NSpace>
+          </t-button>
+        </div>
       </template>
-    </NModal>
+    </t-dialog>
   </div>
 </template>
 

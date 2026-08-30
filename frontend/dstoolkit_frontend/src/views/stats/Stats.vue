@@ -1,19 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import {
-  NSpace,
-  NSpin,
-  NEmpty,
-  NStatistic,
-  NGrid,
-  NGridItem,
-  NIcon,
-  NRadioGroup,
-  NRadioButton,
-  NTag,
-  NTabs,
-  NTabPane,
-} from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   BarChartOutline,
   ChatbubblesOutline,
@@ -395,9 +382,9 @@ onMounted(load)
   <div>
     <!-- 页面头部（桌面端由Layout显示，但页面也独立显示一个趣味小标签） -->
     <div class="stats-header" style="margin-bottom: 20px;">
-      <NSpace align="center" :size="14" wrap>
+      <t-space align="center" :size="14" break-line>
         <div class="stats-header-icon">
-          <NIcon size="22"><BarChartOutline /></NIcon>
+          <AppIcon :size="22"><BarChartOutline /></AppIcon>
         </div>
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;">
@@ -408,102 +395,96 @@ onMounted(load)
             全景掌握对话数据、模型使用情况与活跃时段趋势
           </p>
         </div>
-      </NSpace>
+      </t-space>
     </div>
 
-    <NSpin :show="loading">
-      <NEmpty
+    <t-loading :loading="loading">
+      <t-empty
         v-if="!loading && !stats.totalConversations"
         description="时间线无记录 · 等待首次对话"
         style="padding: 60px 0;"
       />
       <template v-else>
         <!-- 统计卡片：桌面端4列/平板2列/手机1列 -->
-        <NGrid
-          :cols="4"
-          :x-gap="14"
-          :y-gap="14"
-          style="margin-bottom: 18px;"
-          responsive="screen"
-        >
-          <NGridItem class="page-enter" :span="24" xs-style="{ span: 24 }" m-style="{ span: 12 }">
+        <t-row :gutter="[14, 14]" style="margin-bottom: 18px;">
+          <t-col class="page-enter" :span="6" :xs="24" :sm="12" :lg="6">
             <div class="surface stat-card surface-hover" style="padding: 16px 16px 18px;">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
                 <div style="min-width: 0;">
                   <div class="stat-label">对话总数</div>
-                  <NStatistic :value="stats.totalConversations || 0" style="--n-value-font-size: 28px;" />
+                  <div class="stat-value">{{ stats.totalConversations || 0 }}</div>
                   <div class="stat-foot">共导入对话数</div>
                 </div>
                 <div class="stat-icon stat-1">
-                  <NIcon size="18"><ChatbubblesOutline /></NIcon>
+                  <AppIcon :size="18"><ChatbubblesOutline /></AppIcon>
                 </div>
               </div>
               <div class="chronos-progress" style="margin-top: 14px;">
                 <div class="chronos-progress-bar" :style="{ width: Math.min(100, stats.totalConversations * 2) + '%' }"></div>
               </div>
             </div>
-          </NGridItem>
+          </t-col>
 
-          <NGridItem class="page-enter delay-1" :span="24" xs-style="{ span: 24 }" m-style="{ span: 12 }">
+          <t-col class="page-enter delay-1" :span="6" :xs="24" :sm="12" :lg="6">
             <div class="surface stat-card surface-hover" style="padding: 16px 16px 18px;">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
                 <div style="min-width: 0;">
                   <div class="stat-label">消息总数</div>
-                  <NStatistic :value="stats.totalMessages || 0" style="--n-value-font-size: 28px;" />
+                  <div class="stat-value">{{ stats.totalMessages || 0 }}</div>
                   <div class="stat-foot">全部对话消息数</div>
                 </div>
                 <div class="stat-icon stat-2">
-                  <NIcon size="18"><ChatbubbleOutline /></NIcon>
+                  <AppIcon :size="18"><ChatbubbleOutline /></AppIcon>
                 </div>
               </div>
               <div class="chronos-progress" style="margin-top: 14px;">
                 <div class="chronos-progress-bar" :style="{ width: Math.min(100, stats.totalMessages * 0.4) + '%' }"></div>
               </div>
             </div>
-          </NGridItem>
+          </t-col>
 
-          <NGridItem class="page-enter delay-2" :span="24" xs-style="{ span: 24 }" m-style="{ span: 12 }">
+          <t-col class="page-enter delay-2" :span="6" :xs="24" :sm="12" :lg="6">
             <div class="surface stat-card surface-hover" style="padding: 16px 16px 18px;">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
                 <div style="min-width: 0;">
                   <div class="stat-label">模型种类</div>
-                  <NStatistic :value="(stats.modelDistribution || []).length" style="--n-value-font-size: 28px;" />
+                  <div class="stat-value">{{ (stats.modelDistribution || []).length }}</div>
                   <div class="stat-foot">已使用的模型数</div>
                 </div>
                 <div class="stat-icon stat-3">
-                  <NIcon size="18"><ColorPaletteOutline /></NIcon>
+                  <AppIcon :size="18"><ColorPaletteOutline /></AppIcon>
                 </div>
               </div>
               <div class="chronos-progress" style="margin-top: 14px;">
                 <div class="chronos-progress-bar" :style="{ width: Math.min(100, (stats.modelDistribution || []).length * 14) + '%' }"></div>
               </div>
             </div>
-          </NGridItem>
+          </t-col>
 
-          <NGridItem class="page-enter delay-3" :span="24" xs-style="{ span: 24 }" m-style="{ span: 12 }">
+          <t-col class="page-enter delay-3" :span="6" :xs="24" :sm="12" :lg="6">
             <div class="surface stat-card surface-hover" style="padding: 16px 16px 18px;">
               <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;">
                 <div style="min-width: 0;">
                   <div class="stat-label">对话总天数</div>
-                  <NStatistic :value="(stats.dailyConversations || []).length" style="--n-value-font-size: 28px;" />
+                  <div class="stat-value">{{ (stats.dailyConversations || []).length }}</div>
                   <div class="stat-foot">有对话的天数</div>
                 </div>
                 <div class="stat-icon stat-4">
-                  <NIcon size="18"><TrendingUpOutline /></NIcon>
+                  <AppIcon :size="18"><TrendingUpOutline /></AppIcon>
                 </div>
               </div>
               <div class="chronos-progress" style="margin-top: 14px;">
                 <div class="chronos-progress-bar" :style="{ width: Math.min(100, (stats.dailyConversations || []).length * 3) + '%' }"></div>
               </div>
             </div>
-          </NGridItem>
-        </NGrid>
+          </t-col>
+        </t-row>
 
         <!-- 图表区：响应式grid -->
-        <NSpace vertical :size="14">
+        <t-space direction="vertical" :size="14">
           <div class="surface chart-card page-enter surface-hover" style="padding: 16px 16px 8px;">
             <div class="chart-header">
-              <NIcon size="16" :style="{ color: chronosCyan }"><TrendingUpOutline /></NIcon>
+              <AppIcon :size="16" :style="{ color: chronosCyan }"><TrendingUpOutline /></AppIcon>
               <div class="chart-title">每日消息量趋势</div>
               <span class="chrono-stamp">MSG-STREAM</span>
             </div>
@@ -514,7 +495,7 @@ onMounted(load)
           <div class="stats-grid-2">
             <div class="surface chart-card page-enter delay-1 surface-hover" style="padding: 16px 16px 8px;">
               <div class="chart-header">
-                <NIcon size="16" :style="{ color: chronosPurple }"><ChatbubblesOutline /></NIcon>
+                <AppIcon :size="16" :style="{ color: chronosPurple }"><ChatbubblesOutline /></AppIcon>
                 <div class="chart-title">每日对话数</div>
                 <span class="chrono-stamp">CONV-LINE</span>
               </div>
@@ -522,7 +503,7 @@ onMounted(load)
             </div>
             <div class="surface chart-card page-enter delay-2 surface-hover" style="padding: 16px 16px 8px;">
               <div class="chart-header">
-                <NIcon size="16" :style="{ color: chronosGreen }"><ColorPaletteOutline /></NIcon>
+                <AppIcon :size="16" :style="{ color: chronosGreen }"><ColorPaletteOutline /></AppIcon>
                 <div class="chart-title">模型使用分布</div>
                 <span class="chrono-stamp">MODEL-DIST</span>
               </div>
@@ -532,13 +513,13 @@ onMounted(load)
 
           <div class="surface chart-card page-enter delay-3 surface-hover" style="padding: 16px 16px 8px;">
             <div class="chart-header">
-              <NIcon size="16" :style="{ color: chronosAmber }"><TimeOutline /></NIcon>
+              <AppIcon :size="16" :style="{ color: chronosAmber }"><TimeOutline /></AppIcon>
               <div class="chart-title">24 小时活跃分布</div>
               <span class="chrono-stamp warn">HOUR-HEAT</span>
             </div>
             <VChart :option="barOption" autoresize style="height: 280px;" />
           </div>
-        </NSpace>
+        </t-space>
 
         <!-- ═══════════ 热力词板块 ═══════════ -->
         <div
@@ -547,40 +528,38 @@ onMounted(load)
           style="padding: 18px 20px 20px;"
         >
           <div class="chart-header" style="flex-wrap: wrap; gap: 10px;">
-            <NIcon size="16" style="color: #EF4444;"><FlameOutline /></NIcon>
+            <AppIcon :size="16" style="color: #EF4444;"><FlameOutline /></AppIcon>
             <div class="chart-title">热力词 · 关注焦点</div>
             <span class="chrono-stamp warn">HOT-WORDS</span>
 
             <div style="flex: 1;" />
 
             <!-- 视图切换 -->
-            <NRadioGroup
-              :value="hotwordsView"
+            <t-radio-group
+              v-model="hotwordsView"
               size="small"
-              @update:value="(v: any) => (hotwordsView = v)"
               style="margin-left: auto;"
             >
-              <NRadioButton value="cloud">
-                <NIcon size="13" style="margin-right: 4px;"><CloudOutline /></NIcon>
+              <t-radio-button value="cloud">
+                <AppIcon :size="13" style="margin-right: 4px;"><CloudOutline /></AppIcon>
                 标签云
-              </NRadioButton>
-              <NRadioButton value="rank">
-                <NIcon size="13" style="margin-right: 4px;"><ListOutline /></NIcon>
+              </t-radio-button>
+              <t-radio-button value="rank">
+                <AppIcon :size="13" style="margin-right: 4px;"><ListOutline /></AppIcon>
                 排行榜
-              </NRadioButton>
-            </NRadioGroup>
+              </t-radio-button>
+            </t-radio-group>
 
             <!-- 周期切换 -->
-            <NRadioGroup
-              :value="hotwordsPeriod"
+            <t-radio-group
+              v-model="hotwordsPeriod"
               size="small"
-              @update:value="(v: any) => (hotwordsPeriod = v)"
             >
-              <NRadioButton value="7d">近 7 天</NRadioButton>
-              <NRadioButton value="30d">30 天</NRadioButton>
-              <NRadioButton value="90d">90 天</NRadioButton>
-              <NRadioButton value="all">全部</NRadioButton>
-            </NRadioGroup>
+              <t-radio-button value="7d">近 7 天</t-radio-button>
+              <t-radio-button value="30d">30 天</t-radio-button>
+              <t-radio-button value="90d">90 天</t-radio-button>
+              <t-radio-button value="all">全部</t-radio-button>
+            </t-radio-group>
           </div>
 
           <!-- 热力词小统计卡 -->
@@ -600,20 +579,19 @@ onMounted(load)
             <div class="hw-sum-chip accent">
               <div class="hw-sum-label">数据来源</div>
               <div class="hw-sum-value">
-                <NIcon size="11" style="margin-right: 2px;"><SearchOutline /></NIcon>
+                <AppIcon :size="11" style="margin-right: 2px;"><SearchOutline /></AppIcon>
                 +
-                <NIcon size="11" style="margin: 0 2px;"><SparklesOutline /></NIcon>
+                <AppIcon :size="11" style="margin: 0 2px;"><SparklesOutline /></AppIcon>
                 +
-                <NIcon size="11" style="margin-left: 2px;"><DocumentTextOutline /></NIcon>
+                <AppIcon :size="11" style="margin-left: 2px;"><DocumentTextOutline /></AppIcon>
               </div>
             </div>
           </div>
 
-          <NSpin :show="hotwordsLoading" style="margin-top: 8px;">
-            <NEmpty
+          <t-loading :loading="hotwordsLoading" style="margin-top: 8px;">
+            <t-empty
               v-if="!hotwordsLoading && hotwords.length === 0"
               description="暂无热力词数据 · 多搜索几次试试"
-              size="small"
               style="padding: 40px 0 20px;"
             />
 
@@ -634,9 +612,9 @@ onMounted(load)
               >
                 <span class="hw-word">{{ w.word }}</span>
                 <span class="hw-trend-mini" :style="{ color: trendColor(w.trend) }">
-                  <NIcon :size="w.score >= 60 ? 12 : 10">
+                  <AppIcon :size="w.score >= 60 ? 12 : 10">
                     <component :is="trendIcon(w.trend)" />
-                  </NIcon>
+                  </AppIcon>
                 </span>
               </div>
             </div>
@@ -658,20 +636,20 @@ onMounted(load)
                     {{ w.word }}
                   </div>
                   <div class="hw-rank-sources">
-                    <NTag
+                    <t-tag
                       v-for="s in w.sources"
                       :key="s"
-                      size="tiny"
-                      round
+                      size="small"
+                      shape="round"
                       class="hw-src-tag"
                     >
                       <template #icon>
-                        <NIcon size="11">
+                        <AppIcon :size="11">
                           <component :is="sourceIcon(s)" />
-                        </NIcon>
+                        </AppIcon>
                       </template>
                       {{ sourceLabel(s) }}
-                    </NTag>
+                    </t-tag>
                   </div>
                 </div>
                 <div class="hw-rank-bar-wrap">
@@ -688,15 +666,15 @@ onMounted(load)
                   <span class="hw-cnt-label">次</span>
                 </div>
                 <div class="hw-rank-trend" :style="{ color: trendColor(w.trend) }">
-                  <NIcon size="14"><component :is="trendIcon(w.trend)" /></NIcon>
+                  <AppIcon :size="14"><component :is="trendIcon(w.trend)" /></AppIcon>
                   <span class="hw-trend-text">{{ trendLabel(w.trend) }}</span>
                 </div>
               </div>
             </div>
-          </NSpin>
+          </t-loading>
         </div>
       </template>
-    </NSpin>
+    </t-loading>
   </div>
 </template>
 
@@ -772,6 +750,11 @@ onMounted(load)
   font-weight: 600;
   letter-spacing: 0.02em;
   margin-bottom: 6px;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 .stat-foot {
   font-size: 11px;

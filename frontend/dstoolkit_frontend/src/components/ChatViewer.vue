@@ -1,16 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch, h } from 'vue'
-import {
-  NButton,
-  NEmpty,
-  NInput,
-  NSelect,
-  NSpace,
-  NSpin,
-  NTag,
-  NText,
-  NIcon,
-} from 'naive-ui'
 import dayjs from 'dayjs'
 import {
   PersonOutline,
@@ -22,7 +11,8 @@ import {
   ChevronDownOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
+import AppIcon from '@/components/AppIcon.vue'
 import MarkdownView from './MarkdownView.vue'
 import type { ParsedConversation, ParsedMessage } from '@/types'
 
@@ -34,7 +24,7 @@ const props = defineProps<{
 const authStore = useAuthStore()
 
 const messages = ref<ParsedMessage[]>([])
-const selectedKeyId = ref<number | null>(null)
+const selectedKeyId = ref<number | undefined>(undefined)
 const selectedModel = ref<string>('deepseek-chat')
 const inputText = ref('')
 const streaming = ref(false)
@@ -228,7 +218,7 @@ const canSend = computed(
     <!-- ============ 空状态 ============ -->
     <div v-if="!conversation" class="empty-state">
       <div class="empty-icon brand-gradient">
-        <NIcon size="32"><SparklesSharp /></NIcon>
+        <AppIcon :size="32"><SparklesSharp /></AppIcon>
       </div>
       <h3 class="empty-title">选择一个对话开始</h3>
       <p class="empty-sub">
@@ -243,14 +233,14 @@ const canSend = computed(
       <div class="chat-header">
         <div class="chat-title-wrap">
           <div class="chat-avatar ai-avatar-sm">
-            <NIcon size="14"><SparklesSharp /></NIcon>
+            <AppIcon :size="14"><SparklesSharp /></AppIcon>
           </div>
           <div class="chat-title-text">
             <div class="chat-title">{{ conversation.title }}</div>
             <div class="chat-meta">
-              <NTag size="small" type="primary" round :bordered="false">
+              <t-tag size="small" theme="primary" shape="round" variant="light">
                 {{ messages.length }} 条消息
-              </NTag>
+              </t-tag>
               <span class="chat-date">
                 {{ dayjs(conversation.insertedAt).format('YYYY-MM-DD HH:mm') }}
               </span>
@@ -268,9 +258,9 @@ const canSend = computed(
         >
           <!-- 头像 -->
           <div :class="['msg-avatar', m.role === 'USER' ? 'user-avatar' : 'ai-avatar']">
-            <NIcon size="16">
+            <AppIcon :size="16">
               <component :is="m.role === 'USER' ? PersonOutline : SparklesSharp" />
-            </NIcon>
+            </AppIcon>
           </div>
 
           <!-- 内容主体 -->
@@ -285,25 +275,24 @@ const canSend = computed(
             <div :class="['msg-bubble', m.role === 'USER' ? 'user-bubble' : 'ai-bubble']">
               <template v-if="editingIndex === index">
                 <div class="edit-wrap">
-                  <NInput
-                    v-model:value="editText"
-                    type="textarea"
+                  <t-textarea
+                    v-model="editText"
                     :autosize="{ minRows: 2, maxRows: 8 }"
                   />
                   <div class="edit-actions">
-                    <NButton
+                    <t-button
                       size="small"
-                      type="primary"
+                      theme="primary"
                       :loading="streaming"
                       @click="saveEdit"
                     >
-                      <template #icon><NIcon size="14"><CheckmarkOutline /></NIcon></template>
+                      <template #icon><AppIcon :size="14"><CheckmarkOutline /></AppIcon></template>
                       保存并重新生成
-                    </NButton>
-                    <NButton size="small" ghost @click="cancelEdit">
-                      <template #icon><NIcon size="14"><CloseOutline /></NIcon></template>
+                    </t-button>
+                    <t-button size="small" variant="outline" @click="cancelEdit">
+                      <template #icon><AppIcon :size="14"><CloseOutline /></AppIcon></template>
                       取消
-                    </NButton>
+                    </t-button>
                   </div>
                 </div>
               </template>
@@ -325,7 +314,7 @@ const canSend = computed(
                       @click="startEdit(index)"
                       title="编辑此消息并重新生成"
                     >
-                      <NIcon size="13"><CreateOutline /></NIcon>
+                      <AppIcon :size="13"><CreateOutline /></AppIcon>
                       <span>编辑</span>
                     </button>
                   </div>
@@ -338,7 +327,7 @@ const canSend = computed(
         <!-- 流式生成中 bubble -->
         <div v-if="streaming" class="msg-row msg-row-ai">
           <div class="msg-avatar ai-avatar ai-avatar-pulse">
-            <NIcon size="16"><SparklesSharp /></NIcon>
+            <AppIcon :size="16"><SparklesSharp /></AppIcon>
           </div>
           <div class="msg-bubble-wrap ai-wrap">
             <div class="msg-role-row">
@@ -347,7 +336,9 @@ const canSend = computed(
               <span class="streaming-tag streaming-on">生成中…</span>
             </div>
             <div class="msg-bubble ai-bubble ai-bubble-streaming">
-              <NSpin v-if="!streamingContent" size="small" />
+              <div v-if="!streamingContent" style="height: 20px; display: flex; align-items: center;">
+                <t-loading loading size="small" />
+              </div>
               <MarkdownView v-else :content="streamingContent" />
               <span class="caret-blink"></span>
             </div>
@@ -362,13 +353,13 @@ const canSend = computed(
         <!-- 控制栏：模型 + Key -->
         <div class="composer-toolbar">
           <div class="toolbar-label">继续对话</div>
-          <NSpace align="center" :size="10" wrap>
+          <t-space align="center" :size="10" break-line>
             <div class="select-unit">
               <span class="select-icon-wrap">
-                <NIcon size="14" style="color: var(--primary);"><SparklesSharp /></NIcon>
+                <AppIcon :size="14" style="color: var(--primary);"><SparklesSharp /></AppIcon>
               </span>
-              <NSelect
-                v-model:value="selectedModel"
+              <t-select
+                v-model="selectedModel"
                 :options="modelOptions"
                 size="small"
                 style="width: 160px;"
@@ -377,10 +368,10 @@ const canSend = computed(
 
             <div class="select-unit">
               <span class="select-icon-wrap select-icon-key">
-                <NIcon size="13" style="color: var(--success);"><CheckmarkOutline /></NIcon>
+                <AppIcon :size="13" style="color: var(--success);"><CheckmarkOutline /></AppIcon>
               </span>
-              <NSelect
-                v-model:value="selectedKeyId"
+              <t-select
+                v-model="selectedKeyId"
                 :options="keyOptions"
                 placeholder="选择 API Key"
                 size="small"
@@ -388,36 +379,34 @@ const canSend = computed(
                 style="width: 180px;"
               />
             </div>
-          </NSpace>
+          </t-space>
         </div>
 
         <!-- 输入框 + 发送按钮 -->
         <div class="composer-input-wrap">
-          <NInput
-            v-model:value="inputText"
-            type="textarea"
+          <t-textarea
+            v-model="inputText"
             :autosize="{ minRows: 1, maxRows: 5 }"
             placeholder="输入消息继续对话…（Enter 发送，Shift+Enter 换行）"
             class="composer-input"
             @keyup.enter.exact.prevent="sendMessage"
           />
-          <NButton
-            type="primary"
-            size="medium"
+          <t-button
+            theme="primary"
             class="send-btn"
             :loading="streaming"
             :disabled="!canSend"
             @click="sendMessage"
           >
             <template #icon v-if="!streaming">
-              <NIcon size="16"><SendOutline /></NIcon>
+              <AppIcon :size="16"><SendOutline /></AppIcon>
             </template>
             {{ streaming ? '生成中' : '发送' }}
-          </NButton>
+          </t-button>
         </div>
 
         <div v-if="selectedKeyId == null" class="composer-hint">
-          <NIcon size="12" style="color: var(--warning);"><CheckmarkOutline /></NIcon>
+          <AppIcon :size="12" style="color: var(--warning);"><CheckmarkOutline /></AppIcon>
           <span>请先在下拉框中选择一个 API Key，才能继续对话</span>
         </div>
       </div>
@@ -789,8 +778,8 @@ const canSend = computed(
 .select-icon-key {
   background: var(--success-soft);
 }
-.select-unit :deep(.n-select) { width: auto; }
-.select-unit :deep(.n-base-selection) {
+.select-unit :deep(.t-select) { width: auto; }
+.select-unit :deep(.t-input) {
   background: transparent;
   border: none;
   box-shadow: none !important;
@@ -816,15 +805,12 @@ const canSend = computed(
   flex: 1;
   background: transparent !important;
 }
-.composer-input :deep(.n-input__input-el),
-.composer-input :deep(.n-input__textarea-el) {
+.composer-input :deep(.t-textarea__inner) {
   background: transparent !important;
   padding: 6px 4px !important;
   line-height: 1.6;
-}
-.composer-input :deep(.n-input__border),
-.composer-input :deep(.n-input__state-border) {
-  display: none;
+  border: none !important;
+  box-shadow: none !important;
 }
 .send-btn {
   height: 40px;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { NSpace, NEmpty, NSpin, NText, NIcon, NButton } from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   StorefrontOutline,
   OpenOutline,
@@ -59,7 +59,7 @@ onMounted(load)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><RocketOutline /></NIcon>
+            <AppIcon :size="12"><RocketOutline /></AppIcon>
             <span>MODEL MARKET // 模型市场</span>
           </div>
           <h1 class="chronos-page-title">
@@ -79,8 +79,8 @@ onMounted(load)
         </div>
     </div>
 
-    <NSpin :show="loading">
-      <NEmpty
+    <t-loading :loading="loading">
+      <t-empty
         v-if="!loading && entries.length === 0"
         description="暂无收录资源"
         style="padding: 60px 0;"
@@ -109,40 +109,40 @@ onMounted(load)
               class="market-icon"
               :style="{ background: categoryBg(e.category), color: categoryColor(e.category) }"
             >
-              <NIcon size="24"><component :is="categoryIcon(e.category)" /></NIcon>
+              <AppIcon :size="24"><component :is="categoryIcon(e.category)" /></AppIcon>
             </div>
             <div class="card-head-text">
               <h3>
                 {{ e.name }}
-                <NIcon size="14" style="color: var(--text-muted);"><OpenOutline /></NIcon>
+                <AppIcon :size="14" style="color: var(--text-muted);"><OpenOutline /></AppIcon>
               </h3>
               <span
                 class="category-tag"
                 :style="{ background: categoryBg(e.category), color: categoryColor(e.category) }"
               >
-                <NIcon size="10" style="margin-right: 3px;"><PricetagsOutline /></NIcon>
+                <AppIcon :size="10" style="margin-right: 3px;"><PricetagsOutline /></AppIcon>
                 {{ e.category }}
               </span>
             </div>
           </div>
 
-          <NText depth="3" class="card-desc">
+          <span class="card-desc">
             {{ e.description || '暂无描述，点击查看更多' }}
-          </NText>
+          </span>
 
           <div class="card-foot">
             <div class="foot-tag">
               <SparklesOutline style="font-size: 14px;" />
               <span>推荐</span>
             </div>
-            <NButton size="small" type="primary" round>
-              <template #icon><NIcon size="13"><OpenOutline /></NIcon></template>
+            <t-button size="small" theme="primary" shape="round">
+              <template #icon><AppIcon :size="13"><OpenOutline /></AppIcon></template>
               使用
-            </NButton>
+            </t-button>
           </div>
         </a>
       </div>
-    </NSpin>
+    </t-loading>
   </div>
 </template>
 

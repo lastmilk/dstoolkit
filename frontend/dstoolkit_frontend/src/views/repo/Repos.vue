@@ -3,29 +3,6 @@ import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { h } from 'vue'
 import {
-  NButton,
-  NSpace,
-  NModal,
-  NForm,
-  NFormItem,
-  NInput,
-  NUpload,
-  NTag,
-  NText,
-  NEmpty,
-  NSpin,
-  NIcon,
-  NDrawer,
-  NDrawerContent,
-  NPopconfirm,
-  NTimeline,
-  NTimelineItem,
-  NDescriptions,
-  NDescriptionsItem,
-  NScrollbar,
-  type UploadFileInfo,
-} from 'naive-ui'
-import {
   CloudOutline,
   CloudOfflineOutline,
   AddOutline,
@@ -46,9 +23,10 @@ import {
   DocumentTextOutline,
   ArchiveOutline,
 } from '@vicons/ionicons5'
+import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 import {
   saveLocalConfig,
   getLocalConfigs,
@@ -56,6 +34,7 @@ import {
   buildAndPersistIndex,
   incrementalUpdateIndex,
 } from '@/utils/db'
+import type { UploadFile } from 'tdesign-vue-next'
 import type { ChatRepo, RepoCommit, UploadResult } from '@/types'
 
 const auth = useAuthStore()
@@ -115,9 +94,10 @@ function openUpdate(item: ChatRepo) {
   modalVisible.value = true
 }
 
-function onFileChange(data: { fileList: UploadFileInfo[] }) {
-  const f = data.fileList[0]
-  modalFile.value = f?.file ?? null
+function onFileChange(files: Array<UploadFile>) {
+  // TDesign 单文件选择每次变更都会以新文件列表回调，取第一个的 raw（File 对象）
+  const f = files?.[0]
+  modalFile.value = f?.raw ?? null
 }
 
 async function submitModal() {
@@ -238,7 +218,7 @@ async function openHistory(item: ChatRepo) {
 }
 
 async function rollbackTo(sha: string) {
-  if (!historyRepo.value?.id) return
+  if (!historyRepo.value?.id || rollbackLoading.value) return
   rollbackLoading.value = true
   try {
     await request.post(`/repos/${historyRepo.value.id}/rollback`, { sha })
@@ -283,7 +263,7 @@ onMounted(reload)
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><ServerOutline /></NIcon>
+            <AppIcon :size="12"><ServerOutline /></AppIcon>
             <span>GIT REPOSITORY // 聊天仓库</span>
           </div>
           <h1 class="chronos-page-title">
@@ -296,22 +276,22 @@ onMounted(reload)
         </div>
         <div class="banner-actions">
           <span :class="['mode-pill', auth.cloudSyncEnabled ? 'cloud' : 'local']">
-            <NIcon size="12">
+            <AppIcon :size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-            </NIcon>
+            </AppIcon>
             {{ auth.cloudSyncEnabled ? '云端同步已开启' : '本地模式' }}
           </span>
-          <NButton type="primary" size="medium" @click="openCreate" class="chronos-btn-banner">
-            <template #icon><NIcon size="16"><AddOutline /></NIcon></template>
+          <t-button theme="primary" @click="openCreate" class="chronos-btn-banner">
+            <template #icon><AppIcon :size="16"><AddOutline /></AppIcon></template>
             创建仓库
-          </NButton>
+          </t-button>
         </div>
       </div>
     </div>
 
     <!-- 仓库列表 -->
-    <NSpin :show="loading">
-      <NEmpty
+    <t-loading :loading="loading">
+      <t-empty
         v-if="!loading && !hasRepos"
         description="还没有聊天仓库，点击上方创建"
         style="padding: 60px 0;"
@@ -334,194 +314,182 @@ onMounted(reload)
           <div class="repo-head">
             <div class="repo-head-left">
               <div class="repo-avatar">
-                <NIcon size="20"><GitBranchOutline /></NIcon>
+                <AppIcon :size="20"><GitBranchOutline /></AppIcon>
                 <div class="avatar-ring"></div>
               </div>
               <div class="repo-head-text">
                 <h3>{{ r.name }}</h3>
                 <span class="repo-id-tag">
-                  <NIcon size="10" style="margin-right: 2px;"><HardwareChipOutline /></NIcon>
+                  <AppIcon :size="10" style="margin-right: 2px;"><HardwareChipOutline /></AppIcon>
                   {{ r.defaultBranch || 'main' }}
                 </span>
               </div>
             </div>
-            <NTag v-if="r.commitCount" size="small" round type="info">
-              <template #icon><NIcon size="12"><GitBranchOutline /></NIcon></template>
+            <t-tag v-if="r.commitCount" size="small" shape="round" theme="primary" variant="light">
+              <template #icon><AppIcon :size="12"><GitBranchOutline /></AppIcon></template>
               {{ r.commitCount }} 次提交
-            </NTag>
+            </t-tag>
           </div>
 
           <p v-if="r.description" class="repo-desc">{{ r.description }}</p>
 
           <div class="repo-meta">
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--primary);"><ChatbubbleEllipsesOutline /></NIcon>
-              <NText depth="3" class="meta-text">{{ r.conversationCount ?? 0 }} 个对话</NText>
+              <AppIcon :size="14" style="color: var(--primary);"><ChatbubbleEllipsesOutline /></AppIcon>
+              <span class="meta-text">{{ r.conversationCount ?? 0 }} 个对话</span>
             </div>
             <div v-if="r.lastCommitSha" class="meta-row">
-              <NIcon size="14" style="color: var(--accent);"><GitBranchOutline /></NIcon>
-              <NText depth="3" class="meta-text">最新提交：{{ r.lastCommitSha.slice(0, 7) }}</NText>
+              <AppIcon :size="14" style="color: var(--accent);"><GitBranchOutline /></AppIcon>
+              <span class="meta-text">最新提交：{{ r.lastCommitSha.slice(0, 7) }}</span>
             </div>
             <div class="meta-row">
-              <NIcon size="14" style="color: var(--warning);"><CalendarOutline /></NIcon>
-              <NText depth="3" class="meta-text">最近更新：{{ fmtDate(r.updatedAt) }}</NText>
+              <AppIcon :size="14" style="color: var(--warning);"><CalendarOutline /></AppIcon>
+              <span class="meta-text">最近更新：{{ fmtDate(r.updatedAt) }}</span>
             </div>
           </div>
 
           <div class="card-actions">
-            <NButton size="small" @click="viewConversations" class="action-btn">
-              <template #icon><NIcon size="14"><EyeOutline /></NIcon></template>
+            <t-button size="small" @click="viewConversations" class="action-btn">
+              <template #icon><AppIcon :size="14"><EyeOutline /></AppIcon></template>
               查看
-            </NButton>
-            <NButton size="small" type="info" ghost @click="openHistory(r)" class="action-btn" :disabled="!r.id">
-              <template #icon><NIcon size="14"><TimeOutline /></NIcon></template>
+            </t-button>
+            <t-button size="small" theme="primary" variant="outline" @click="openHistory(r)" class="action-btn" :disabled="!r.id">
+              <template #icon><AppIcon :size="14"><TimeOutline /></AppIcon></template>
               历史
-            </NButton>
-            <NButton size="small" type="primary" ghost @click="openUpdate(r)" class="action-btn">
-              <template #icon><NIcon size="14"><RefreshOutline /></NIcon></template>
+            </t-button>
+            <t-button size="small" theme="primary" variant="outline" @click="openUpdate(r)" class="action-btn">
+              <template #icon><AppIcon :size="14"><RefreshOutline /></AppIcon></template>
               更新
-            </NButton>
-            <NPopconfirm @positive-click="removeRepo(r)">
-              <template #trigger>
-                <NButton size="small" type="error" ghost class="action-btn">
-                  <template #icon><NIcon size="14"><TrashOutline /></NIcon></template>
-                  删除
-                </NButton>
-              </template>
-              确定删除仓库「{{ r.name }}」？所有对话数据和 Git 历史将被清除。
-            </NPopconfirm>
+            </t-button>
+            <t-popconfirm
+              :content="`确定删除仓库「${r.name}」？所有对话数据和 Git 历史将被清除。`"
+              @confirm="removeRepo(r)"
+            >
+              <t-button size="small" theme="danger" variant="outline" class="action-btn">
+                <template #icon><AppIcon :size="14"><TrashOutline /></AppIcon></template>
+                删除
+              </t-button>
+            </t-popconfirm>
           </div>
         </div>
       </div>
-    </NSpin>
+    </t-loading>
 
     <!-- 创建/更新仓库模态框 -->
-    <NModal
-      v-model:show="modalVisible"
-      preset="card"
-      :title="modalMode === 'create' ? '创建聊天仓库' : '更新仓库数据'"
+    <t-dialog
+      v-model:visible="modalVisible"
+      :header="modalMode === 'create' ? '创建聊天仓库' : '更新仓库数据'"
       class="chronos-modal"
-      style="width: 500px; max-width: 92vw;"
-      :bordered="false"
+      width="min(500px, 92vw)"
+      :footer="false"
     >
-      <NForm label-placement="top">
-        <NFormItem label="仓库名称" v-if="modalMode === 'create'">
-          <NInput v-model:value="modalName" placeholder="例如：工作主仓库、个人对话" />
-        </NFormItem>
-        <NFormItem v-else label="仓库名称">
-          <NInput :value="modalName" disabled />
-        </NFormItem>
-        <NFormItem label="描述（可选）" v-if="modalMode === 'create'">
-          <NInput
-            v-model:value="modalDescription"
-            type="textarea"
+      <t-form label-align="top">
+        <t-form-item label="仓库名称" v-if="modalMode === 'create'">
+          <t-input v-model="modalName" placeholder="例如：工作主仓库、个人对话" />
+        </t-form-item>
+        <t-form-item v-else label="仓库名称">
+          <t-input :value="modalName" disabled />
+        </t-form-item>
+        <t-form-item label="描述（可选）" v-if="modalMode === 'create'">
+          <t-textarea
+            v-model="modalDescription"
             placeholder="简要描述这个仓库的用途"
             :autosize="{ minRows: 2, maxRows: 4 }"
           />
-        </NFormItem>
-        <NFormItem :label="modalMode === 'create' ? '数据包（可选，zip 压缩包）' : '数据包（zip 压缩包）'">
-          <NUpload
-            :max="1"
+        </t-form-item>
+        <t-form-item :label="modalMode === 'create' ? '数据包（可选，zip 压缩包）' : '数据包（zip 压缩包）'">
+          <t-upload
+            theme="custom"
+            :auto-upload="false"
             accept=".zip"
-            :default-upload="false"
             @change="onFileChange"
-            :file-list="[]"
           >
-            <NButton>
-              <template #icon><NIcon size="14"><FolderOpenOutline /></NIcon></template>
+            <t-button>
+              <template #icon><AppIcon :size="14"><FolderOpenOutline /></AppIcon></template>
               选择数据包
-            </NButton>
-          </NUpload>
+            </t-button>
+          </t-upload>
           <div v-if="modalFile" style="margin-top: 10px;">
             <span class="chronos-file-tag">
-              <NIcon size="14" style="margin-right: 4px;"><ArchiveOutline /></NIcon>
+              <AppIcon :size="14" style="margin-right: 4px;"><ArchiveOutline /></AppIcon>
               {{ modalFile.name }}
             </span>
           </div>
-          <NText depth="3" style="font-size: 12px; margin-top: 6px; display: block;">
+          <span style="font-size: 12px; margin-top: 6px; display: block; color: var(--text-muted);">
             支持 DeepSeek 和 ChatGPT 导出的 zip 包（仅需 conversations.json）
-          </NText>
-        </NFormItem>
-      </NForm>
-      <template #footer>
-        <NSpace justify="end">
-          <NButton @click="modalVisible = false">取消</NButton>
-          <NButton type="primary" :loading="submitting" @click="submitModal">
-            <template #icon v-if="!submitting"><NIcon size="14"><RocketOutline /></NIcon></template>
-            {{ modalMode === 'create' ? '创建' : '更新' }}
-          </NButton>
-        </NSpace>
-      </template>
-    </NModal>
+          </span>
+        </t-form-item>
+      </t-form>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <t-button @click="modalVisible = false">取消</t-button>
+        <t-button theme="primary" :loading="submitting" @click="submitModal">
+          <template #icon v-if="!submitting"><AppIcon :size="14"><RocketOutline /></AppIcon></template>
+          {{ modalMode === 'create' ? '创建' : '更新' }}
+        </t-button>
+      </div>
+    </t-dialog>
 
     <!-- 版本历史 Drawer -->
-    <NDrawer
-      v-model:show="historyDrawerVisible"
-      :width="520"
+    <t-drawer
+      v-model:visible="historyDrawerVisible"
+      size="520px"
       placement="right"
+      :header="`版本历史 · ${historyRepo?.name ?? ''}`"
+      close-btn
+      :footer="false"
     >
-      <NDrawerContent
-        :title="`版本历史 · ${historyRepo?.name ?? ''}`"
-        closable
-      >
-        <NSpin :show="historyLoading">
-          <div v-if="!historyLoading && historyCommits.length === 0" style="padding: 40px 0;">
-            <NEmpty description="暂无提交历史" />
-          </div>
-          <div v-else style="padding: 4px 0;">
-            <!-- 仓库概览 -->
-            <NDescriptions v-if="historyRepo" label-placement="left" :column="1" size="small" bordered class="repo-info-desc">
-              <NDescriptionsItem label="仓库">{{ historyRepo.name }}</NDescriptionsItem>
-              <NDescriptionsItem label="分支">{{ historyRepo.defaultBranch || 'main' }}</NDescriptionsItem>
-              <NDescriptionsItem label="提交数">{{ historyCommits.length }}</NDescriptionsItem>
-              <NDescriptionsItem label="快照大小">{{ fmtBytes(historySnapshotBytes) }}</NDescriptionsItem>
-            </NDescriptions>
+      <t-loading :loading="historyLoading">
+        <div v-if="!historyLoading && historyCommits.length === 0" style="padding: 40px 0;">
+          <t-empty description="暂无提交历史" />
+        </div>
+        <div v-else style="padding: 4px 0;">
+          <!-- 仓库概览 -->
+          <t-descriptions v-if="historyRepo" :column="1" size="small" bordered class="repo-info-desc">
+            <t-descriptions-item label="仓库">{{ historyRepo.name }}</t-descriptions-item>
+            <t-descriptions-item label="分支">{{ historyRepo.defaultBranch || 'main' }}</t-descriptions-item>
+            <t-descriptions-item label="提交数">{{ historyCommits.length }}</t-descriptions-item>
+            <t-descriptions-item label="快照大小">{{ fmtBytes(historySnapshotBytes) }}</t-descriptions-item>
+          </t-descriptions>
 
-            <!-- 提交时间线 -->
-            <div class="history-timeline">
-              <NTimeline>
-                <NTimelineItem
-                  v-for="(commit, idx) in historyCommits"
-                  :key="commit.sha"
-                  :type="idx === 0 ? 'success' : 'default'"
-                  :time="fmtDate(commit.date)"
-                >
-                  <template #header>
-                    <div class="commit-header">
-                      <span class="commit-sha">{{ commit.shortSha }}</span>
-                      <span v-if="idx === 0" class="commit-latest">最新</span>
-                    </div>
-                  </template>
-                  <div class="commit-body">
-                    <div class="commit-message">{{ commit.message }}</div>
-                    <div class="commit-actions">
-                      <NButton size="tiny" quaternary @click="downloadSnapshot(commit.sha)">
-                        <template #icon><NIcon size="12"><DownloadOutline /></NIcon></template>
-                        下载
-                      </NButton>
-                      <NPopconfirm
-                        v-if="idx !== 0"
-                        @positive-click="rollbackTo(commit.sha)"
-                        :disabled="rollbackLoading"
-                      >
-                        <template #trigger>
-                          <NButton size="tiny" quaternary type="warning" :loading="rollbackLoading">
-                            <template #icon><NIcon size="12"><ArrowUndoOutline /></NIcon></template>
-                            回滚
-                          </NButton>
-                        </template>
-                        确定回滚到 {{ commit.shortSha }}？这将追加一条回滚提交，不会丢失当前历史。
-                      </NPopconfirm>
-                      <NText v-else depth="3" style="font-size: 11px;">（当前版本）</NText>
-                    </div>
+          <!-- 提交时间线 -->
+          <div class="history-timeline">
+            <t-timeline>
+              <t-timeline-item
+                v-for="(commit, idx) in historyCommits"
+                :key="commit.sha"
+                :dot-color="idx === 0 ? 'var(--td-success-color)' : 'var(--td-component-stroke)'"
+                :label="fmtDate(commit.date)"
+              >
+                <div class="commit-header">
+                  <span class="commit-sha">{{ commit.shortSha }}</span>
+                  <span v-if="idx === 0" class="commit-latest">最新</span>
+                </div>
+                <div class="commit-body">
+                  <div class="commit-message">{{ commit.message }}</div>
+                  <div class="commit-actions">
+                    <t-button size="small" variant="text" @click="downloadSnapshot(commit.sha)">
+                      <template #icon><AppIcon :size="12"><DownloadOutline /></AppIcon></template>
+                      下载
+                    </t-button>
+                    <t-popconfirm
+                      v-if="idx !== 0"
+                      :content="`确定回滚到 ${commit.shortSha}？这将追加一条回滚提交，不会丢失当前历史。`"
+                      @confirm="rollbackTo(commit.sha)"
+                    >
+                      <t-button size="small" variant="text" theme="warning" :loading="rollbackLoading">
+                        <template #icon><AppIcon :size="12"><ArrowUndoOutline /></AppIcon></template>
+                        回滚
+                      </t-button>
+                    </t-popconfirm>
+                    <span v-else style="font-size: 11px; color: var(--text-muted);">（当前版本）</span>
                   </div>
-                </NTimelineItem>
-              </NTimeline>
-            </div>
+                </div>
+              </t-timeline-item>
+            </t-timeline>
           </div>
-        </NSpin>
-      </NDrawerContent>
-    </NDrawer>
+        </div>
+      </t-loading>
+    </t-drawer>
   </div>
 </template>
 

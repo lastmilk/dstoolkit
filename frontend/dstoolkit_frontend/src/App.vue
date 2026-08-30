@@ -1,43 +1,14 @@
 <script setup lang="ts">
-import {
-  NConfigProvider,
-  NMessageProvider,
-  NDialogProvider,
-  NLoadingBarProvider,
-  zhCN,
-  dateZhCN,
-  darkTheme,
-} from 'naive-ui'
-import { computed } from 'vue'
-import { useThemeStore } from '@/stores/theme'
+import zhCN from 'tdesign-vue-next/es/locale/zh_CN'
+import type { GlobalConfigProvider } from 'tdesign-vue-next'
 
-const themeStore = useThemeStore()
-
-/**
- * NaiveUI 支持两种叠加：
- *  1) theme: darkTheme / undefined  →  提供「暗色/浅色」底层主题
- *  2) theme-overrides               →  覆盖具体 token
- */
-const naiveTheme = computed(() =>
-  themeStore.current.naiveDark ? darkTheme : undefined
-)
-
-const themeOverrides = computed(() => themeStore.current.overrides)
+// 语言包导出类型为 readonly，与 GlobalConfigProvider 的 mutable 数组不兼容，此处断言
+const globalConfig = zhCN as unknown as GlobalConfigProvider
 </script>
 
 <template>
-  <NConfigProvider
-    :locale="zhCN"
-    :date-locale="dateZhCN"
-    :theme="naiveTheme"
-    :theme-overrides="themeOverrides"
-  >
-    <NLoadingBarProvider>
-      <NMessageProvider>
-        <NDialogProvider>
-          <RouterView />
-        </NDialogProvider>
-      </NMessageProvider>
-    </NLoadingBarProvider>
-  </NConfigProvider>
+  <!-- TDesign 全局配置：中文语言包。主题通过 CSS 变量注入（stores/theme.ts） -->
+  <t-config-provider :global-config="globalConfig">
+    <RouterView />
+  </t-config-provider>
 </template>

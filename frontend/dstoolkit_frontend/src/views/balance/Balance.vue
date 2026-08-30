@@ -1,16 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import {
-  NSpace,
-  NSelect,
-  NButton,
-  NText,
-  NStatistic,
-  NEmpty,
-  NSpin,
-  NIcon,
-} from 'naive-ui'
-import {
   WalletOutline,
   RefreshOutline,
   CheckmarkCircleOutline,
@@ -22,11 +12,12 @@ import {
   RocketOutline,
   SparklesOutline,
 } from '@vicons/ionicons5'
+import AppIcon from '@/components/AppIcon.vue'
 import { request } from '@/utils/request'
 import type { ApiKeyItem } from '@/types'
 
 const apiKeys = ref<ApiKeyItem[]>([])
-const keyId = ref<number | null>(null)
+const keyId = ref<number | undefined>(undefined)
 const loading = ref(false)
 const result = ref<any>(null)
 
@@ -71,32 +62,32 @@ onMounted(loadKeys)
       <div class="panel-corner tr"></div>
       <div class="panel-corner bl"></div>
       <div class="panel-corner br"></div>
-      <NSpace align="center" :size="12" wrap class="query-wrap">
+      <t-space align="center" :size="12" break-line class="query-wrap">
         <div class="key-picker-label">
-          <NIcon size="16" style="color: var(--primary);"><KeyOutline /></NIcon>
+          <AppIcon :size="16" style="color: var(--primary);"><KeyOutline /></AppIcon>
           <span>密钥选择</span>
         </div>
-        <NSelect
-          v-model:value="keyId"
+        <t-select
+          v-model="keyId"
           :options="apiKeys.map((k) => ({ label: `${k.name} (${k.masked})`, value: k.id }))"
           placeholder="选择 API Key"
           class="key-select"
           clearable
         />
-        <NButton type="primary" :loading="loading" :disabled="!keyId" @click="query">
-          <template #icon><NIcon size="15"><RefreshOutline /></NIcon></template>
+        <t-button theme="primary" :loading="loading" :disabled="!keyId" @click="query">
+          <template #icon><AppIcon :size="15"><RefreshOutline /></AppIcon></template>
           查询余额
-        </NButton>
-      </NSpace>
+        </t-button>
+      </t-space>
     </div>
 
-    <NEmpty
+    <t-empty
       v-if="apiKeys.length === 0"
       description="暂无密钥，请到个人中心添加 API Key"
       style="padding: 60px 0;"
     />
 
-    <NSpin :show="loading">
+    <t-loading :loading="loading">
       <template v-if="result">
         <div
           class="chronos-panel status-card page-enter"
@@ -106,12 +97,12 @@ onMounted(loadKeys)
           <div class="panel-corner tr"></div>
           <div class="panel-corner bl"></div>
           <div class="panel-corner br"></div>
-          <NSpace align="center" :size="12">
+          <t-space align="center" :size="12">
             <div :class="['status-icon', result.isAvailable ? 'icon-success' : 'icon-danger']">
-              <NIcon size="24">
+              <AppIcon :size="24">
                 <CheckmarkCircleOutline v-if="result.isAvailable" />
                 <CloseCircleOutline v-else />
-              </NIcon>
+              </AppIcon>
             </div>
             <div class="status-text">
               <div class="status-title">
@@ -120,11 +111,11 @@ onMounted(loadKeys)
                   {{ result.isAvailable ? 'NORMAL' : 'LOW' }}
                 </span>
               </div>
-              <NText depth="3" style="font-size: 13px; color: var(--text-muted);">
+              <span style="font-size: 13px; color: var(--text-muted);">
                 更新时间：{{ new Date().toLocaleString() }} · 数据正常
-              </NText>
+              </span>
             </div>
-          </NSpace>
+          </t-space>
         </div>
 
         <div class="balance-grid">
@@ -143,19 +134,19 @@ onMounted(loadKeys)
             <div class="balance-head">
               <div>
                 <div class="balance-eyebrow">
-                  <NIcon size="12" style="color: var(--primary);"><RocketOutline /></NIcon>
+                  <AppIcon :size="12" style="color: var(--primary);"><RocketOutline /></AppIcon>
                   CURRENT BALANCE
                 </div>
                 <div class="balance-label">当前余额</div>
                 <div class="balance-amount">
                   <span class="amount-num">
-                    <NStatistic :value="b.totalBalance" :precision="2" />
+                    <span class="stat-value">{{ Number(b.totalBalance ?? 0).toFixed(2) }}</span>
                   </span>
                   <span class="amount-unit">{{ b.currency || 'CNY' }}</span>
                 </div>
               </div>
               <div class="balance-icon">
-                <NIcon size="20"><CashOutline /></NIcon>
+                <AppIcon :size="20"><CashOutline /></AppIcon>
               </div>
             </div>
 
@@ -168,14 +159,14 @@ onMounted(loadKeys)
             <div class="balance-rows">
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--success);"><GiftOutline /></NIcon>
+                  <AppIcon :size="14" style="color: var(--success);"><GiftOutline /></AppIcon>
                   <span>赠款余额</span>
                 </div>
                 <span class="row-val success">{{ b.grantedBalance }}</span>
               </div>
               <div class="balance-row">
                 <div class="row-left">
-                  <NIcon size="14" style="color: var(--primary);"><CardOutline /></NIcon>
+                  <AppIcon :size="14" style="color: var(--primary);"><CardOutline /></AppIcon>
                   <span>充值余额</span>
                 </div>
                 <span class="row-val primary">{{ b.toppedUpBalance }}</span>
@@ -184,7 +175,7 @@ onMounted(loadKeys)
           </div>
         </div>
       </template>
-    </NSpin>
+    </t-loading>
   </div>
 </template>
 
@@ -459,6 +450,10 @@ onMounted(loadKeys)
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 600;
 }
 .amount-unit {
   font-size: 14px;

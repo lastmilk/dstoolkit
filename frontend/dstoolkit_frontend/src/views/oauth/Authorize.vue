@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { NButton, NIcon, NSpin } from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import { ShieldCheckmarkOutline, PhonePortraitOutline, CloseOutline } from '@vicons/ionicons5'
 import { request } from '@/utils/request'
 import { useAuthStore } from '@/stores/auth'
@@ -80,7 +80,7 @@ function onDeny() {
   <div class="oauth-shell">
     <div class="oauth-card">
       <div class="oauth-icon">
-        <NIcon size="36"><PhonePortraitOutline /></NIcon>
+        <AppIcon :size="36"><PhonePortraitOutline /></AppIcon>
       </div>
       <h2 class="oauth-title">授权请求</h2>
       <p class="oauth-desc">
@@ -90,7 +90,7 @@ function onDeny() {
       <div class="oauth-scopes">
         <div v-if="scopeList.length === 0" class="scope-item">基础账号信息</div>
         <div v-for="s in scopeList" :key="s" class="scope-item">
-          <span class="scope-icon"><NIcon size="16"><ShieldCheckmarkOutline /></NIcon></span>
+          <span class="scope-icon"><AppIcon :size="16"><ShieldCheckmarkOutline /></AppIcon></span>
           {{ SCOPE_LABELS[s] || s }}
         </div>
       </div>
@@ -100,18 +100,18 @@ function onDeny() {
       </div>
 
       <div class="oauth-actions">
-        <NButton size="large" quaternary @click="onDeny" :disabled="loading">
-          <template #icon><NIcon><CloseOutline /></NIcon></template>
+        <t-button size="large" variant="text" @click="onDeny" :disabled="loading">
+          <template #icon><AppIcon><CloseOutline /></AppIcon></template>
           拒绝
-        </NButton>
-        <NButton size="large" type="primary" @click="onApprove" :loading="loading" :disabled="!!errorMsg">
+        </t-button>
+        <t-button size="large" theme="primary" @click="onApprove" :loading="loading" :disabled="!!errorMsg">
           同意授权
-        </NButton>
+        </t-button>
       </div>
 
       <p class="oauth-hint">授权后将返回 DsToolKit 应用，你随时可在应用内退出登录以撤销访问。</p>
       <div v-if="loading" class="oauth-loading">
-        <NSpin size="small" />
+        <t-loading loading size="small" />
       </div>
     </div>
   </div>

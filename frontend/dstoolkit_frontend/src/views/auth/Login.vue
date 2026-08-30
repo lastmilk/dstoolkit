@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NSpace,
-  NIcon,
-} from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   SparklesSharp,
   SearchOutline,
@@ -49,7 +42,7 @@ async function onSubmit() {
         <!-- Logo -->
         <div class="side-logo">
           <div class="side-logo-icon">
-            <NIcon size="24"><SparklesSharp /></NIcon>
+            <AppIcon :size="24"><SparklesSharp /></AppIcon>
           </div>
           <div class="side-logo-text">
             <div class="side-logo-name">Deepseek Toolkit</div>
@@ -73,7 +66,7 @@ async function onSubmit() {
         <div class="side-features">
           <div class="feat-card">
             <div class="feat-icon feat-icon-1">
-              <NIcon size="18"><SearchOutline /></NIcon>
+              <AppIcon :size="18"><SearchOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">极速全文检索</div>
@@ -82,7 +75,7 @@ async function onSubmit() {
           </div>
           <div class="feat-card">
             <div class="feat-icon feat-icon-2">
-              <NIcon size="18"><BarChartOutline /></NIcon>
+              <AppIcon :size="18"><BarChartOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">数据可视化</div>
@@ -91,7 +84,7 @@ async function onSubmit() {
           </div>
           <div class="feat-card">
             <div class="feat-icon feat-icon-3">
-              <NIcon size="18"><CloudUploadOutline /></NIcon>
+              <AppIcon :size="18"><CloudUploadOutline /></AppIcon>
             </div>
             <div class="feat-text">
               <div class="feat-title">Alpaca 导出</div>
@@ -113,7 +106,7 @@ async function onSubmit() {
         <!-- 移动端显示的小 Logo -->
         <div class="mobile-logo">
           <div class="mobile-logo-icon brand-gradient">
-            <NIcon size="20"><SparklesSharp /></NIcon>
+            <AppIcon :size="20"><SparklesSharp /></AppIcon>
           </div>
           <div class="mobile-logo-text">Toolkit</div>
         </div>
@@ -129,32 +122,31 @@ async function onSubmit() {
           </p>
         </div>
 
-        <NForm @keyup.enter="onSubmit" class="auth-form">
-          <NFormItem label="用户名">
-            <NInput
-              v-model:value="username"
+        <t-form @keyup.enter="onSubmit" class="auth-form">
+          <t-form-item label="用户名">
+            <t-input
+              v-model="username"
               placeholder="输入用户名或注册时的账号"
               clearable
             >
-              <template #prefix>
-                <NIcon size="16" style="color: var(--text-muted);">
+              <template #prefix-icon>
+                <AppIcon :size="16" style="color: var(--text-muted);">
                   <LogInOutline />
-                </NIcon>
+                </AppIcon>
               </template>
-            </NInput>
-          </NFormItem>
+            </t-input>
+          </t-form-item>
 
-          <NFormItem label="密码">
-            <NInput
-              v-model:value="password"
+          <t-form-item label="密码">
+            <t-input
+              v-model="password"
               type="password"
-              show-password-on="click"
               placeholder="输入账号密码"
             />
-          </NFormItem>
+          </t-form-item>
 
-          <NButton
-            type="primary"
+          <t-button
+            theme="primary"
             block
             size="large"
             :loading="loading"
@@ -162,23 +154,23 @@ async function onSubmit() {
             class="submit-btn"
           >
             <template #icon v-if="!loading">
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
+              <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
             </template>
             登录
-          </NButton>
-        </NForm>
+          </t-button>
+        </t-form>
 
         <div class="auth-divider">
           <span>还没有账号？</span>
         </div>
 
         <div class="auth-alt">
-          <NButton block ghost size="large" @click="router.push('/register')">
+          <t-button block variant="outline" size="large" @click="router.push('/register')">
             创建新账号
             <template #icon>
-              <NIcon size="16"><ArrowForwardOutline /></NIcon>
+              <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
             </template>
-          </NButton>
+          </t-button>
         </div>
 
         <p class="auth-tip">

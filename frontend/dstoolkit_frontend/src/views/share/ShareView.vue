@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import {
-  NCard, NSpace, NSpin, NInput, NButton, NText, NEmpty, NConfigProvider,
-} from 'naive-ui'
 import { request } from '@/utils/request'
 import ChatViewer from '@/components/ChatViewer.vue'
 import type { ParsedConversation } from '@/types'
@@ -59,51 +56,51 @@ onMounted(fetchShare)
         <span class="logo">Deepseek</span>
         <span class="sub">dstoolkit · 分享</span>
       </div>
-      <NText depth="3" style="font-size: 12px;">浏览 {{ viewCount }} 次</NText>
+      <span style="font-size: 12px; color: var(--text-muted);">浏览 {{ viewCount }} 次</span>
     </header>
 
     <main class="share-main">
       <div v-if="loading" class="share-loading">
-        <NSpin size="large" />
-        <NText depth="3" style="margin-top: 12px;">正在加载分享…</NText>
+        <t-loading loading size="large" />
+        <span style="margin-top: 12px; color: var(--text-muted);">正在加载分享…</span>
       </div>
 
       <div v-else-if="requiresPassword" class="share-pw neu-card">
         <h3>此分享需要密码</h3>
-        <NText depth="3" style="font-size: 13px; margin-bottom: 12px; display: block;">
+        <span style="font-size: 13px; margin-bottom: 12px; display: block; color: var(--text-muted);">
           请输入分享者设置的访问密码
-        </NText>
-        <NSpace align="end">
-          <NInput
-            v-model:value="password"
+        </span>
+        <t-space align="end">
+          <t-input
+            v-model="password"
             type="password"
             placeholder="访问密码"
             style="width: 240px;"
             @keyup.enter="submitPassword"
           />
-          <NButton type="primary" @click="submitPassword">验证</NButton>
-        </NSpace>
+          <t-button theme="primary" @click="submitPassword">验证</t-button>
+        </t-space>
       </div>
 
       <div v-else-if="error" class="share-error">
-        <NEmpty :description="error" />
+        <t-empty :description="error" />
       </div>
 
       <div v-else-if="conversation" class="share-conv">
         <div class="share-title neu-card">
           <h2>{{ title }}</h2>
-          <NText depth="3" style="font-size: 13px;">
+          <span style="font-size: 13px; color: var(--text-muted);">
             {{ conversation.messages.length }} 条消息 · {{ conversation.turns?.length ?? conversation.turnCount ?? 0 }} 轮对话
-          </NText>
+          </span>
         </div>
         <ChatViewer :conversation="conversation" :api-keys="[]" />
       </div>
     </main>
 
     <footer class="share-footer">
-      <NText depth="3" style="font-size: 12px;">
+      <span style="font-size: 12px; color: var(--text-muted);">
         由 dstoolkit 生成 · 主题：{{ theme }}
-      </NText>
+      </span>
     </footer>
   </div>
 </template>

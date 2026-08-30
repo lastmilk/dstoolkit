@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, h, ref, watch } from 'vue'
-import { NTree, NEmpty, type TreeOption } from 'naive-ui'
-import type { VNodeChild } from 'vue'
+import { computed, ref, watch } from 'vue'
+import type { TreeOptionData, TreeNodeModel, TreeNodeValue } from 'tdesign-vue-next'
 import dayjs from 'dayjs'
 import type { ParsedConversation, ParsedMessage, Turn, Version, SubTurn } from '@/types'
 
@@ -32,7 +31,7 @@ interface NodeMeta {
 
 const nodeMeta = new Map<string, NodeMeta>()
 
-const internalExpanded = ref<string[]>([])
+const internalExpanded = ref<TreeNodeValue[]>([])
 
 watch(
   () => props.autoExpandPaths,
@@ -140,7 +139,7 @@ function collectVersionNodeIds(v: Version): string[] {
   return ids
 }
 
-function buildTree(convs: ParsedConversation[]): TreeOption[] {
+function buildTree(convs: ParsedConversation[]): TreeOptionData[] {
   nodeMeta.clear()
   const byDate = new Map<string, ParsedConversation[]>()
   for (const c of convs) {
@@ -162,7 +161,7 @@ function buildTree(convs: ParsedConversation[]): TreeOption[] {
   })
 }
 
-function buildConvNode(c: ParsedConversation): TreeOption {
+function buildConvNode(c: ParsedConversation): TreeOptionData {
   const turns = deriveTurns(c)
   const key = `c|${c.deepseekConvId}`
   const ids = turns.flatMap((t) => [
@@ -180,7 +179,7 @@ function buildConvNode(c: ParsedConversation): TreeOption {
   }
 }
 
-function buildTurnNode(c: ParsedConversation, t: Turn): TreeOption {
+function buildTurnNode(c: ParsedConversation, t: Turn): TreeOptionData {
   const key = `t|${c.deepseekConvId}|${t.turnIndex}`
   const userMsg = c.messages.find((m) => m.nodeId === t.userNodeId)
   const snip = userMsg ? snippet(userMsg.content) : ''
@@ -194,7 +193,7 @@ function buildTurnNode(c: ParsedConversation, t: Turn): TreeOption {
   }
 }
 
-function buildVersionNode(c: ParsedConversation, t: Turn, v: Version): TreeOption {
+function buildVersionNode(c: ParsedConversation, t: Turn, v: Version): TreeOptionData {
   const key = `v|${c.deepseekConvId}|${t.turnIndex}|${v.versionIndex}`
   const asstMsg = c.messages.find((m) => m.nodeId === v.assistantNodeId)
   const model = asstMsg?.model ? ` · ${asstMsg.model}` : ''
@@ -214,7 +213,7 @@ function buildSubTurnNode(
   t: Turn,
   v: Version,
   s: SubTurn,
-): TreeOption {
+): TreeOptionData {
   const key = `s|${c.deepseekConvId}|${t.turnIndex}|${v.versionIndex}|${s.subTurnIndex}`
   const userMsg = c.messages.find((m) => m.nodeId === s.userNodeId)
   const snip = userMsg ? snippet(userMsg.content) : ''
@@ -233,7 +232,7 @@ function buildSubTurnNode(
   }
 }
 
-const treeData = computed<TreeOption[]>(() => buildTree(props.conversations))
+const treeData = computed<TreeOptionData[]>(() => buildTree(props.conversations))
 
 // 时间线模式下自动展开所有日期节点，让用户直接看到对话列表；搜索模式用 autoExpandPaths
 watch(
@@ -254,47 +253,41 @@ function isHit(key: string): boolean {
   return meta.nodeIds.some((id) => props.searchHits.has(id))
 }
 
-function renderLabel({ option }: { option: TreeOption }): VNodeChild {
-  if (isHit(String(option.key))) {
-    return h('span', { class: 'search-hit' }, option.label as string)
-  }
-  return option.label as string
-}
-
-// 直接通过 node-props 的 onClick 处理点击，确保所有层级（包括叶子节点的子轮）都能触发
-function nodeProps({ option }: { option: TreeOption }): Record<string, any> {
-  return {
-    onClick: () => {
-      const key = String(option.key)
-      const meta = nodeMeta.get(key)
-      if (!meta || !meta.conv) return
-      emit('select-subturn', {
-        conv: meta.conv,
-        turnIndex: meta.turnIndex ?? null,
-        versionIndex: meta.versionIndex ?? null,
-        subTurnIndex: meta.subTurnIndex ?? null,
-      })
-    },
-  }
+// 直接通过 click 事件处理点击，确保所有层级（包括叶子节点的子轮）都能触发
+function handleNodeClick(context: { node: TreeNodeModel }) {
+  const key = String(context.node.value)
+  const meta = nodeMeta.get(key)
+  if (!meta || !meta.conv) return
+  emit('select-subturn', {
+    conv: meta.conv,
+    turnIndex: meta.turnIndex ?? null,
+    versionIndex: meta.versionIndex ?? null,
+    subTurnIndex: meta.subTurnIndex ?? null,
+  })
 }
 </script>
 
 <template>
   <div class="turn-tree neu-card" style="max-height: 72vh; overflow: auto;">
-    <NEmpty
+    <t-empty
       v-if="conversations.length === 0"
       description="暂无会话数据，请先在配置页上传"
       style="padding: 40px 0;"
     />
-    <NTree
+    <t-tree
       v-else
       :data="treeData"
-      :expanded-keys="internalExpanded"
-      :selectable="true"
-      :block-line="true"
-      :render-label="renderLabel"
-      :node-props="nodeProps"
-      @update:expanded-keys="internalExpanded = $event"
-    />
+      :keys="{ value: 'key', label: 'label', children: 'children' }"
+      :expanded="internalExpanded"
+      activable
+      hover
+      @click="handleNodeClick"
+      @expand="internalExpanded = $event"
+    >
+      <template #label="{ node }">
+        <span v-if="isHit(String(node.value))" class="search-hit">{{ node.label }}</span>
+        <template v-else>{{ node.label }}</template>
+      </template>
+    </t-tree>
   </div>
 </template>

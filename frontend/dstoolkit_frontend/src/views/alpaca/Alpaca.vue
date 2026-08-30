@@ -1,19 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import {
-  NSpace,
-  NCheckboxGroup,
-  NCheckbox,
-  NButton,
-  NSwitch,
-  NText,
-  NCode,
-  NEmpty,
-  NSpin,
-  NScrollbar,
-  NIcon,
-} from 'naive-ui'
-import {
   CodeSlashOutline,
   CheckmarkDoneOutline,
   CloseCircleOutline,
@@ -23,6 +10,7 @@ import {
   GitNetworkOutline,
   ListOutline,
 } from '@vicons/ionicons5'
+import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { loadConversationsPage } from '@/utils/db'
 import { request } from '@/utils/request'
@@ -153,9 +141,9 @@ onMounted(load)
   <div class="page-enter">
     <!-- 页面头部 -->
     <div class="page-header" style="margin-bottom: 24px;">
-      <NSpace align="center" :size="14" wrap>
+      <t-space align="center" :size="14" break-line>
         <div class="page-header-icon">
-          <NIcon size="22"><CodeSlashOutline /></NIcon>
+          <AppIcon :size="22"><CodeSlashOutline /></AppIcon>
         </div>
         <div style="flex: 1;">
           <h2 style="margin: 0 0 4px;">Alpaca 数据格式转换</h2>
@@ -163,29 +151,29 @@ onMounted(load)
             将你的对话数据导出为业界标准的 Alpaca 格式，可直接用于模型微调训练
           </p>
         </div>
-      </NSpace>
+      </t-space>
     </div>
 
-    <NSpin :show="loading">
+    <t-loading :loading="loading">
       <!-- 操作工具栏 -->
       <div class="surface toolbar-surface" style="padding: 14px 18px; margin-bottom: 16px;">
-        <NSpace align="center" :size="12" wrap>
+        <t-space align="center" :size="12" break-line>
           <div class="mode-toggle" style="display: flex; align-items: center; gap: 10px; padding: 6px 14px; background: var(--surface-2); border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
-            <NIcon size="14" :style="{ color: multiTurn ? 'var(--primary)' : 'var(--text-muted)' }">
+            <AppIcon :size="14" :style="{ color: multiTurn ? 'var(--primary)' : 'var(--text-muted)' }">
               <GitNetworkOutline v-if="multiTurn" />
               <ListOutline v-else />
-            </NIcon>
-            <NText depth="3" style="font-size: 13px;">{{ multiTurn ? '多轮对话' : '单轮问答' }}</NText>
-            <NSwitch v-model:value="multiTurn" size="small" />
+            </AppIcon>
+            <span style="font-size: 13px; color: var(--text-muted);">{{ multiTurn ? '多轮对话' : '单轮问答' }}</span>
+            <t-switch v-model="multiTurn" size="small" />
           </div>
-          <NButton size="small" ghost @click="selectAll">
-            <template #icon><NIcon size="14"><CheckmarkDoneOutline /></NIcon></template>
+          <t-button size="small" variant="outline" @click="selectAll">
+            <template #icon><AppIcon :size="14"><CheckmarkDoneOutline /></AppIcon></template>
             全选
-          </NButton>
-          <NButton size="small" ghost @click="clearAll">
-            <template #icon><NIcon size="14"><CloseCircleOutline /></NIcon></template>
+          </t-button>
+          <t-button size="small" variant="outline" @click="clearAll">
+            <template #icon><AppIcon :size="14"><CloseCircleOutline /></AppIcon></template>
             清空
-          </NButton>
+          </t-button>
           <div style="flex: 1;"></div>
           <span class="pill pill-info" style="font-size: 12px;">
             已选 {{ selected.length }} / {{ convs.length }} 个会话
@@ -194,14 +182,14 @@ onMounted(load)
           <span :class="['pill', total ? 'pill-success' : 'pill-default']" style="font-size: 12px;">
             将生成 {{ total }} 条
           </span>
-          <NButton type="primary" :disabled="!total" @click="download">
-            <template #icon><NIcon size="15"><DownloadOutline /></NIcon></template>
+          <t-button theme="primary" :disabled="!total" @click="download">
+            <template #icon><AppIcon :size="15"><DownloadOutline /></AppIcon></template>
             下载 JSON
-          </NButton>
-        </NSpace>
+          </t-button>
+        </t-space>
       </div>
 
-      <NEmpty
+      <t-empty
         v-if="!loading && convs.length === 0"
         description="暂无会话，请先在配置页上传"
         style="padding: 60px 0;"
@@ -213,51 +201,51 @@ onMounted(load)
             <div
               style="padding: 12px 16px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px;"
             >
-              <NIcon size="13" style="color: var(--primary);"><ListOutline /></NIcon>
+              <AppIcon :size="13" style="color: var(--primary);"><ListOutline /></AppIcon>
               会话列表
             </div>
             <div style="flex: 1; overflow: hidden;">
-              <NScrollbar style="max-height: calc(68vh - 60px);">
+              <div class="scroll-area" style="max-height: calc(68vh - 60px); overflow-y: auto;">
                 <div style="padding: 4px 10px 12px;">
-                  <NCheckboxGroup v-model:value="selected">
-                    <NSpace vertical :size="2">
+                  <t-checkbox-group v-model="selected">
+                    <t-space vertical :size="2">
                       <div
                         v-for="c in convs"
                         :key="c.deepseekConvId"
                         class="conv-item"
                         style="padding: 8px 10px; border-radius: 8px; transition: all var(--transition-fast);"
                       >
-                        <NCheckbox
+                        <t-checkbox
                           :value="c.deepseekConvId"
                           :label="c.title"
                         />
                       </div>
-                    </NSpace>
-                  </NCheckboxGroup>
+                    </t-space>
+                  </t-checkbox-group>
                   <div v-if="hasMore" class="load-more" style="display: flex; justify-content: center; padding: 14px 0 6px;">
-                    <NButton
+                    <t-button
                       size="small"
-                      type="primary"
-                      ghost
+                      theme="primary"
+                      variant="outline"
                       :loading="loadingMore"
                       @click="loadMore"
                     >
                       <template #icon v-if="!loadingMore">
-                        <NIcon size="13"><ChevronDownOutline /></NIcon>
+                        <AppIcon :size="13"><ChevronDownOutline /></AppIcon>
                       </template>
                       加载更多（已加载 {{ convs.length }}
                       <span v-if="totalConvs != null"> / {{ totalConvs }}</span>）
-                    </NButton>
+                    </t-button>
                   </div>
                 </div>
-              </NScrollbar>
+              </div>
             </div>
           </div>
 
           <!-- 右侧：预览区 -->
           <div class="surface page-enter delay-1" style="padding: 20px; min-height: 400px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
-              <NIcon size="16" style="color: var(--accent);"><EyeOutline /></NIcon>
+              <AppIcon :size="16" style="color: var(--accent);"><EyeOutline /></AppIcon>
               <h4 style="margin: 0; font-size: 14px;">数据预览</h4>
               <span class="pill pill-default" style="font-size: 11px; margin-left: 4px;">前 {{ preview.length }} 条</span>
               <div style="flex: 1;"></div>
@@ -265,27 +253,27 @@ onMounted(load)
                 共 {{ total }} 条数据待导出
               </span>
             </div>
-            <NScrollbar style="max-height: 62vh;">
-              <NEmpty v-if="preview.length === 0" description="选择会话后预览转换结果" />
-              <NSpace vertical :size="12" v-else style="padding-right: 4px;">
+            <div class="scroll-area" style="max-height: 62vh; overflow-y: auto;">
+              <t-empty v-if="preview.length === 0" description="选择会话后预览转换结果" />
+              <t-space vertical :size="12" v-else style="padding-right: 4px;">
                 <div class="preview-card">
                   <div class="preview-label" style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px;">
                     第 1 条
                   </div>
-                  <pre class="preview-pre"><NCode :code="JSON.stringify(preview[0], null, 2)" language="json" word-wrap /></pre>
+                  <pre class="preview-pre">{{ JSON.stringify(preview[0], null, 2) }}</pre>
                 </div>
                 <div v-if="preview[1]" class="preview-card">
                   <div class="preview-label" style="font-size: 11px; color: var(--text-muted); font-weight: 500; margin-bottom: 6px;">
                     第 2 条
                   </div>
-                  <pre class="preview-pre"><NCode :code="JSON.stringify(preview[1], null, 2)" language="json" word-wrap /></pre>
+                  <pre class="preview-pre">{{ JSON.stringify(preview[1], null, 2) }}</pre>
                 </div>
-              </NSpace>
-            </NScrollbar>
+              </t-space>
+            </div>
           </div>
         </div>
       </template>
-    </NSpin>
+    </t-loading>
   </div>
 </template>
 
@@ -325,14 +313,12 @@ onMounted(load)
 .preview-pre {
   margin: 0;
   border-radius: var(--radius-sm);
-}
-.preview-pre :deep(pre) {
-  border-radius: var(--radius-sm);
   background: #0F172A !important;
   color: #E2E8F0;
   font-size: 12.5px;
   line-height: 1.6;
   padding: 14px 16px;
-  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

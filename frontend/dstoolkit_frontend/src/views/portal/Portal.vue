@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NIcon } from 'naive-ui'
+import AppIcon from '@/components/AppIcon.vue'
 import {
   SparklesSharp,
   SearchOutline,
@@ -61,9 +61,9 @@ const features = [
     <nav class="portal-nav-top">
       <div class="portal-nav-inner">
         <div class="portal-nav-brand">
-          <NIcon size="22" class="brand-logo-icon">
+          <AppIcon :size="22" class="brand-logo-icon">
             <SparklesSharp />
-          </NIcon>
+          </AppIcon>
           <span>Deepseek Toolkit</span>
         </div>
         <div class="portal-nav-links">
@@ -83,7 +83,7 @@ const features = [
 
     <section class="portal-hero">
       <div class="portal-eyebrow">
-        <NIcon size="14"><SparklesSharp /></NIcon>
+        <AppIcon :size="14"><SparklesSharp /></AppIcon>
         对话即资产
       </div>
       <h1 class="portal-title">
@@ -98,7 +98,7 @@ const features = [
           @click.prevent="router.push('/register')"
         >
           立即开始
-          <NIcon size="16"><ArrowForwardOutline /></NIcon>
+          <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
         </a>
         <a class="portal-btn ghost" href="#features">了解功能</a>
       </div>
@@ -112,7 +112,7 @@ const features = [
       <div class="portal-feature-grid">
         <div v-for="(f, i) in features" :key="i" class="portal-feature">
           <div :class="['portal-feature-icon', f.color]">
-            <NIcon size="22"><component :is="f.icon" /></NIcon>
+            <AppIcon :size="22"><component :is="f.icon" /></AppIcon>
           </div>
           <h3 class="portal-feature-title">{{ f.title }}</h3>
           <p class="portal-feature-desc">{{ f.desc }}</p>
@@ -129,7 +129,7 @@ const features = [
           @click.prevent="router.push('/register')"
         >
           立即免费注册
-          <NIcon size="16"><ArrowForwardOutline /></NIcon>
+          <AppIcon :size="16"><ArrowForwardOutline /></AppIcon>
         </a>
       </div>
     </section>

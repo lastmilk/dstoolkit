@@ -302,7 +302,7 @@ h5 { font-size: 14px; }
   border-radius: var(--radius-full);
   margin-bottom: 12px;
 }
-.chronos-eyebrow .n-icon { opacity: 0.9; }
+.chronos-eyebrow .app-icon { opacity: 0.9; }
 
 .chronos-page-title {
   font-size: 24px;

@@ -1,24 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import {
-  NCard,
-  NForm,
-  NFormItem,
-  NInput,
-  NButton,
-  NSpace,
-  NText,
-  NTag,
-  NDataTable,
-  NPopconfirm,
-  NCode,
-  NSelect,
-  NModal,
-  NIcon,
-  type DataTableColumns,
-  type SelectOption,
-} from 'naive-ui'
-import { h } from 'vue'
+import { onMounted, ref, h } from 'vue'
 import {
   PersonCircleOutline,
   KeyOutline,
@@ -45,10 +26,13 @@ import {
   CashOutline,
   LinkOutline,
 } from '@vicons/ionicons5'
+import { Button as TButton, Popconfirm as TPopconfirm, Tag as TTag } from 'tdesign-vue-next'
+import type { PrimaryTableCol, SelectOption } from 'tdesign-vue-next'
+import AppIcon from '@/components/AppIcon.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 import type { ApiKeyItem, ApiTokenItem, CreatedApiToken } from '@/types'
 
 const auth = useAuthStore()
@@ -106,15 +90,15 @@ async function deleteKey(id: number) {
   message.success('密钥已删除')
 }
 
-const columns: DataTableColumns<ApiKeyItem> = [
-  { title: '名称', key: 'name' },
-  { title: '密钥（掩码）', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
-  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+const columns: PrimaryTableCol[] = [
+  { title: '名称', colKey: 'name' },
+  { title: '密钥（掩码）', colKey: 'masked', cell: (_h, { row }) => row.masked },
+  { title: '创建时间', colKey: 'createdAt', cell: (_h, { row }) => new Date(row.createdAt).toLocaleString() },
   {
     title: '操作',
-    key: 'actions',
-    render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteKey(r.id) }, { default: () => '确认删除此密钥？', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '删除' }) }),
+    colKey: 'actions',
+    cell: (_h, { row }) =>
+      h(TPopconfirm, { content: '确认删除此密钥？', onConfirm: () => deleteKey(row.id) }, { default: () => h(TButton, { size: 'small', theme: 'danger', variant: 'outline' }, { default: () => '删除' }) }),
   },
 ]
 
@@ -175,47 +159,31 @@ async function copyNewToken() {
   }
 }
 
-const tokenColumns: DataTableColumns<ApiTokenItem> = [
-  { title: '名称', key: 'name', width: 160 },
-  { title: '令牌前缀', key: 'masked', render: (r) => h(NCode, { code: r.masked, language: 'text' }) },
+const tokenColumns: PrimaryTableCol[] = [
+  { title: '名称', colKey: 'name', width: 160 },
+  { title: '令牌前缀', colKey: 'masked', cell: (_h, { row }) => row.masked },
   {
     title: '状态',
-    key: 'status',
+    colKey: 'status',
     width: 100,
-    render: (r) => {
-      if (r.expiresAt && new Date(r.expiresAt) < new Date()) {
-        return h(NTag, { type: 'error', size: 'small' }, { default: () => '已过期' })
+    cell: (_h, { row }) => {
+      if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
+        return h(TTag, { theme: 'danger', size: 'small' }, { default: () => '已过期' })
       }
-      return h(NTag, { type: 'success', size: 'small' }, { default: () => '有效' })
+      return h(TTag, { theme: 'success', size: 'small' }, { default: () => '有效' })
     },
   },
-  { title: '创建时间', key: 'createdAt', width: 170, render: (r) => new Date(r.createdAt).toLocaleString() },
-  { title: '最后使用', key: 'lastUsedAt', width: 170, render: (r) => (r.lastUsedAt ? new Date(r.lastUsedAt).toLocaleString() : '—') },
-  { title: '过期时间', key: 'expiresAt', width: 170, render: (r) => (r.expiresAt ? new Date(r.expiresAt).toLocaleString() : '永久') },
+  { title: '创建时间', colKey: 'createdAt', width: 170, cell: (_h, { row }) => new Date(row.createdAt).toLocaleString() },
+  { title: '最后使用', colKey: 'lastUsedAt', width: 170, cell: (_h, { row }) => (row.lastUsedAt ? new Date(row.lastUsedAt).toLocaleString() : '—') },
+  { title: '过期时间', colKey: 'expiresAt', width: 170, cell: (_h, { row }) => (row.expiresAt ? new Date(row.expiresAt).toLocaleString() : '永久') },
   {
     title: '操作',
-    key: 'actions',
+    colKey: 'actions',
     width: 90,
-    render: (r) =>
-      h(NPopconfirm, { onPositiveClick: () => deleteToken(r.id) }, { default: () => '确认撤销该令牌？撤销后立即失效。', trigger: () => h(NButton, { size: 'small', type: 'error', ghost: true }, { default: () => '撤销' }) }),
+    cell: (_h, { row }) =>
+      h(TPopconfirm, { content: '确认撤销该令牌？撤销后立即失效。', onConfirm: () => deleteToken(row.id) }, { default: () => h(TButton, { size: 'small', theme: 'danger', variant: 'outline' }, { default: () => '撤销' }) }),
   },
 ]
-
-interface ReferralLinkItem {
-  id: number
-  code: string
-  clicks: number
-  signupCount: number
-  totalCommissionEarned: number
-  createdAt: string
-}
-interface ReferralRewardItem {
-  id: number
-  type: string
-  credits: number
-  detail: string | null
-  createdAt: string
-}
 
 const referralLoading = ref(true)
 const referralInfo = ref<{
@@ -294,19 +262,19 @@ const rewardTypeMap: Record<string, string> = {
   PURCHASE: '购买分成',
 }
 
-const referralLinkColumns: DataTableColumns<ReferralLinkItem> = [
-  { title: '邀请码', key: 'code', render: (r) => h(NCode, { code: r.code, language: 'text' }) },
-  { title: '点击数', key: 'clicks' },
-  { title: '注册数', key: 'signupCount' },
-  { title: '累计积分', key: 'totalCommissionEarned' },
-  { title: '创建时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+const referralLinkColumns: PrimaryTableCol[] = [
+  { title: '邀请码', colKey: 'code', cell: (_h, { row }) => row.code },
+  { title: '点击数', colKey: 'clicks' },
+  { title: '注册数', colKey: 'signupCount' },
+  { title: '累计积分', colKey: 'totalCommissionEarned' },
+  { title: '创建时间', colKey: 'createdAt', cell: (_h, { row }) => new Date(row.createdAt).toLocaleString() },
 ]
 
-const referralRewardColumns: DataTableColumns<ReferralRewardItem> = [
-  { title: '类型', key: 'type', render: (r) => rewardTypeMap[r.type] || r.type },
-  { title: '积分', key: 'credits', render: (r) => h('span', { style: 'color: var(--success); font-weight: 700;' }, `+${r.credits}`) },
-  { title: '说明', key: 'detail', render: (r) => r.detail ?? '—' },
-  { title: '时间', key: 'createdAt', render: (r) => new Date(r.createdAt).toLocaleString() },
+const referralRewardColumns: PrimaryTableCol[] = [
+  { title: '类型', colKey: 'type', cell: (_h, { row }) => rewardTypeMap[row.type] || row.type },
+  { title: '积分', colKey: 'credits', cell: (_h, { row }) => h('span', { style: 'color: var(--success); font-weight: 700;' }, `+${row.credits}`) },
+  { title: '说明', colKey: 'detail', cell: (_h, { row }) => row.detail ?? '—' },
+  { title: '时间', colKey: 'createdAt', cell: (_h, { row }) => new Date(row.createdAt).toLocaleString() },
 ]
 
 onMounted(() => {
@@ -323,7 +291,7 @@ onMounted(() => {
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><FingerPrintOutline /></NIcon>
+            <AppIcon :size="12"><FingerPrintOutline /></AppIcon>
             <span>PROFILE // 个人中心</span>
           </div>
           <h1 class="chronos-page-title">
@@ -336,21 +304,21 @@ onMounted(() => {
         </div>
         <div class="banner-id">
           <div class="id-avatar">
-            <NIcon size="32" style="color: var(--primary);"><PersonCircleOutline /></NIcon>
+            <AppIcon :size="32" style="color: var(--primary);"><PersonCircleOutline /></AppIcon>
             <div class="id-ring r1"></div>
             <div class="id-ring r2"></div>
           </div>
           <div class="id-info">
             <div class="id-name">{{ auth.user?.username || '未命名用户' }}</div>
             <div class="id-tags">
-              <NTag v-if="auth.isAdmin" size="small" round class="tag-admin">
-                <NIcon size="11" style="margin-right: 2px;"><RibbonOutline /></NIcon>
+              <t-tag v-if="auth.isAdmin" size="small" shape="round" class="tag-admin">
+                <AppIcon :size="11" style="margin-right: 2px;"><RibbonOutline /></AppIcon>
                 管理员
-              </NTag>
+              </t-tag>
               <span :class="['id-mode-tag', auth.cloudSyncEnabled ? 'cloud' : 'local']">
-                <NIcon size="10" style="margin-right: 3px;">
+                <AppIcon :size="10" style="margin-right: 3px;">
                   <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-                </NIcon>
+                </AppIcon>
                 云端{{ auth.cloudSyncEnabled ? '已连接' : '离线' }}
               </span>
             </div>
@@ -367,7 +335,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon">
-          <NIcon size="19"><PersonCircleOutline /></NIcon>
+          <AppIcon :size="19"><PersonCircleOutline /></AppIcon>
         </div>
         <div style="flex: 1;">
           <h3>用户信息</h3>
@@ -380,34 +348,34 @@ onMounted(() => {
       <div class="account-grid">
         <div>
           <div class="sub-section-title">
-            <NIcon size="14" style="color: var(--primary);"><CreateOutline /></NIcon>
+            <AppIcon :size="14" style="color: var(--primary);"><CreateOutline /></AppIcon>
             更新用户名
           </div>
-          <NForm label-placement="top">
-            <NFormItem label="用户名">
-              <NInput v-model:value="newUsername" placeholder="请输入用户名" />
-            </NFormItem>
-            <NButton type="tertiary" @click="saveUsername">
-              <template #icon><NIcon size="14"><SaveOutline /></NIcon></template>
+          <t-form label-align="top">
+            <t-form-item label="用户名">
+              <t-input v-model="newUsername" placeholder="请输入用户名" />
+            </t-form-item>
+            <t-button @click="saveUsername">
+              <template #icon><AppIcon :size="14"><SaveOutline /></AppIcon></template>
               保存
-            </NButton>
-          </NForm>
+            </t-button>
+          </t-form>
         </div>
 
         <div>
           <div class="sub-section-title">
-            <NIcon size="14" style="color: var(--accent);"><LockClosedOutline /></NIcon>
+            <AppIcon :size="14" style="color: var(--accent);"><LockClosedOutline /></AppIcon>
             修改登录密码
           </div>
-          <NForm label-placement="top">
-            <NFormItem label="原密码"><NInput v-model:value="oldPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="新密码"><NInput v-model:value="newPwd" type="password" show-password-on="click" /></NFormItem>
-            <NFormItem label="确认新密码"><NInput v-model:value="confirmPwd" type="password" show-password-on="click" /></NFormItem>
-            <NButton type="tertiary" @click="savePassword">
-              <template #icon><NIcon size="14"><LockClosedOutline /></NIcon></template>
+          <t-form label-align="top">
+            <t-form-item label="原密码"><t-input v-model="oldPwd" type="password" /></t-form-item>
+            <t-form-item label="新密码"><t-input v-model="newPwd" type="password" /></t-form-item>
+            <t-form-item label="确认新密码"><t-input v-model="confirmPwd" type="password" /></t-form-item>
+            <t-button @click="savePassword">
+              <template #icon><AppIcon :size="14"><LockClosedOutline /></AppIcon></template>
               更新密码
-            </NButton>
-          </NForm>
+            </t-button>
+          </t-form>
         </div>
       </div>
     </div>
@@ -420,7 +388,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon accent">
-          <NIcon size="19"><KeyOutline /></NIcon>
+          <AppIcon :size="19"><KeyOutline /></AppIcon>
         </div>
         <div style="flex: 1;">
           <h3>API 密钥管理</h3>
@@ -431,21 +399,21 @@ onMounted(() => {
       </div>
 
       <div class="add-row">
-        <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="keyName" placeholder="如：工作密钥" style="width: 200px;" />
-          </NFormItem>
-          <NFormItem label="密钥内容" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="keyValue" placeholder="sk-..." style="width: 320px;" />
-          </NFormItem>
-          <NButton type="tertiary" @click="addKey">
-            <template #icon><NIcon size="14"><AddOutline /></NIcon></template>
+        <t-space :size="12" align="end" break-line>
+          <t-form-item label="名称" style="margin-bottom: 0;">
+            <t-input v-model="keyName" placeholder="如：工作密钥" style="width: 200px;" />
+          </t-form-item>
+          <t-form-item label="密钥内容" style="margin-bottom: 0;">
+            <t-input v-model="keyValue" placeholder="sk-..." style="width: 320px;" />
+          </t-form-item>
+          <t-button @click="addKey">
+            <template #icon><AppIcon :size="14"><AddOutline /></AppIcon></template>
             添加
-          </NButton>
-        </NSpace>
+          </t-button>
+        </t-space>
       </div>
 
-      <NDataTable :columns="columns" :data="apiKeys" :bordered="false" size="small" :single-line="false" />
+      <t-table row-key="id" :columns="columns" :data="apiKeys" :bordered="false" size="small" />
     </div>
 
     <div class="chronos-panel section-card page-enter delay-2">
@@ -456,7 +424,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon success">
-          <NIcon size="19"><ShieldOutline /></NIcon>
+          <AppIcon :size="19"><ShieldOutline /></AppIcon>
         </div>
         <div style="flex: 1;">
           <div class="section-title-row">
@@ -470,21 +438,21 @@ onMounted(() => {
       </div>
 
       <div class="add-row">
-        <NSpace :size="12" align="end" wrap>
-          <NFormItem label="名称" :show-feedback="false" style="margin-bottom: 0;">
-            <NInput v-model:value="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
-          </NFormItem>
-          <NFormItem label="有效期" :show-feedback="false" style="margin-bottom: 0;">
-            <NSelect v-model:value="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
-          </NFormItem>
-          <NButton type="tertiary" :loading="tokenCreating" @click="createToken">
-            <template #icon><NIcon size="14"><RocketOutline /></NIcon></template>
+        <t-space :size="12" align="end" break-line>
+          <t-form-item label="名称" style="margin-bottom: 0;">
+            <t-input v-model="tokenName" placeholder="如：脚本采集" style="width: 200px;" />
+          </t-form-item>
+          <t-form-item label="有效期" style="margin-bottom: 0;">
+            <t-select v-model="tokenExpiry" :options="expiryOptions" style="width: 160px;" />
+          </t-form-item>
+          <t-button :loading="tokenCreating" @click="createToken">
+            <template #icon><AppIcon :size="14"><RocketOutline /></AppIcon></template>
             生成令牌
-          </NButton>
-        </NSpace>
+          </t-button>
+        </t-space>
       </div>
 
-      <NDataTable :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" :scroll-x="900" />
+      <t-table row-key="id" :columns="tokenColumns" :data="apiTokens" :bordered="false" size="small" />
     </div>
 
     <div class="chronos-panel section-card page-enter delay-3">
@@ -495,7 +463,7 @@ onMounted(() => {
 
       <div class="section-header">
         <div class="section-icon referral">
-          <NIcon size="19"><GiftOutline /></NIcon>
+          <AppIcon :size="19"><GiftOutline /></AppIcon>
         </div>
         <div style="flex: 1;">
           <h3>邀请奖励</h3>
@@ -507,102 +475,102 @@ onMounted(() => {
 
       <div class="referral-stats">
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--accent);"><PeopleOutline /></NIcon>
+          <AppIcon :size="18" style="color: var(--accent);"><PeopleOutline /></AppIcon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.referredCount ?? 0 }}</div>
           <div class="referral-stat-label">邀请人数</div>
         </div>
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--success);"><CashOutline /></NIcon>
+          <AppIcon :size="18" style="color: var(--success);"><CashOutline /></AppIcon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.totalEarned ?? 0 }}</div>
           <div class="referral-stat-label">累计积分</div>
         </div>
         <div class="referral-stat">
-          <NIcon size="18" style="color: var(--warning);"><GiftOutline /></NIcon>
+          <AppIcon :size="18" style="color: var(--warning);"><GiftOutline /></AppIcon>
           <div class="referral-stat-num">{{ referralInfo?.stats?.rewardCount ?? 0 }}</div>
           <div class="referral-stat-label">奖励次数</div>
         </div>
       </div>
 
       <div class="referral-link-row" v-if="referralInfo">
-        <NInput
+        <t-input
           :value="referralInfo!.referralLink"
           readonly
           placeholder="暂无邀请链接"
           style="flex: 1;"
         />
-        <NButton @click="copyText(referralInfo!.referralLink, 'main')">
-          <template #icon><NIcon size="14"><CopyOutline /></NIcon></template>
+        <t-button @click="copyText(referralInfo!.referralLink, 'main')">
+          <template #icon><AppIcon :size="14"><CopyOutline /></AppIcon></template>
           复制
-        </NButton>
-        <NButton type="tertiary" :loading="generatingLink" @click="generateLink">
-          <template #icon><NIcon size="14"><LinkOutline /></NIcon></template>
+        </t-button>
+        <t-button :loading="generatingLink" @click="generateLink">
+          <template #icon><AppIcon :size="14"><LinkOutline /></AppIcon></template>
           生成新链接
-        </NButton>
+        </t-button>
       </div>
 
       <div class="referral-bind-row">
-        <NInput
-          v-model:value="bindCode"
+        <t-input
+          v-model="bindCode"
           placeholder="输入好友的邀请码"
           style="flex: 1;"
         />
-        <NButton type="tertiary" :loading="binding" @click="bindReferral">
-          <template #icon><NIcon size="14"><CheckmarkCircleOutline /></NIcon></template>
+        <t-button :loading="binding" @click="bindReferral">
+          <template #icon><AppIcon :size="14"><CheckmarkCircleOutline /></AppIcon></template>
           绑定邀请码
-        </NButton>
+        </t-button>
       </div>
       <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">
         绑定后双方各获 300/500 积分奖励
       </div>
 
       <div class="sub-section-title" style="margin-top: 4px;">
-        <NIcon size="14" style="color: var(--primary);"><LinkOutline /></NIcon>
+        <AppIcon :size="14" style="color: var(--primary);"><LinkOutline /></AppIcon>
         邀请链接
       </div>
-      <NDataTable
+      <t-table
+        row-key="id"
         v-if="referralInfo && referralInfo.links.length"
         :columns="referralLinkColumns"
         :data="referralInfo!.links"
         :bordered="false"
         size="small"
-        :single-line="false"
       />
       <div v-else class="referral-empty">暂无邀请链接，点击上方生成</div>
 
       <div class="sub-section-title" style="margin-top: 20px;">
-        <NIcon size="14" style="color: var(--warning);"><GiftOutline /></NIcon>
+        <AppIcon :size="14" style="color: var(--warning);"><GiftOutline /></AppIcon>
         奖励记录
       </div>
-      <NDataTable
+      <t-table
+        row-key="id"
         v-if="referralInfo && referralInfo.rewards.length"
         :columns="referralRewardColumns"
         :data="referralInfo!.rewards"
         :bordered="false"
         size="small"
-        :single-line="false"
       />
       <div v-else class="referral-empty">暂无奖励记录</div>
     </div>
 
     <div class="logout-row">
-      <NButton size="large" type="error" ghost @click="handleLogout">
-        <template #icon><NIcon size="16"><LogOutOutline /></NIcon></template>
+      <t-button size="large" theme="danger" variant="outline" @click="handleLogout">
+        <template #icon><AppIcon :size="16"><LogOutOutline /></AppIcon></template>
         退出登录
-      </NButton>
+      </t-button>
     </div>
 
-    <NModal
-      v-model:show="showTokenModal"
-      preset="card"
-      title="令牌已生成（仅此一次显示明文）"
-      style="width: 620px; max-width: 92vw;"
-      :mask-closable="false"
-      :bordered="false"
+    <t-dialog
+      v-model:visible="showTokenModal"
+      header="令牌已生成（仅此一次显示明文）"
+      width="620px"
+      style="max-width: 92vw;"
+      :close-on-overlay-click="false"
+      :footer="false"
       class="chronos-modal"
     >
-      <NSpace vertical :size="14">
+      <t-space vertical :size="14">
         <div class="token-warning">
-          <NIcon size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></NIcon>
+          <AppIcon :size="20" style="color: var(--warning); flex-shrink: 0; margin-top: 1px;"><HourglassOutline /></AppIcon>
           <div>
             请立即复制并妥善保存以下令牌。关闭后无法再次查看，如丢失只能重新生成新令牌。
           </div>
@@ -612,20 +580,20 @@ onMounted(() => {
             <TimeOutline style="font-size: 11px; margin-right: 5px;" />
             BEARER TOKEN
           </div>
-          <NCode v-if="newlyCreated" :code="newlyCreated.token" language="text" word-wrap class="token-code" />
+          <span v-if="newlyCreated" class="token-code" style="word-break: break-all;">{{ newlyCreated.token }}</span>
         </div>
-        <NSpace justify="end" style="padding-top: 6px;">
-          <NButton @click="showTokenModal = false">
-            <template #icon><NIcon size="15"><CheckmarkCircleOutline /></NIcon></template>
+        <t-space style="padding-top: 6px; justify-content: flex-end;">
+          <t-button @click="showTokenModal = false">
+            <template #icon><AppIcon :size="15"><CheckmarkCircleOutline /></AppIcon></template>
             我已保存
-          </NButton>
-          <NButton type="primary" @click="copyNewToken">
-            <template #icon><NIcon size="15"><CopyOutline /></NIcon></template>
+          </t-button>
+          <t-button theme="primary" @click="copyNewToken">
+            <template #icon><AppIcon :size="15"><CopyOutline /></AppIcon></template>
             复制令牌
-          </NButton>
-        </NSpace>
-      </NSpace>
-    </NModal>
+          </t-button>
+        </t-space>
+      </t-space>
+    </t-dialog>
   </div>
 </template>
 

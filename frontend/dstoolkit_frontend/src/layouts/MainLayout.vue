@@ -1,27 +1,7 @@
 <script setup lang="ts">
 import logo from '@/assets/logo.png'
-import { computed, h, onMounted, onUnmounted, ref, watch, type Component } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  NLayout,
-  NLayoutSider,
-  NLayoutHeader,
-  NLayoutContent,
-  NLayoutFooter,
-  NMenu,
-  NSwitch,
-  NSpace,
-  NIcon,
-  NText,
-  NTag,
-  NAvatar,
-  NBadge,
-  NDrawer,
-  NDrawerContent,
-  NDropdown,
-  type MenuOption,
-  type DropdownOption,
-} from 'naive-ui'
 import {
   CloudUploadOutline,
   SearchOutline,
@@ -36,17 +16,16 @@ import {
   CloudOfflineOutline,
   MenuOutline,
   TimeOutline,
-  HomeOutline,
-  GridOutline,
   CloseOutline,
-  ColorPaletteOutline,
-  CheckmarkOutline,
-  DesktopOutline,
+  ChevronBackOutline,
+  ChevronForwardOutline,
 } from '@vicons/ionicons5'
+import type { DropdownOption, MenuValue } from 'tdesign-vue-next'
+import AppIcon from '@/components/AppIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { clearLocalData } from '@/utils/db'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -54,43 +33,40 @@ const router = useRouter()
 const themeStore = useThemeStore()
 
 // ═══════════ 主题切换下拉 ═══════════
-const themeDropdownOptions = computed<DropdownOption[]>(() => {
+const themeOptions = computed<DropdownOption[]>(() => {
   const themes = themeStore.list.map((t) => ({
-    label: `${t.emoji}  ${t.label}`,
-    key: t.id,
-    type: 'option' as const,
-    props: { style: 'font-weight: 500;' },
+    content: `${t.emoji}  ${t.label}`,
+    value: t.id,
+    active: themeStore.mode === 'manual' && themeStore.selectedId === t.id,
   }))
   return [
     {
-      key: 'group-manual',
-      type: 'group',
-      label: '主题 · 手动',
+      group: '主题 · 手动',
       children: themes,
     },
+    { divider: true },
     {
-      key: 'divider',
-      type: 'divider',
+      content: '跟随系统',
+      value: 'auto',
+      active: themeStore.mode === 'auto',
     },
-    {
-      key: 'auto',
-      label: themeStore.mode === 'auto' ? '✓  跟随系统' : '   跟随系统',
-      type: 'option',
-      props: { style: 'font-weight: 500;' },
-    },
-  ] as DropdownOption[]
+  ]
 })
-function handleThemeSelect(key: string | number) {
+
+function handleThemeSelect(item: DropdownOption | string | number | undefined) {
+  const val = item !== null && typeof item === 'object' ? item.value : item
+  const key = String(val ?? '')
   if (key === 'auto') {
     themeStore.setMode('auto')
     return
   }
-  themeStore.setTheme(key as any)
+  themeStore.setTheme(key as Parameters<typeof themeStore.setTheme>[0])
 }
 
 // ═══════════ 响应式：是否移动端 ═══════════
 const isMobile = ref(false)
 const drawerVisible = ref(false)
+const collapsed = ref(false)
 
 function checkViewport() {
   isMobile.value = window.innerWidth < 1024
@@ -111,25 +87,21 @@ watch(
   }
 )
 
-function icon(Comp: Component, size = 18) {
-  return () => h(NIcon, { size }, { default: () => h(Comp) })
-}
-
 // ═══════════ 菜单配置 ═══════════
-const menuOptions = computed<MenuOption[]>(() => [
-  { label: '聊天仓库', key: 'repos', icon: icon(CloudUploadOutline) },
-  { label: '对话探索', key: 'explore', icon: icon(SearchOutline) },
-  { label: '数据统计', key: 'stats', icon: icon(BarChartOutline) },
-  { label: 'Alpaca 导出', key: 'alpaca', icon: icon(SwapHorizontalOutline) },
-  { label: '余额', key: 'balance', icon: icon(WalletOutline) },
-  { label: '升级方案', key: 'pricing', icon: icon(DiamondOutline) },
-  { label: '模型市场', key: 'market', icon: icon(AppsOutline) },
-  { label: '个人中心', key: 'profile', icon: icon(PersonOutline) },
-])
+const menuItems = [
+  { key: 'repos', label: '聊天仓库', icon: CloudUploadOutline },
+  { key: 'explore', label: '对话探索', icon: SearchOutline },
+  { key: 'stats', label: '数据统计', icon: BarChartOutline },
+  { key: 'alpaca', label: 'Alpaca 导出', icon: SwapHorizontalOutline },
+  { key: 'balance', label: '余额', icon: WalletOutline },
+  { key: 'pricing', label: '升级方案', icon: DiamondOutline },
+  { key: 'market', label: '模型市场', icon: AppsOutline },
+  { key: 'profile', label: '个人中心', icon: PersonOutline },
+]
 
 const activeKey = computed(() => (route.name as string) || 'repos')
-function onSelect(key: string) {
-  router.push({ name: key })
+function onSelect(key: MenuValue) {
+  router.push({ name: String(key) })
 }
 
 const MENU_LABELS: Record<string, { title: string; subtitle: string; chrono: string }> = {
@@ -156,10 +128,11 @@ const tabbarItems = computed(() => [
 ])
 
 // ═══════════ 云端同步控制 ═══════════
-async function onCloudSync(value: boolean) {
+async function onCloudSync(value: unknown) {
+  const next = value === true
   try {
-    await auth.setCloudSync(value)
-    if (!value) {
+    await auth.setCloudSync(next)
+    if (!next) {
       await clearLocalData()
       message.success('已切换为仅本地存储，本地索引已清空')
     } else {
@@ -185,72 +158,141 @@ const greetText = computed(() => {
   if (h < 22) return '晚上好'
   return '夜深了'
 })
-const timelineNo = '#' + Math.floor(Math.random() * 900 + 100)
-const timelineShift = ['正常','运行中','已连接','轻微延迟','同步完成'][Math.floor(Math.random() * 5)]
 </script>
 
 <template>
-  <NLayout :has-sider="!isMobile" position="absolute" style="height: 100vh" class="chronos-layout">
-
+  <t-layout class="chronos-layout">
     <!-- ════════════════════════════════════
          桌面端：常驻侧边栏
          ════════════════════════════════════ -->
-    <NLayoutSider
+    <t-aside
       v-if="!isMobile"
-      :width="272"
-      :collapsed-width="84"
-      content-style="display: flex; flex-direction: column; background: linear-gradient(180deg, #ffffffff 0%, #ffffffff 100%); border-right: 1px solid rgba(255, 255, 255, 0.14); position: relative; overflow: hidden;"
-      show-trigger="bar"
-      trigger-style="color: rgba(255, 255, 255, 0.4); background: #ffffffff;"
+      :width="collapsed ? '84px' : '272px'"
+      class="app-aside"
     >
-      <!-- 侧边栏装饰：流光网格 -->
-      <div class="sider-bg-deco" aria-hidden="true"></div>
+      <div class="sider-inner">
+        <!-- 侧边栏装饰：轻量光晕 -->
+        <div class="sider-bg-deco" aria-hidden="true"></div>
 
-      <!-- 品牌卡片：时间管理局徽章 -->
-      <div class="brand-wrap">
-            <img :src="logo" alt="Logo">
-      </div>
-
-      <!-- 导航菜单 -->
-      <div class="nav-wrap">
-        <div class="nav-label">
-          <NIcon size="12"><TimeOutline /></NIcon>
-          <span>工作台导航</span>
+        <!-- 品牌区 -->
+        <div class="brand-wrap">
+          <img :src="logo" alt="Logo">
         </div>
-        <NMenu
-          :value="activeKey"
-          :options="menuOptions"
-          :indent="12"
-          @update:value="onSelect"
-          style="padding: 4px; background: transparent; border: none;"
-        />
+
+        <!-- 导航菜单 -->
+        <div class="nav-wrap">
+          <div class="nav-label">
+            <AppIcon :size="12"><TimeOutline /></AppIcon>
+            <span>工作台导航</span>
+          </div>
+          <t-menu
+            :value="activeKey"
+            :collapsed="collapsed"
+            :width="['238px', '56px']"
+            @change="onSelect"
+          >
+            <t-menu-item v-for="m in menuItems" :key="m.key" :value="m.key">
+              <template #icon>
+                <AppIcon :size="18"><component :is="m.icon" /></AppIcon>
+              </template>
+              {{ m.label }}
+            </t-menu-item>
+          </t-menu>
+        </div>
+
+        <!-- 底部：云端同步 + 用户信息 -->
+        <div class="sider-footer">
+          <div class="cloud-card">
+            <div class="cloud-header">
+              <AppIcon :size="16">
+                <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
+              </AppIcon>
+              <span class="cloud-title-text">{{ auth.cloudSyncEnabled ? '云端同步' : '离线模式' }}</span>
+              <span class="cloud-status" :class="auth.cloudSyncEnabled ? 'on' : 'off'"></span>
+            </div>
+            <div class="cloud-control">
+              <t-switch
+                :value="auth.cloudSyncEnabled"
+                size="small"
+                @change="onCloudSync"
+              />
+            </div>
+          </div>
+
+          <!-- 用户小卡 -->
+          <div class="sider-user-card" @click="router.push('/profile')">
+            <t-avatar size="34px" class="sider-avatar">
+              {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
+            </t-avatar>
+            <div class="sider-user-info">
+              <div class="sider-user-name">{{ auth.user?.username || '用户' }}</div>
+              <div class="sider-user-role">
+                {{ auth.isAdmin ? '管理员' : '用户' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 折叠按钮 -->
+          <button
+            class="collapse-btn"
+            type="button"
+            :title="collapsed ? '展开侧边栏' : '收起侧边栏'"
+            @click="collapsed = !collapsed"
+          >
+            <AppIcon :size="16">
+              <component :is="collapsed ? ChevronForwardOutline : ChevronBackOutline" />
+            </AppIcon>
+          </button>
+        </div>
+      </div>
+    </t-aside>
+
+    <!-- ════════════════════════════════════
+         移动端：抽屉式侧边栏
+         ════════════════════════════════════ -->
+    <t-drawer
+      v-if="isMobile"
+      v-model:visible="drawerVisible"
+      placement="left"
+      size="300px"
+      :footer="false"
+      :close-btn="true"
+      header="Deepseek Toolkit 导航"
+    >
+      <!-- 抽屉里的菜单 -->
+      <div class="mobile-menu-wrap">
+        <t-menu :value="activeKey" @change="onSelect">
+          <t-menu-item v-for="m in menuItems" :key="m.key" :value="m.key">
+            <template #icon>
+              <AppIcon :size="18"><component :is="m.icon" /></AppIcon>
+            </template>
+            {{ m.label }}
+          </t-menu-item>
+        </t-menu>
       </div>
 
-      <!-- 底部：云端同步 + 用户信息 -->
-      <div class="sider-footer">
-        <div class="cloud-card">
+      <!-- 抽屉底部：云端同步 -->
+      <div class="drawer-footer">
+        <div class="cloud-card" style="margin-bottom: 12px;">
           <div class="cloud-header">
-            <NIcon size="16" :component="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-            <span>{{ auth.cloudSyncEnabled ? '云端同步' : '离线模式' }}</span>
-            <span class="cloud-status" :class="auth.cloudSyncEnabled ? 'on' : 'off'"></span>
+            <AppIcon :size="16">
+              <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
+            </AppIcon>
+            <span class="cloud-title-text">{{ auth.cloudSyncEnabled ? '云端同步中' : '离线模式' }}</span>
           </div>
           <div class="cloud-control">
-            <NSwitch
+            <t-switch
               :value="auth.cloudSyncEnabled"
-              @update:value="onCloudSync"
               size="small"
-            >
-              <template #checked><NIcon size="12"><CloudOutline /></NIcon></template>
-              <template #unchecked><NIcon size="12"><CloudOfflineOutline /></NIcon></template>
-            </NSwitch>
+              @change="onCloudSync"
+            />
           </div>
         </div>
 
-        <!-- 用户小卡 -->
-        <div class="sider-user-card" @click="router.push('/profile')">
-          <NAvatar round :size="34" class="sider-avatar">
+        <div class="sider-user-card" @click="onSelect('profile')">
+          <t-avatar size="36px" class="sider-avatar">
             {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
-          </NAvatar>
+          </t-avatar>
           <div class="sider-user-info">
             <div class="sider-user-name">{{ auth.user?.username || '用户' }}</div>
             <div class="sider-user-role">
@@ -259,165 +301,81 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
           </div>
         </div>
       </div>
-    </NLayoutSider>
-
-    <!-- ════════════════════════════════════
-         移动端：抽屉式侧边栏
-         ════════════════════════════════════ -->
-    <NDrawer
-      v-if="isMobile"
-      v-model:show="drawerVisible"
-      :placement="'left'"
-      :mask-closable="true"
-      :scrollable="false"
-      show-icon
-    >
-      <NDrawerContent
-        title="Deepseek Toolkit 导航"
-        :style="{ background: 'linear-gradient(180deg, #ffffffff 0%, #ffffffff 100%)', color: '#E8F7FF' }"
-      >
-        <template #header>
-          <div class="drawer-header">
-            <div class="drawer-brand">
-              <NIcon size="20" class="brand-logo-icon"><SparklesSharp /></NIcon>
-              <div>
-                <div class="drawer-title">Deepseek Toolkit</div>
-                <div class="drawer-subtitle">对话管理工作台</div>
-              </div>
-            </div>
-            <NIcon size="22" class="drawer-close" @click="drawerVisible = false"><CloseOutline /></NIcon>
-          </div>
-        </template>
-
-        <!-- 抽屉里的菜单 -->
-        <div class="mobile-menu-wrap">
-          <NMenu
-            :value="activeKey"
-            :options="menuOptions"
-            :indent="8"
-            @update:value="onSelect"
-            style="padding: 4px; background: transparent; border: none;"
-          />
-        </div>
-
-        <!-- 抽屉底部：云端同步 -->
-        <div class="drawer-footer">
-          <div class="cloud-card" style="margin-bottom: 12px;">
-            <div class="cloud-header">
-              <NIcon size="16" :component="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-              <span>{{ auth.cloudSyncEnabled ? '云端同步中' : '离线模式' }}</span>
-            </div>
-            <div class="cloud-control">
-              <NSwitch
-                :value="auth.cloudSyncEnabled"
-                @update:value="onCloudSync"
-                size="small"
-              />
-            </div>
-          </div>
-
-          <div class="sider-user-card" @click="onSelect('profile'); drawerVisible = false">
-            <NAvatar round :size="36" class="sider-avatar">
-              {{ (auth.user?.username || 'U').charAt(0).toUpperCase() }}
-            </NAvatar>
-            <div class="sider-user-info">
-              <div class="sider-user-name">{{ auth.user?.username || '用户' }}</div>
-              <div class="sider-user-role">
-                {{ auth.isAdmin ? '管理员' : '用户' }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </NDrawerContent>
-    </NDrawer>
+    </t-drawer>
 
     <!-- ════════════════════════════════════
          主内容区（移动端 & 桌面端共用容器）
          ════════════════════════════════════ -->
-    <NLayout style="background: transparent;">
+    <t-layout class="main-col">
 
       <!-- ======== 顶部栏 ======== -->
-      <NLayoutHeader
-        :bordered="false"
-        :style="isMobile
-          ? 'height: 58px; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04); position: sticky; top: 0; z-index: 10;'
-          : 'height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background: transparent; border-bottom: 1px solid rgba(0, 212, 255, 0.08); z-index: 10;'"
-      >
+      <t-header class="app-topbar" :class="{ mobile: isMobile }">
         <!-- 移动端左侧：汉堡按钮 + 品牌迷你Logo -->
         <div v-if="isMobile" class="mobile-topbar-left">
           <button class="chronos-hamburger" aria-label="打开菜单" @click="drawerVisible = true">
-            <NIcon size="22"><MenuOutline /></NIcon>
+            <AppIcon :size="22"><MenuOutline /></AppIcon>
           </button>
           <div class="mobile-mini-brand">
-            <NIcon size="16" class="brand-logo-icon mini"><SparklesSharp /></NIcon>
+            <AppIcon :size="16" class="brand-logo-icon mini"><SparklesSharp /></AppIcon>
             <span>Deepseek Toolkit</span>
           </div>
         </div>
+
         <!-- 右侧：状态 + 用户 -->
-        <NSpace align="center" :size="isMobile ? 10 : 20">
+        <div class="topbar-right">
           <!-- 主题切换（桌面+移动都显示） -->
-          <NDropdown
-            :options="themeDropdownOptions"
+          <t-dropdown
+            :options="themeOptions"
             trigger="click"
-            placement="bottom-end"
-            @select="handleThemeSelect"
+            placement="bottom-right"
+            @click="handleThemeSelect"
           >
             <button
               class="chronos-hamburger"
               type="button"
               aria-label="切换主题"
               :title="`主题：${themeStore.current.label}${themeStore.mode === 'auto' ? '（跟随系统）' : ''}`"
-              style="width: 38px; height: 38px;"
             >
               <span style="font-size: 16px;">{{ themeStore.current.emoji }}</span>
             </button>
-          </NDropdown>
+          </t-dropdown>
 
           <!-- 状态标签组（桌面端完整 / 移动端精简） -->
-          <NSpace v-if="!isMobile" align="center" :size="10">
-            <NTag v-if="auth.isAdmin" size="small" type="warning" round>
-              <template #icon><NIcon size="12"><SparklesSharp /></NIcon></template>
+          <div v-if="!isMobile" class="status-tags">
+            <t-tag v-if="auth.isAdmin" theme="warning" size="small" shape="round">
+              <template #icon><AppIcon :size="12"><SparklesSharp /></AppIcon></template>
               管理员
-            </NTag>
-            <NTag
-              size="small"
-              round
-              :type="auth.cloudSyncEnabled ? 'success' : 'default'"
-            >
+            </t-tag>
+            <t-tag theme="default" size="small" shape="round" variant="light">
               <template #icon>
-                <NIcon size="12">
+                <AppIcon :size="12">
                   <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-                </NIcon>
+                </AppIcon>
               </template>
               {{ auth.cloudSyncEnabled ? '云端同步' : '离线' }}
-            </NTag>
-          </NSpace>
+            </t-tag>
+          </div>
 
           <!-- 移动端：云端状态小图标 -->
-          <NTag
+          <t-tag
             v-if="isMobile"
+            theme="default"
             size="small"
-            round
-            :type="auth.cloudSyncEnabled ? 'success' : 'default'"
-            style="padding: 2px 8px;"
+            variant="light"
           >
             <template #icon>
-              <NIcon size="11">
+              <AppIcon :size="11">
                 <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-              </NIcon>
+              </AppIcon>
             </template>
-          </NTag>
-        </NSpace>
-      </NLayoutHeader>
+          </t-tag>
+        </div>
+      </t-header>
 
       <!-- ======== 内容主体 ======== -->
-      <NLayoutContent
-        :content-style="isMobile
-          ? 'padding: 14px 14px 100px;'
-          : 'padding: 24px 32px 36px;'"
-        :native-scrollbar="false"
-        style="background: transparent; position: relative; z-index: 1;"
+      <t-content
         class="chronos-content"
+        :class="{ mobile: isMobile }"
       >
         <!-- ========== Chronos 每日日程报 Banner（桌面+移动端都显示） ========== -->
         <div class="chronos-banner page-enter">
@@ -462,14 +420,10 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
         <div class="page-enter" :class="{ 'delay-2': isMobile }">
           <RouterView />
         </div>
-      </NLayoutContent>
+      </t-content>
 
       <!-- ======== 移动端：底部 Tab 栏 ======== -->
-      <NLayoutFooter
-        v-if="isMobile"
-        :style="'position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05); height: 66px; padding: 0;'"
-        class="chronos-tabbar"
-      >
+      <t-footer v-if="isMobile" class="chronos-tabbar">
         <div class="tabbar-inner">
           <button
             v-for="tab in tabbarItems"
@@ -479,115 +433,77 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
             @click="onSelect(tab.key)"
           >
             <div class="tabbar-icon-wrap">
-              <NBadge v-if="tab.badge > 0" :value="tab.badge" :max="99" type="error">
-                <NIcon size="22" class="tabbar-icon"><component :is="tab.icon" /></NIcon>
-              </NBadge>
-              <NIcon v-else size="22" class="tabbar-icon"><component :is="tab.icon" /></NIcon>
-              <div v-if="activeKey === tab.key" class="tabbar-active-dot"></div>
+              <t-badge v-if="tab.badge > 0" :count="tab.badge" :max="99">
+                <AppIcon :size="22" class="tabbar-icon"><component :is="tab.icon" /></AppIcon>
+              </t-badge>
+              <AppIcon v-else :size="22" class="tabbar-icon"><component :is="tab.icon" /></AppIcon>
             </div>
             <div class="tabbar-label">{{ tab.label }}</div>
           </button>
         </div>
         <!-- iPhone 底部安全区 -->
         <div class="tabbar-safearea"></div>
-      </NLayoutFooter>
+      </t-footer>
 
-    </NLayout>
-  </NLayout>
+    </t-layout>
+  </t-layout>
 </template>
 
 <style scoped>
 /* ============================================================
-   Chronos 布局：侧栏+顶栏装饰
+   TDesign 布局：侧栏 + 顶栏 + 内容
    ============================================================ */
 
-.chronos-layout :deep(.n-layout-scroll-container) {
+.chronos-layout {
+  min-height: 100vh;
+  background: transparent;
+}
+
+/* 侧边栏 */
+.app-aside {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 30;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  transition: width 200ms var(--ease-out);
+}
+.sider-inner {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* 侧边栏背景装饰 */
 .sider-bg-deco {
   position: absolute;
   inset: 0;
-  background-image:
-    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 50%),
-    radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-    linear-gradient(rgba(0, 212, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.025) 1px, transparent 1px);
-  background-size: auto, auto, 36px 36px, 36px 36px;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 0%, var(--primary-soft) 0%, transparent 70%);
   pointer-events: none;
-  opacity: 0.9;
 }
 
-/* ========== 品牌卡片 ========== */
+/* 品牌区 */
 .brand-wrap {
   padding: 18px 16px 10px;
   position: relative;
   z-index: 2;
 }
-.brand-card::after {
-  content: '';
-  position: absolute;
-  top: -60%;
-  right: -25%;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
-  pointer-events: none;
-  animation: chronos-slow-spin 30s linear infinite;
-}
-@keyframes chronos-slow-spin {
-  to { transform: rotate(360deg); }
-}
-.brand-logo {
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(168, 85, 247, 0.22));
-  border-radius: 11px;
-  flex-shrink: 0;
-  border: 1px solid rgba(0, 212, 255, 0.3);
-  position: relative;
+.brand-wrap img {
+  max-width: 180px;
+  max-height: 42px;
+  object-fit: contain;
 }
 
-.brand-logo.mini { font-size: 16px; }
-.brand-logo-ring {
-  position: absolute;
-  inset: -3px;
-  border: 1px dashed rgba(0, 212, 255, 0.35);
-  border-radius: 13px;
-  animation: chronos-slow-spin 20s linear infinite reverse;
-  opacity: 0.7;
-}
-.brand-text { min-width: 0; }
-.brand-name {
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1.2;
-  letter-spacing: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background: linear-gradient(135deg, #000000ff 0%, #000000ff 60%, #000000ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.brand-tag {
-  font-size: 11px;
-  color: #7DBCD8;
-  margin-top: 3px;
-  letter-spacing: 0.02em;
-}
-
-/* ========== 导航 ========== */
+/* 导航 */
 .nav-wrap {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 8px 12px 12px;
+  padding: 8px 8px 12px;
   position: relative;
   z-index: 2;
 }
@@ -599,24 +515,29 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: #5A7DA3;
+  color: var(--text-muted);
   padding: 12px 10px 10px;
 }
-.nav-label n-icon {
+.nav-label :deep(.app-icon) {
   color: var(--primary);
 }
 
-/* ========== 底部 footer ========== */
+/* 菜单透传透明背景 */
+.nav-wrap :deep(.t-menu) {
+  background: transparent;
+}
+
+/* 底部 footer */
 .sider-footer {
-  padding: 10px 16px 16px;
-  border-top: 1px solid rgba(0, 212, 255, 0.08);
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border-subtle);
   margin-top: 4px;
   position: relative;
   z-index: 2;
 }
 .cloud-card {
-  background: linear-gradient(135deg, rgba(0, 212, 255, 0.04) 0%, rgba(168, 85, 247, 0.03) 100%);
-  border: 1px solid rgba(0, 212, 255, 0.12);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -629,23 +550,27 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   gap: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: #8DB3D4;
+  color: var(--text-secondary);
 }
+.cloud-title-text { min-width: 0; }
 .cloud-status {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  margin-left: auto;
   display: inline-block;
 }
 .cloud-status.on {
-  background: var(--chrono-green);
-  box-shadow: 0 0 8px var(--chrono-green);
-  animation: chronos-pulse-glow 2.4s ease-in-out infinite;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: cloud-pulse 2.4s ease-in-out infinite;
 }
 .cloud-status.off {
-  background: var(--chrono-amber);
-  box-shadow: 0 0 6px var(--chrono-amber);
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
+}
+@keyframes cloud-pulse {
+  0%, 100% { box-shadow: 0 0 4px var(--success); }
+  50%      { box-shadow: 0 0 10px var(--success); }
 }
 .cloud-control { flex-shrink: 0; }
 
@@ -658,21 +583,20 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   padding: 10px 11px;
   border-radius: 12px;
   cursor: pointer;
-  background: rgba(0, 212, 255, 0.03);
-  border: 1px solid rgba(0, 212, 255, 0.08);
-  transition: all 0.22s var(--ease-out);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: all var(--transition-fast);
 }
 .sider-user-card:hover {
-  background: rgba(0, 212, 255, 0.08);
-  border-color: rgba(0, 212, 255, 0.18);
-  transform: translateX(2px);
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
 }
 .sider-avatar {
-  background: linear-gradient(135deg, #00D4FF 0%, #A855F7 100%) !important;
-  color: #04101F !important;
-  font-weight: 800 !important;
-  font-size: 14px !important;
-  box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
 }
 .sider-user-info {
   display: flex;
@@ -683,79 +607,94 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
 }
 .sider-user-name {
   font-size: 13.5px;
-  font-weight: 700;
-  color: #5A7DA3;
+  font-weight: 600;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .sider-user-role {
   font-size: 11.5px;
-  color: #5A7DA3;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
-/* ========== 顶栏：页面身份 ========== */
-.page-identity {
+/* 折叠按钮 */
+.collapse-btn {
+  margin-top: 10px;
+  width: 100%;
+  height: 32px;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
-.page-title-row {
+.collapse-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ========== 顶栏 ========== */
+.main-col {
+  min-width: 0;
+}
+.app-topbar {
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  background: transparent;
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 10;
+  width: 100%;
+}
+.app-topbar.mobile {
+  height: 58px;
+  padding: 0 14px;
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.app-topbar.mobile .topbar-right { gap: 10px; }
+.status-tags {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.page-title {
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1.2;
-  color: #E8F7FF;
-  letter-spacing: -0.01em;
-}
-.chrono-stamp {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--primary);
-  background: var(--primary-soft);
-  border: 1px solid rgba(0, 212, 255, 0.18);
-  border-radius: 6px;
-  letter-spacing: 0.05em;
-  text-shadow: 0 0 8px rgba(0, 212, 255, 0.35);
-}
-.page-subtitle {
-  font-size: 12.5px;
-  color: #5A7DA3;
-}
-
-/* ============================================================
-   移动端专项样式
-   ============================================================ */
 
 /* 汉堡按钮 */
 .chronos-hamburger {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.04);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  color: #1F3A5F;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
+  transition: all var(--transition-fast);
 }
-.chronos-hamburger:active {
-  background: rgba(0, 212, 255, 0.12);
-  border-color: rgba(0, 212, 255, 0.3);
-  color: #00A8D4;
-  transform: scale(0.96);
+.chronos-hamburger:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
+.chronos-hamburger:active { transform: scale(0.96); }
 
 /* 迷你品牌 */
 .mobile-mini-brand {
@@ -764,11 +703,11 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   gap: 7px;
   font-size: 14.5px;
   font-weight: 800;
-  color: #1F3A5F;
+  color: var(--text);
   letter-spacing: -0.01em;
 }
-.mobile-mini-brand :deep(.n-icon) {
-  color: #00A8D4;
+.mobile-mini-brand :deep(.app-icon) {
+  color: var(--primary);
 }
 .mobile-topbar-left {
   display: flex;
@@ -776,57 +715,16 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   gap: 12px;
 }
 
-/* 抽屉头部 */
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
-}
-.drawer-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.drawer-title {
-  font-size: 15px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #FFFFFF 0%, #00D4FF 60%, #A855F7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-.drawer-subtitle {
-  font-size: 11.5px;
-  color: #7DBCD8;
-  margin-top: 3px;
-}
-.drawer-close {
-  color: #8DB3D4;
-  padding: 4px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-.drawer-close:active {
-  background: rgba(0, 212, 255, 0.08);
-  color: #00D4FF;
-}
-.mobile-menu-wrap {
-  margin: 8px 0;
-}
+/* 抽屉底部 */
+.mobile-menu-wrap { margin: 8px 0; }
 .drawer-footer {
-  margin-top: auto;
+  margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(0, 212, 255, 0.08);
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* 移动端页面标题 */
-.mobile-page-title-wrap {
-  margin-bottom: 14px;
-}
+.mobile-page-title-wrap { margin-bottom: 14px; }
 .mobile-page-title-row {
   display: flex;
   align-items: center;
@@ -835,7 +733,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
 }
 .mobile-page-subtitle {
   font-size: 12.5px;
-  color: #5A7DA3;
+  color: var(--text-muted);
   line-height: 1.5;
 }
 
@@ -844,13 +742,25 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
    ============================================================ */
 
 .chronos-tabbar {
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.05);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  height: auto;
+  padding: 0;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
 }
 .tabbar-inner {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  height: 66px;
+  height: 62px;
   align-items: stretch;
+  max-width: 560px;
+  margin: 0 auto;
 }
 .tabbar-item {
   display: flex;
@@ -862,7 +772,7 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   border: none;
   cursor: pointer;
   position: relative;
-  color: #8A9BA8;
+  color: var(--text-muted);
   transition: all 0.25s var(--ease-out);
   padding: 0;
 }
@@ -873,36 +783,21 @@ const timelineShift = ['正常','运行中','已连接','轻微延迟','同步�
   justify-content: center;
   transition: transform 0.3s var(--ease-bounce);
 }
-.tabbar-icon {
-  transition: all 0.25s;
-}
+.tabbar-icon { transition: all 0.25s; }
 .tabbar-label {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   transition: all 0.25s;
 }
-.tabbar-item.active {
-  color: #00A8D4;
-}
+.tabbar-item.active { color: var(--primary); }
 .tabbar-item.active .tabbar-icon {
-  filter: drop-shadow(0 2px 6px rgba(0, 212, 255, 0.35));
+  filter: drop-shadow(0 2px 6px var(--primary-soft));
   transform: translateY(-2px) scale(1.08);
 }
 .tabbar-item.active .tabbar-label {
   font-weight: 700;
-  color: #00A8D4;
-}
-.tabbar-active-dot {
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #00D4FF, #A855F7);
-  box-shadow: 0 0 6px rgba(0, 212, 255, 0.55);
+  color: var(--primary);
 }
 .tabbar-safearea {
   height: env(safe-area-inset-bottom, 0);

@@ -1,20 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import {
-  NSpace,
-  NInput,
-  NSwitch,
-  NText,
-  NSpin,
-  NButton,
-  NCheckbox,
-  NRadioGroup,
-  NRadio,
-  NRadioButton,
-  NPagination,
-  NIcon,
-  NTag,
-} from 'naive-ui'
 import dayjs from 'dayjs'
 import {
   SearchOutline,
@@ -49,7 +34,8 @@ import {
   type SearchFilters,
 } from '@/utils/db'
 import { request } from '@/utils/request'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
+import AppIcon from '@/components/AppIcon.vue'
 import TurnTree from '@/components/TurnTree.vue'
 import ChatViewer from '@/components/ChatViewer.vue'
 import type { ParsedConversation } from '@/types'
@@ -195,6 +181,16 @@ async function onPageChange(p: number) {
   ) {
     await loadMore()
   }
+}
+
+// TDesign 分页 change 同时承载页码与每页条数变化（pageInfo: { current, previous, pageSize }）
+function onPaginationChange(info: { current: number; pageSize: number }) {
+  if (info.pageSize !== pageSize.value) {
+    pageSize.value = info.pageSize
+    currentPage.value = 1
+    return
+  }
+  void onPageChange(info.current)
 }
 
 function buildPaths(
@@ -648,7 +644,7 @@ onUnmounted(() => {
       <div class="banner-inner">
         <div class="banner-title-block">
           <div class="chronos-eyebrow">
-            <NIcon size="12"><RocketOutline /></NIcon>
+            <AppIcon :size="12"><RocketOutline /></AppIcon>
             <span>EXPLORER // 对话浏览</span>
           </div>
           <h1 class="chronos-page-title">
@@ -681,23 +677,23 @@ onUnmounted(() => {
     <!-- ========== 顶部：加载/统计状态 ========== -->
     <div class="explore-status-bar">
       <div v-if="loading" class="status-chip status-chip-loading">
-        <NSpin :size="14" />
+        <t-loading loading size="small" />
         <span>{{ loadProgress || '加载中…' }}</span>
       </div>
       <div v-else-if="loadTime !== null" class="status-chip status-chip-ok">
-        <NIcon size="14" style="color: var(--success);"><SparklesOutline /></NIcon>
+        <AppIcon :size="14" style="color: var(--success);"><SparklesOutline /></AppIcon>
         <span>就绪 · 加载耗时 {{ (loadTime / 1000).toFixed(2) }}s</span>
       </div>
       <div class="flex-spacer"></div>
-      <NTag
+      <t-tag
         v-if="totalConvs != null || conversations.length > 0"
         class="chronos-tag"
-        round
+        shape="round"
         size="small"
       >
-        <NIcon size="11" style="margin-right: 4px;"><TimeOutline /></NIcon>
+        <AppIcon :size="11" style="margin-right: 4px;"><TimeOutline /></AppIcon>
         {{ conversations.length }}<span v-if="totalConvs != null"> / {{ totalConvs }}</span> 个对话 · 搜索服务就绪
-      </NTag>
+      </t-tag>
     </div>
 
     <!-- ========== 搜索控制栏 ========== -->
@@ -710,21 +706,21 @@ onUnmounted(() => {
       <div class="search-row">
         <div class="search-input-wrap">
           <div class="search-input-icon">
-            <NIcon size="18"><SearchOutline /></NIcon>
+            <AppIcon :size="18"><SearchOutline /></AppIcon>
           </div>
-          <NInput
+          <t-input
             :value="query"
             placeholder="输入关键词，搜索历史对话内容…（支持正则表达式）"
             clearable
             class="search-input"
-            @update:value="onQueryInput"
+            @change="(v: string | number) => onQueryInput(String(v))"
             @keyup.enter="debounceTimer = null; doSearch()"
             @blur="onSearchInputBlur"
-            @keydown="onSearchInputKeydown"
+            @keydown="(_, { e }) => onSearchInputKeydown(e)"
           />
           <div class="search-regex-toggle">
             <span class="regex-label">正则</span>
-            <NSwitch v-model:value="useRegex" size="small" />
+            <t-switch v-model="useRegex" size="small" />
           </div>
           <div v-if="showSuggestions" class="search-suggestions">
             <div
@@ -734,18 +730,18 @@ onUnmounted(() => {
               @mousedown.prevent="selectSuggestion(s.text)"
               @mouseenter="showSuggestionsNow"
             >
-              <NIcon size="14" class="suggestion-icon">
+              <AppIcon :size="14" class="suggestion-icon">
                 <component :is="s.type === 'history' ? TimeOutline : SearchOutline" />
-              </NIcon>
+              </AppIcon>
               <span class="suggestion-text">{{ s.text }}</span>
-              <NTag size="tiny" class="suggestion-type">{{ suggestionTypeLabel(s.type) }}</NTag>
+              <t-tag size="small" class="suggestion-type">{{ suggestionTypeLabel(s.type) }}</t-tag>
             </div>
           </div>
         </div>
-        <NButton type="tertiary" size="medium" :loading="loading" @click="doSearch">
-          <template #icon><NIcon size="16"><SearchOutline /></NIcon></template>
+        <t-button theme="default" :loading="loading" @click="doSearch">
+          <template #icon><AppIcon :size="16"><SearchOutline /></AppIcon></template>
           搜索
-        </NButton>
+        </t-button>
       </div>
 
       <!-- 热力词云：搜索框为空 & 云端模式 & 有数据时显示 -->
@@ -754,11 +750,11 @@ onUnmounted(() => {
         class="quick-hotwords"
       >
         <div class="qw-head">
-          <NIcon size="12" style="color: #EF4444;"><FlameOutline /></NIcon>
+          <AppIcon :size="12" style="color: #EF4444;"><FlameOutline /></AppIcon>
           <span class="qw-label">热门搜索</span>
           <span class="qw-sub">· 近 30 天 · 点击即搜</span>
         </div>
-        <NSpin :show="queryHotwordsLoading" :size="12">
+        <t-loading :loading="queryHotwordsLoading" size="small">
           <div class="qw-cloud">
             <button
               v-for="(w, i) in queryHotwords"
@@ -782,47 +778,47 @@ onUnmounted(() => {
               <span class="qw-word">{{ w.word }}</span>
             </button>
           </div>
-        </NSpin>
+        </t-loading>
       </div>
 
       <div class="search-options">
         <div class="opt-group">
           <label class="opt-label">搜索模式</label>
-          <NRadioGroup
+          <t-radio-group
             :value="searchModelStore.model"
             size="small"
-            @update:value="onModelChange"
+            @change="(v: string | number | boolean) => onModelChange(v as string | number)"
           >
-            <NRadio value="local_v1" size="small">本地 v1</NRadio>
-            <NRadio value="cloud_v1" size="small">云端 v1</NRadio>
-            <NRadio :value="'cloud_v2'" :disabled="true" size="small">云端 v2 ⏳</NRadio>
-          </NRadioGroup>
+            <t-radio value="local_v1">本地 v1</t-radio>
+            <t-radio value="cloud_v1">云端 v1</t-radio>
+            <t-radio :value="'cloud_v2'" :disabled="true">云端 v2 ⏳</t-radio>
+          </t-radio-group>
         </div>
 
         <div class="opt-group opt-mode">
-          <NRadioGroup
+          <t-radio-group
             :value="mode"
             size="small"
-            @update:value="(v: string | number) => onModeChange(v as 'timeline' | 'search')"
+            @change="(v: string | number | boolean) => onModeChange(v as 'timeline' | 'search')"
           >
-            <NRadioButton value="timeline">
-              <NIcon size="14" style="margin-right: 4px;"><TimeOutline /></NIcon>
+            <t-radio-button value="timeline">
+              <AppIcon :size="14" style="margin-right: 4px;"><TimeOutline /></AppIcon>
               全部对话
-            </NRadioButton>
-            <NRadioButton value="search">
-              <NIcon size="14" style="margin-right: 4px;"><SearchCircleOutline /></NIcon>
+            </t-radio-button>
+            <t-radio-button value="search">
+              <AppIcon :size="14" style="margin-right: 4px;"><SearchCircleOutline /></AppIcon>
               搜索结果
-            </NRadioButton>
-          </NRadioGroup>
+            </t-radio-button>
+          </t-radio-group>
         </div>
 
         <div class="opt-group opt-datasource">
           <span
             :class="['source-pill', auth.cloudSyncEnabled ? 'source-cloud' : 'source-local']"
           >
-            <NIcon size="12">
+            <AppIcon :size="12">
               <component :is="auth.cloudSyncEnabled ? CloudOutline : CloudOfflineOutline" />
-            </NIcon>
+            </AppIcon>
             {{ auth.cloudSyncEnabled ? '云端模式' : '本地模式' }}
           </span>
         </div>
@@ -830,7 +826,7 @@ onUnmounted(() => {
 
       <div v-if="auth.cloudSyncEnabled && aiFilters.length > 0" class="ai-filter-row">
         <div class="filter-label">
-          <NIcon size="14"><SparklesOutline /></NIcon>
+          <AppIcon :size="14"><SparklesOutline /></AppIcon>
           <span>AI 智能过滤</span>
         </div>
         <div class="ai-filter-chips">
@@ -848,23 +844,23 @@ onUnmounted(() => {
 
       <div class="filter-row">
         <div class="filter-label">
-          <NIcon size="14"><FilterOutline /></NIcon>
+          <AppIcon :size="14"><FilterOutline /></AppIcon>
           <span>筛选范围</span>
         </div>
-        <NSpace align="center" :size="12" wrap>
+        <t-space align="center" :size="12" break-line>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.title" />
+            <t-checkbox v-model="searchFilters.title" />
             <span>会话标题</span>
           </label>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.user" />
+            <t-checkbox v-model="searchFilters.user" />
             <span>用户消息</span>
           </label>
           <label class="filter-chip chronos-filter">
-            <NCheckbox v-model:checked="searchFilters.assistant" />
+            <t-checkbox v-model="searchFilters.assistant" />
             <span>模型回复</span>
           </label>
-        </NSpace>
+        </t-space>
       </div>
     </div>
 
@@ -886,9 +882,9 @@ onUnmounted(() => {
             type="button"
             @click="sidebarCollapsed = !sidebarCollapsed"
           >
-            <NIcon size="14">
+            <AppIcon :size="14">
               <component :is="sidebarCollapsed ? ChevronForwardOutline : ChevronBackOutline" />
-            </NIcon>
+            </AppIcon>
           </button>
         </div>
         <div v-show="!sidebarCollapsed" class="sidebar-body">
@@ -898,7 +894,7 @@ onUnmounted(() => {
             type="button"
             @click="clearSidebarFilters"
           >
-            <NIcon size="14"><ListOutline /></NIcon>
+            <AppIcon :size="14"><ListOutline /></AppIcon>
             <span>全部对话</span>
           </button>
           <div class="sidebar-section">
@@ -912,7 +908,7 @@ onUnmounted(() => {
               type="button"
               @click="selectFolder(f.id)"
             >
-              <NIcon size="14" class="sidebar-row-icon"><FolderOpenOutline /></NIcon>
+              <AppIcon :size="14" class="sidebar-row-icon"><FolderOpenOutline /></AppIcon>
               <span class="sidebar-row-name">{{ f.name }}</span>
               <span class="sidebar-row-count">{{ f.conversationCount }}</span>
             </button>
@@ -920,18 +916,17 @@ onUnmounted(() => {
           <div class="sidebar-section">
             <div class="sidebar-section-title">标签</div>
             <div v-if="tags.length === 0" class="sidebar-empty">暂无标签</div>
-            <NSpace v-else :size="6" wrap>
-              <NTag
+            <t-space v-else :size="6" break-line>
+              <t-check-tag
                 v-for="t in tags"
                 :key="t.id"
                 size="small"
-                checkable
                 :checked="activeTagId === t.id"
-                @update:checked="() => selectTag(t.id)"
+                @change="() => selectTag(t.id)"
               >
                 {{ t.name }}
-              </NTag>
-            </NSpace>
+              </t-check-tag>
+            </t-space>
           </div>
         </div>
       </aside>
@@ -948,50 +943,48 @@ onUnmounted(() => {
             <span class="hud-pulse"></span>
             {{ mode === 'timeline' ? '全部对话' : `搜索结果 (${totalCount})` }}
           </div>
-          <NText depth="3" style="font-size: 12px;">
+          <span style="font-size: 12px; color: var(--text-muted);">
             {{ conversations.length }}<span v-if="totalConvs != null"> / 云端 {{ totalConvs }}</span> 条
-          </NText>
+          </span>
         </div>
         <div class="tree-body">
-          <NSpin :show="loading" style="height: 100%;">
+          <t-loading :loading="loading" style="height: 100%;">
             <TurnTree
               :conversations="pagedTreeConversations"
               :search-hits="searchHits"
               :auto-expand-paths="autoExpandPaths"
               @select-subturn="onSelectSubturn"
             />
-          </NSpin>
+          </t-loading>
         </div>
         <div class="tree-footer">
           <div class="pager-info">
-            <NIcon size="12" style="color: var(--primary);"><TimeOutline /></NIcon>
+            <AppIcon :size="12" style="color: var(--primary);"><TimeOutline /></AppIcon>
             第 {{ currentPage }} / {{ pageCount }} 页
           </div>
-          <NPagination
-            :page="currentPage"
+          <t-pagination
+            :current="currentPage"
             :page-size="pageSize"
-            :item-count="totalCount"
-            :page-count="pageCount"
-            :page-sizes="[20, 50, 100, 200]"
-            :show-size-picker="!isMobile"
+            :total="totalCount"
+            :page-size-options="[20, 50, 100, 200]"
+            :show-page-size="!isMobile"
             :disabled="loading"
             size="small"
-            @update:page="onPageChange"
-            @update:page-size="(s: number) => { pageSize = s; currentPage = 1 }"
+            @change="onPaginationChange"
           />
-          <NButton
+          <t-button
             v-if="hasMore"
-            size="tiny"
-            type="primary"
-            ghost
+            size="small"
+            theme="primary"
+            variant="outline"
             :loading="loadingMore"
             @click="loadMore"
           >
             <template #icon v-if="!loadingMore">
-              <NIcon size="13"><ChevronDownOutline /></NIcon>
+              <AppIcon :size="13"><ChevronDownOutline /></AppIcon>
             </template>
             加载更多
-          </NButton>
+          </t-button>
         </div>
       </div>
 
@@ -1004,7 +997,7 @@ onUnmounted(() => {
         <!-- 移动端详情返回栏 -->
         <div v-if="isMobile && showDetail" class="mobile-detail-bar">
           <button class="detail-back-btn" type="button" @click="showDetail = false">
-            <NIcon size="18"><ChevronBackOutline /></NIcon>
+            <AppIcon :size="18"><ChevronBackOutline /></AppIcon>
             <span>返回列表</span>
           </button>
           <div class="detail-bar-title">{{ activeConv?.title || '对话详情' }}</div>
@@ -1019,35 +1012,35 @@ onUnmounted(() => {
           <div class="panel-corner bl"></div>
           <div class="panel-corner br"></div>
           <div v-if="summaryLoading" class="summary-loading">
-            <NSpin :size="14" />
+            <t-loading loading size="small" />
             <span>加载摘要…</span>
           </div>
           <div v-else-if="activeSummary" class="summary-content">
             <div class="summary-tldr">{{ activeSummary.tldr }}</div>
             <div v-if="activeSummary.summary" class="summary-text">{{ activeSummary.summary }}</div>
             <div v-if="activeSummary.tags && activeSummary.tags.length" class="summary-tags">
-              <NTag
+              <t-tag
                 v-for="(t, i) in activeSummary.tags"
                 :key="i"
                 size="small"
-                round
+                shape="round"
               >
                 {{ t }}
-              </NTag>
+              </t-tag>
             </div>
             <div class="summary-footer">
               <span class="summary-confidence">置信度 {{ activeSummary.confidence }}</span>
-              <NButton size="tiny" type="primary" ghost @click="generateSummary">
-                <template #icon><NIcon size="12"><RefreshOutline /></NIcon></template>
+              <t-button size="small" theme="primary" variant="outline" @click="generateSummary">
+                <template #icon><AppIcon :size="12"><RefreshOutline /></AppIcon></template>
                 重新生成
-              </NButton>
+              </t-button>
             </div>
           </div>
           <div v-else class="summary-empty">
-            <NButton size="small" type="primary" @click="generateSummary">
-              <template #icon><NIcon size="14"><SparklesOutline /></NIcon></template>
+            <t-button size="small" theme="primary" @click="generateSummary">
+              <template #icon><AppIcon :size="14"><SparklesOutline /></AppIcon></template>
               生成 AI 摘要
-            </NButton>
+            </t-button>
             <span class="summary-hint">消耗 10 积分（FREE 用户每日免费 5 次）</span>
           </div>
         </div>
@@ -1060,9 +1053,9 @@ onUnmounted(() => {
             <div class="loader-ring"></div>
             <div class="loader-ring delay"></div>
           </div>
-          <NText depth="3" style="margin-top: 20px; font-size: 13px; color: var(--text-secondary);">
+          <span style="margin-top: 20px; font-size: 13px; color: var(--text-secondary);">
             正在加载对话详情…
-          </NText>
+          </span>
         </div>
         <ChatViewer v-else :conversation="activeConv" :api-keys="apiKeys" />
       </div>
@@ -1267,16 +1260,18 @@ onUnmounted(() => {
   flex: 1;
   background: transparent !important;
 }
-.search-input :deep(.n-input__input-el) {
+.search-input :deep(.t-input) {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  height: 42px;
+}
+.search-input :deep(.t-input__inner) {
   background: transparent !important;
   height: 42px;
   color: var(--text) !important;
 }
-.search-input :deep(.n-input__border),
-.search-input :deep(.n-input__state-border) {
-  display: none;
-}
-.search-input :deep(.n-input__placeholder) {
+.search-input :deep(.t-input__inner)::placeholder {
   color: var(--text-muted) !important;
 }
 .search-regex-toggle {
@@ -1762,7 +1757,7 @@ onUnmounted(() => {
   font-weight: 500;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-.tree-footer :deep(.n-pagination) {
+.tree-footer :deep(.t-pagination) {
   flex: 1;
   justify-content: center;
 }
@@ -2017,8 +2012,8 @@ onUnmounted(() => {
     padding: 10px 12px;
   }
   .tree-footer .pager-info { order: 0; }
-  .tree-footer :deep(.n-button) { order: 1; }
-  .tree-footer :deep(.n-pagination) {
+  .tree-footer :deep(.t-button) { order: 1; }
+  .tree-footer :deep(.t-pagination) {
     order: 2;
     flex: 1 1 100%;
     width: 100%;
@@ -2060,7 +2055,7 @@ onUnmounted(() => {
   .search-input-wrap {
     flex: 1 1 100%;
   }
-  .search-row :deep(.n-button) {
+  .search-row :deep(.t-button) {
     flex: 1 1 100%;
     width: 100%;
   }

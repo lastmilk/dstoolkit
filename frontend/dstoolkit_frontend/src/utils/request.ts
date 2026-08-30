@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { message } from '@/utils/naive'
+import { message } from '@/utils/feedback'
 
 const TOKEN_KEY = 'dstoolkit_token'
 

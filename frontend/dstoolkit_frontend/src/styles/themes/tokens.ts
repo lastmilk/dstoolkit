@@ -1,13 +1,14 @@
 /**
- * Design Tokens — 简约风多主题系统
+ * Design Tokens — TDesign 多主题系统
  * 5 套主题：light / dark / ocean / forest / mono
  *
- * 每份主题 token 同时产出：
- *  1) CSS 变量片段（给 global.css / :root[data-theme=…] 使用）
- *  2) NaiveUI 的 themeOverrides（给 NConfigProvider 使用）
+ * 每份主题 token 产出：
+ *  1) 应用侧 CSS 变量（--primary/--bg/…，供自定义样式使用）
+ *  2) TDesign CSS 变量（--td-brand-color/…，让 TDesign 组件跟随主题）
+ *
+ * 暗色主题额外由 stores/theme.ts 在 <html> 上设置 theme-mode="dark"，
+ * 以启用 TDesign 内置暗色模式。
  */
-
-import type { GlobalThemeOverrides } from 'naive-ui'
 
 export type ThemeId = 'light' | 'dark' | 'ocean' | 'forest' | 'mono'
 
@@ -15,303 +16,36 @@ export interface ThemeMeta {
   id: ThemeId
   label: string
   emoji: string
-  /** 是否属于 NaiveUI 的暗色系（决定是否开启内置 darkTheme） */
-  naiveDark: boolean
-  /** CSS 变量体 */
+  /** 是否属于暗色系（决定是否设置 theme-mode="dark"） */
+  dark: boolean
+  /** CSS 变量体（应用侧 + TDesign） */
   vars: Record<string, string>
-  /** NaiveUI 覆盖 */
-  overrides: GlobalThemeOverrides
 }
 
 /* =========================================================
- *  通用工具：基于主色 + 表面层快速构建一套完整 overrides
+ *  十六进制色转 rgba() 字符串，用于 soft / focus 变量
  * ========================================================= */
-function buildOverrides(params: {
-  mode: 'light' | 'dark'
-  primary: string
-  primaryHover: string
-  primaryPressed: string
-  accent: string
-  success: string
-  warning: string
-  error: string
-  info: string
-  body: string      // 页面底色
-  surface: string   // 卡片 / 浮层 / 输入底色
-  surface2: string  // 次级，例如表头 / 卡片内分组
-  text: string      // 主文本
-  textSecondary: string
-  textMuted: string
-  border: string
-  divider: string
-  radius?: string
-}): GlobalThemeOverrides {
-  const {
-    mode, primary, primaryHover, primaryPressed, accent,
-    success, warning, error, info,
-    body, surface, surface2,
-    text, textSecondary, textMuted, border, divider,
-    radius = '10px',
-  } = params
-
-  const primarySoft = hexWithAlpha(primary, 0.09)
-  const shadowLine = mode === 'dark'
-    ? 'rgba(0, 0, 0, 0.35)'
-    : 'rgba(15, 23, 42, 0.04)'
-  const shadowFill = mode === 'dark'
-    ? 'rgba(0, 0, 0, 0.45)'
-    : 'rgba(15, 23, 42, 0.06)'
-  const focusRing = hexWithAlpha(primary, 0.2)
-
-  return {
-    common: {
-      primaryColor: primary,
-      primaryColorHover: primaryHover,
-      primaryColorPressed: primaryPressed,
-      primaryColorSuppl: accent,
-      infoColor: info,
-      successColor: success,
-      warningColor: warning,
-      errorColor: error,
-
-      borderRadius: radius,
-      borderRadiusSmall: '6px',
-
-      fontFamily:
-        "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', " +
-        "'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif",
-      fontSize: '14px',
-
-      bodyColor: body,
-      cardColor: surface,
-      modalColor: surface,
-      popoverColor: surface,
-
-      textColorBase: text,
-      textColor1: text,
-      textColor2: textSecondary,
-      textColor3: textMuted,
-
-      borderColor: border,
-      dividerColor: divider,
-    },
-
-    Card: {
-      color: surface,
-      colorModal: surface,
-      colorPopover: surface,
-      borderRadius: '14px',
-      borderColor: border,
-      boxShadow: `0 1px 2px ${shadowLine}, 0 0 0 1px ${shadowLine}`,
-    },
-
-    Menu: {
-      itemColorActive: primarySoft,
-      itemColorActiveHover: hexWithAlpha(primary, 0.14),
-      itemTextColorActive: primary,
-      itemTextColorActiveHover: primaryHover,
-      itemIconColorActive: primary,
-      itemBorderRadius: '10px',
-      itemHeightMedium: '42px',
-      borderRadius: '12px',
-      color: 'transparent',
-      textColor: textSecondary,
-      textColorHover: text,
-    },
-
-    Button: {
-      textColorPrimary: '#FFFFFF',
-      colorPrimary: primary,
-      colorHoverPrimary: primaryHover,
-      colorPressedPrimary: primaryPressed,
-      colorFocusPrimary: primary,
-      borderPrimary: 'none',
-      borderHoverPrimary: 'none',
-      borderPressedPrimary: 'none',
-      borderFocusPrimary: 'none',
-      shadowPrimary: `0 4px 12px ${hexWithAlpha(primary, 0.24)}`,
-      shadowHoverPrimary: `0 6px 18px ${hexWithAlpha(primary, 0.30)}`,
-      shadowPressedPrimary: `0 1px 2px ${hexWithAlpha(primary, 0.22)}`,
-
-      textColorDefault: textSecondary,
-      colorDefault: surface,
-      colorHoverDefault: surface2,
-      borderDefault: `1px solid ${border}`,
-      borderHoverDefault: `1px solid ${border}`,
-
-      borderRadius: radius,
-      fontWeight: '600',
-      paddingSmall: '0 14px',
-      paddingMedium: '0 18px',
-      paddingLarge: '0 22px',
-    },
-
-    Input: {
-      border: `1px solid ${border}`,
-      borderHover: `1px solid ${border}`,
-      borderFocus: `1px solid ${primary}`,
-      boxShadowFocus: `0 0 0 3px ${focusRing}`,
-      borderRadius: radius,
-      color: surface,
-      colorFocus: surface,
-      textColor: text,
-      placeholderColor: textMuted,
-      heightMedium: '40px',
-      paddingMedium: '0 14px',
-    },
-
-    Select: {
-      border: `1px solid ${border}`,
-      borderHover: `1px solid ${border}`,
-      borderActive: `1px solid ${primary}`,
-      boxShadowActive: `0 0 0 3px ${focusRing}`,
-      borderRadius: radius,
-      color: surface,
-      heightMedium: '40px',
-      textColor: text,
-      placeholderColor: textMuted,
-    },
-
-    Switch: {
-      railColorActive: primary,
-      boxShadowFocus: `0 0 0 3px ${focusRing}`,
-    },
-
-    DataTable: {
-      borderColor: border,
-      borderRadius: '12px',
-      tdColor: surface,
-      thColor: surface2,
-      thTextColor: primary,
-      thFontWeight: '700',
-      borderColorHorizontal: divider,
-      textColor: text,
-    },
-
-    Tag: { borderRadius: '999px' },
-
-    Modal: {
-      borderRadius: '18px',
-      boxShadow: `0 16px 48px ${shadowFill}, 0 0 0 1px ${shadowLine}`,
-      color: surface,
-      textColor: text,
-      headerBorder: `1px solid ${divider}`,
-      footerBorder: `1px solid ${divider}`,
-    },
-
-    Drawer: {
-      borderRadius: '16px 0 0 16px',
-      boxShadow: `-8px 0 24px ${shadowFill}`,
-      color: surface,
-      textColor: text,
-    },
-
-    Avatar: { borderRadius: '10px' },
-
-    Form: {
-      labelTextColor: textSecondary,
-      labelFontWeight: '600',
-      labelFontSize: '13px',
-      showRequireMark: true,
-      asteriskColor: error,
-    },
-
-    Pagination: {
-      itemBorderRadius: '8px',
-      color: surface,
-      itemTextColor: textSecondary,
-      buttonColor: surface,
-      border: `1px solid ${border}`,
-      itemColorActive: primary,
-      itemTextColorActive: '#FFFFFF',
-    },
-
-    Statistic: {
-      labelTextColor: textMuted,
-      valueFontWeight: '800',
-      valueTextColor: text,
-      valueFontSize: '26px',
-    },
-
-    Upload: { borderRadius: '12px' },
-    Badge: { color: error },
-
-    Checkbox: {
-      color: primary,
-      colorFocus: primary,
-      checkMarkColor: '#FFFFFF',
-      boxShadowFocus: `0 0 0 3px ${focusRing}`,
-    },
-
-    Radio: {
-      buttonColorActive: primary,
-      buttonBoxShadowFocus: `0 0 0 3px ${focusRing}`,
-    },
-
-    Scrollbar: {
-      color: mode === 'dark' ? '#334155' : '#CBD5E1',
-      colorHover: mode === 'dark' ? '#475569' : '#94A3B8',
-    },
-
-    Dropdown: {
-      color: surface,
-      borderRadius: '12px',
-      boxShadow: `0 8px 24px ${shadowFill}, 0 0 0 1px ${shadowLine}`,
-      borderColor: border,
-      textColor: text,
-      textColorHover: primary,
-      colorHover: primarySoft,
-      prefixColor: primary,
-      dividerColor: divider,
-    },
-
-    Tabs: {
-      tabColor: textSecondary,
-      tabTextColor: textSecondary,
-      tabTextColorActive: primary,
-      tabTextColorHover: text,
-      barColor: primary,
-    },
-
-    Tooltip: {
-      color: text,
-      textColor: surface,
-      boxShadow: `0 4px 16px ${shadowFill}`,
-      borderRadius: '10px',
-    },
-
-    Message: {
-      color: surface,
-      textColor: text,
-      borderRadius: '12px',
-      boxShadow: `0 8px 24px ${shadowFill}`,
-    },
-
-    Dialog: {
-      color: surface,
-      textColor: text,
-      borderRadius: '16px',
-      boxShadow: `0 16px 48px ${shadowFill}, 0 0 0 1px ${shadowLine}`,
-    },
-
-    DatePicker: {
-      panelColor: surface,
-      textColor: text,
-      borderRadius: '14px',
-      boxShadow: `0 10px 30px ${shadowFill}`,
-    },
-
-    LoadingBar: {
-      colorLoading: primary,
-      height: '3px',
-    },
+function hexWithAlpha(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '').trim()
+  let r = 0
+  let g = 0
+  let b = 0
+  if (clean.length === 3) {
+    const parts = clean.split('')
+    r = parseInt((parts[0] ?? '0') + (parts[0] ?? '0'), 16)
+    g = parseInt((parts[1] ?? '0') + (parts[1] ?? '0'), 16)
+    b = parseInt((parts[2] ?? '0') + (parts[2] ?? '0'), 16)
+  } else if (clean.length >= 6) {
+    r = parseInt(clean.slice(0, 2) || '00', 16)
+    g = parseInt(clean.slice(2, 4) || '00', 16)
+    b = parseInt(clean.slice(4, 6) || '00', 16)
   }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 /**
  * 将一组「语义化」色值生成为扁平的 CSS var map。
- * 保持 key 与 global.css 中 :root 的变量完全一致，
- * 这样切主题时只替换变量值，无需重写组件样式。
+ * 包含应用侧变量 + TDesign 语义变量映射。
  */
 function buildVars(params: {
   primary: string; primaryHover: string; primaryPressed: string
@@ -331,7 +65,10 @@ function buildVars(params: {
   module1: string; module2: string; module3: string; module4: string; module5: string
   colorScheme: 'light' | 'dark'
 }): Record<string, string> {
+  const { primary, primaryHover, primaryPressed, primarySoft, primarySoftHover } = params
+
   return {
+    // ────────── 应用侧变量 ──────────
     '--primary': params.primary,
     '--primary-hover': params.primaryHover,
     '--primary-pressed': params.primaryPressed,
@@ -397,28 +134,78 @@ function buildVars(params: {
     '--module-4': params.module4,
     '--module-5': params.module5,
     'color-scheme': params.colorScheme,
-  }
-}
 
-/* =========================================================
- *  十六进制色转 rgba() 字符串，用于 soft / focus 变量
- * ========================================================= */
-function hexWithAlpha(hex: string, alpha: number): string {
-  const clean = hex.replace('#', '').trim()
-  let r = 0
-  let g = 0
-  let b = 0
-  if (clean.length === 3) {
-    const parts = clean.split('')
-    r = parseInt((parts[0] ?? '0') + (parts[0] ?? '0'), 16)
-    g = parseInt((parts[1] ?? '0') + (parts[1] ?? '0'), 16)
-    b = parseInt((parts[2] ?? '0') + (parts[2] ?? '0'), 16)
-  } else if (clean.length >= 6) {
-    r = parseInt(clean.slice(0, 2) || '00', 16)
-    g = parseInt(clean.slice(2, 4) || '00', 16)
-    b = parseInt(clean.slice(4, 6) || '00', 16)
+    // ────────── TDesign 语义变量（组件跟随主题） ──────────
+    // 品牌色
+    '--td-brand-color': primary,
+    '--td-brand-color-hover': primaryHover,
+    '--td-brand-color-active': primaryPressed,
+    '--td-brand-color-focus': primarySoft,
+    '--td-brand-color-light': primarySoft,
+    '--td-brand-color-light-hover': primarySoftHover,
+    '--td-brand-color-light-active': primarySoftHover,
+    '--td-brand-color-disabled': primarySoft,
+    // 功能色
+    '--td-success-color': params.success,
+    '--td-success-color-hover': params.success,
+    '--td-success-color-active': params.success,
+    '--td-success-color-focus': params.successSoft,
+    '--td-success-color-light': params.successSoft,
+    '--td-success-color-light-hover': params.successSoft,
+    '--td-success-color-light-active': params.successSoft,
+    '--td-success-color-disabled': params.successSoft,
+    '--td-warning-color': params.warning,
+    '--td-warning-color-hover': params.warning,
+    '--td-warning-color-active': params.warning,
+    '--td-warning-color-focus': params.warningSoft,
+    '--td-warning-color-light': params.warningSoft,
+    '--td-warning-color-light-hover': params.warningSoft,
+    '--td-warning-color-light-active': params.warningSoft,
+    '--td-warning-color-disabled': params.warningSoft,
+    '--td-error-color': params.danger,
+    '--td-error-color-hover': params.danger,
+    '--td-error-color-active': params.danger,
+    '--td-error-color-focus': params.dangerSoft,
+    '--td-error-color-light': params.dangerSoft,
+    '--td-error-color-light-hover': params.dangerSoft,
+    '--td-error-color-light-active': params.dangerSoft,
+    '--td-error-color-disabled': params.dangerSoft,
+    // 文本
+    '--td-text-color-primary': params.text,
+    '--td-text-color-secondary': params.textSecondary,
+    '--td-text-color-placeholder': params.textMuted,
+    '--td-text-color-disabled': params.textDisabled,
+    '--td-text-color-anti': params.textSecondary,
+    '--td-text-color-brand': primary,
+    // 背景层
+    '--td-bg-color-page': params.bg,
+    '--td-bg-color-container': params.surface,
+    '--td-bg-color-container-hover': params.surfaceHover,
+    '--td-bg-color-container-active': params.surfaceHover,
+    '--td-bg-color-secondarycontainer': params.bg2,
+    '--td-bg-color-secondarycontainer-hover': params.bg2,
+    '--td-bg-color-secondarycontainer-active': params.bg3,
+    // 边框
+    '--td-component-stroke': params.border,
+    '--td-component-border': params.border,
+    '--td-border-level-1-color': params.borderSubtle,
+    '--td-border-level-2-color': params.border,
+    // 圆角
+    '--td-radius-small': params.radiusSm ?? '6px',
+    '--td-radius-medium': params.radius ?? '10px',
+    '--td-radius-large': params.radiusLg ?? '14px',
+    '--td-radius-extra-large': params.radiusXl ?? '18px',
+    '--td-radius-round': params.radiusFull ?? '999px',
+    '--td-radius-circle': '50%',
+    // 字体
+    '--td-font-family':
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', " +
+      "'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif",
+    // 阴影
+    '--td-shadow-1': params.shadowXs,
+    '--td-shadow-2': params.shadowSm,
+    '--td-shadow-3': params.shadowMd,
   }
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 /* =========================================================
@@ -428,7 +215,7 @@ const lightTheme: ThemeMeta = {
   id: 'light',
   label: '白日',
   emoji: '☀️',
-  naiveDark: false,
+  dark: false,
   vars: buildVars({
     primary: '#4F46E5', primaryHover: '#6366F1', primaryPressed: '#4338CA',
     primarySoft: 'rgba(79, 70, 229, 0.08)',
@@ -455,15 +242,6 @@ const lightTheme: ThemeMeta = {
     module1: '#4F46E5', module2: '#0EA5E9', module3: '#10B981', module4: '#F59E0B', module5: '#EF4444',
     colorScheme: 'light',
   }),
-  overrides: buildOverrides({
-    mode: 'light',
-    primary: '#4F46E5', primaryHover: '#6366F1', primaryPressed: '#4338CA',
-    accent: '#0EA5E9',
-    success: '#10B981', warning: '#F59E0B', error: '#EF4444', info: '#3B82F6',
-    body: 'transparent', surface: '#FFFFFF', surface2: '#F8FAFC',
-    text: '#0F172A', textSecondary: '#475569', textMuted: '#94A3B8',
-    border: '#E2E8F0', divider: '#F1F5F9',
-  }),
 }
 
 /* =========================================================
@@ -473,7 +251,7 @@ const darkTheme: ThemeMeta = {
   id: 'dark',
   label: '深夜',
   emoji: '🌙',
-  naiveDark: true,
+  dark: true,
   vars: buildVars({
     primary: '#818CF8', primaryHover: '#A5B4FC', primaryPressed: '#6366F1',
     primarySoft: 'rgba(129, 140, 248, 0.14)',
@@ -500,15 +278,6 @@ const darkTheme: ThemeMeta = {
     module1: '#818CF8', module2: '#22D3EE', module3: '#34D399', module4: '#FBBF24', module5: '#F87171',
     colorScheme: 'dark',
   }),
-  overrides: buildOverrides({
-    mode: 'dark',
-    primary: '#818CF8', primaryHover: '#A5B4FC', primaryPressed: '#6366F1',
-    accent: '#22D3EE',
-    success: '#34D399', warning: '#FBBF24', error: '#F87171', info: '#60A5FA',
-    body: 'transparent', surface: '#111827', surface2: '#0F172A',
-    text: '#E2E8F0', textSecondary: '#94A3B8', textMuted: '#64748B',
-    border: '#1F2A44', divider: '#172033',
-  }),
 }
 
 /* =========================================================
@@ -518,7 +287,7 @@ const oceanTheme: ThemeMeta = {
   id: 'ocean',
   label: '海盐',
   emoji: '🌊',
-  naiveDark: false,
+  dark: false,
   vars: buildVars({
     primary: '#0891B2', primaryHover: '#06B6D4', primaryPressed: '#0E7490',
     primarySoft: 'rgba(8, 145, 178, 0.08)',
@@ -545,15 +314,6 @@ const oceanTheme: ThemeMeta = {
     module1: '#0891B2', module2: '#14B8A6', module3: '#0EA5E9', module4: '#8B5CF6', module5: '#F43F5E',
     colorScheme: 'light',
   }),
-  overrides: buildOverrides({
-    mode: 'light',
-    primary: '#0891B2', primaryHover: '#06B6D4', primaryPressed: '#0E7490',
-    accent: '#14B8A6',
-    success: '#10B981', warning: '#F59E0B', error: '#F43F5E', info: '#0EA5E9',
-    body: 'transparent', surface: '#FFFFFF', surface2: '#F0F9FB',
-    text: '#0C2733', textSecondary: '#3E5C6B', textMuted: '#7A95A2',
-    border: '#C5E1E9', divider: '#DFF1F6',
-  }),
 }
 
 /* =========================================================
@@ -563,7 +323,7 @@ const forestTheme: ThemeMeta = {
   id: 'forest',
   label: '抹茶',
   emoji: '🌿',
-  naiveDark: false,
+  dark: false,
   vars: buildVars({
     primary: '#059669', primaryHover: '#10B981', primaryPressed: '#047857',
     primarySoft: 'rgba(5, 150, 105, 0.08)',
@@ -590,15 +350,6 @@ const forestTheme: ThemeMeta = {
     module1: '#059669', module2: '#84CC16', module3: '#0284C7', module4: '#D97706', module5: '#DC2626',
     colorScheme: 'light',
   }),
-  overrides: buildOverrides({
-    mode: 'light',
-    primary: '#059669', primaryHover: '#10B981', primaryPressed: '#047857',
-    accent: '#84CC16',
-    success: '#059669', warning: '#D97706', error: '#DC2626', info: '#0284C7',
-    body: 'transparent', surface: '#FFFFFF', surface2: '#F4F8F0',
-    text: '#1A2E10', textSecondary: '#3F5A33', textMuted: '#7D8F71',
-    border: '#CBDFC0', divider: '#E6F0D8',
-  }),
 }
 
 /* =========================================================
@@ -608,7 +359,7 @@ const monoTheme: ThemeMeta = {
   id: 'mono',
   label: '极简',
   emoji: '◼️',
-  naiveDark: false,
+  dark: false,
   vars: buildVars({
     primary: '#18181B', primaryHover: '#3F3F46', primaryPressed: '#09090B',
     primarySoft: 'rgba(24, 24, 27, 0.06)',
@@ -634,15 +385,6 @@ const monoTheme: ThemeMeta = {
     chronoGreen: '#16A34A', chronoAmber: '#CA8A04',
     module1: '#18181B', module2: '#52525B', module3: '#2563EB', module4: '#CA8A04', module5: '#DC2626',
     colorScheme: 'light',
-  }),
-  overrides: buildOverrides({
-    mode: 'light',
-    primary: '#18181B', primaryHover: '#3F3F46', primaryPressed: '#09090B',
-    accent: '#52525B',
-    success: '#16A34A', warning: '#CA8A04', error: '#DC2626', info: '#2563EB',
-    body: 'transparent', surface: '#FFFFFF', surface2: '#FAFAFA',
-    text: '#18181B', textSecondary: '#52525B', textMuted: '#A1A1AA',
-    border: '#E4E4E7', divider: '#F4F4F5',
   }),
 }
 
