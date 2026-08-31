@@ -24,6 +24,7 @@ import summaryRoutes from './routes/summary.routes.js'
 import folderRoutes from './routes/folder.routes.js'
 import referralRoutes from './routes/referral.routes.js'
 import oauth2Routes from './routes/oauth2.routes.js'
+import gitRoutes from './routes/git.routes.js'
 
 const app = express()
 
@@ -53,6 +54,7 @@ app.use('/api/summaries', summaryRoutes)
 app.use('/api/folders', folderRoutes)
 app.use('/api/referral', referralRoutes)
 app.use('/api/oauth', oauth2Routes)
+app.use('/api/git', gitRoutes)
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   // multer 文件大小错误

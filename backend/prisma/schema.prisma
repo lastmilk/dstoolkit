@@ -421,3 +421,679 @@ model Share {
   @@index([configId])
   @@index([createdAt])
 }
+
+// ══════════════════════════════════════════════════
+// GIT-CORE: 完整的Git版本控制系统数据模型
+// 类比：每个 Conversation 都是一个 Git 仓库
+// ══════════════════════════════════════════════════
+
+// Git对象类型枚举
+enum GitObjectType {
+  COMMIT
+  TREE
+  BLOB
+  TAG
+}
+
+// 分支保护规则级别
+enum ProtectionLevel {
+  NONE           // 任何人可推送
+  REVIEW         // 需要1人审查
+  APPROVAL       // 需要审批
+  LOCKED         // 仅管理员
+}
+
+// 合并请求状态
+enum PullRequestStatus {
+  OPEN
+  DRAFT
+  REVIEWING
+  APPROVED
+  MERGED
+  REJECTED
+  CLOSED
+}
+
+// 合并策略
+enum MergeStrategy {
+  MERGE_COMMIT   // 创建合并提交（保留完整历史）
+  SQUASH         // 压缩合并（所有提交压缩为一个）
+  REBASE         // 变基合并（线性历史）
+  FAST_FORWARD   // 快进合并（无合并提交，仅当可快进时）
+}
+
+// 仓库可见性
+enum RepoVisibility {
+  PRIVATE        // 仅所有者和协作者可见
+  INTERNAL       // 同组织可见
+  PUBLIC         // 公开（类似公开分享）
+}
+
+// ═══════════ Git 仓库（Repo）═══════════
+// 每个 Conversation 对应一个 GitRepo，也支持不关联 Conversation 的独立仓库
+model GitRepo {
+  id                Int              @id @default(autoincrement())
+  name              String           // 仓库名，如 "my-chat-repo"
+  description       String?          @db.Text
+  visibility        RepoVisibility   @default(PRIVATE)
+  defaultBranch     String           @default("main")
+
+  // 关联到对话（可选：独立仓库不关联对话）
+  conversation      Conversation?    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId    Int?             @unique
+
+  // 所有者
+  owner             User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId           Int
+
+  // Git对象计数
+  commitCount       Int              @default(0)
+  branchCount       Int              @default(1) // 至少有 main
+  tagCount          Int              @default(0)
+  blobCount         Int              @default(0)
+
+  // Fork关系
+  forkedFrom        GitRepo?         @relation("ForkTree", fields: [forkedFromId], references: [id], onDelete: SetNull)
+  forkedFromId      Int?
+  forks             GitRepo[]        @relation("ForkTree")
+  isFork            Boolean          @default(false)
+
+  // Star/Favorite
+  starCount         Int              @default(0)
+
+  // 大小（字节）
+  sizeBytes         BigInt           @default(0)
+
+  // 最近活动
+  lastActivityAt    DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // 关联
+  branches          GitBranch[]
+  commits           GitCommit[]
+  tags              GitTag[]
+  blobs             GitBlob[]
+  trees             GitTree[]
+  pullRequests      PullRequest[]
+  collaborators     RepoCollaborator[]
+  commitsOnRefs     GitCommitRef[]
+  stashes           GitStash[]
+  reflogs           GitReflog[]
+  issues            RepoIssue[]
+
+  @@unique([ownerId, name])
+  @@index([ownerId])
+  @@index([visibility])
+  @@index([createdAt])
+  @@index([lastActivityAt])
+}
+
+// 仓库协作者
+model RepoCollaborator {
+  id         Int       @id @default(autoincrement())
+  repo       GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  permission String    // OWNER / MAINTAINER / WRITE / READ / TRIAGE
+  invitedBy  Int?      // 邀请人userId
+  joinedAt   DateTime  @default(now())
+
+  @@unique([repoId, userId])
+  @@index([repoId])
+  @@index([userId])
+}
+
+// ═══════════ Git 分支（Branch）═══════════
+model GitBranch {
+  id              Int              @id @default(autoincrement())
+  repo            GitRepo          @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId          Int
+  name            String           // 如 main, feature/login, hotfix/auth
+  isDefault       Boolean          @default(false)
+
+  // 当前指向的提交HEAD
+  headCommit      GitCommit?       @relation("GitBranchHeadCommit", fields: [headCommitId], references: [id], onDelete: SetNull)
+  headCommitId    Int?
+
+  // 基于哪个分支创建（父分支）
+  parentBranch    GitBranch?       @relation("BranchHierarchy", fields: [parentBranchId], references: [id], onDelete: SetNull)
+  parentBranchId  Int?
+  childBranches   GitBranch[]      @relation("BranchHierarchy")
+
+  // 保护规则
+  protection      ProtectionLevel  @default(NONE)
+  requiredApprovals Int            @default(0)
+  requireStatusChecks Boolean      @default(false)
+
+  // 创建者
+  createdBy       User             @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById     Int
+
+  // 最近提交时间
+  lastCommitAt    DateTime         @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // PR反向引用
+  prHead          PullRequest[]    @relation("PRHead")
+  prBase          PullRequest[]    @relation("PRBase")
+
+  // stash引用
+  stashes         GitStash[]       @relation("StashBranch")
+
+  // commit ref
+  commitRefs      GitCommitRef[]
+
+  @@unique([repoId, name])
+  @@index([repoId])
+  @@index([createdById])
+  @@index([headCommitId])
+}
+
+// ═══════════ Git Blob（文件内容对象）═══════════
+// Git Blob = 不可变的内容块，通过 SHA-256 hash 索引
+// 对应对话中的：单条消息内容、附件、配置快照等
+model GitBlob {
+  id          Int          @id @default(autoincrement())
+  repo        GitRepo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId      Int
+  sha256      String       @unique // Git对象的SHA-256哈希
+  sizeBytes   Int          // 原始内容大小
+  mimeType    String?      // 如 text/plain, application/json, image/png
+  encoding    String       @default("utf8") // utf8 / base64
+  content     String       @db.LongText // 内容（文本或base64编码的二进制）
+
+  // 反查引用
+  treeEntries GitTreeEntry[]
+  commitMsg   GitCommit?   @relation("CommitMessageBlob")
+
+  createdAt   DateTime     @default(now())
+
+  @@index([repoId])
+  @@index([sha256])
+}
+
+// ═══════════ Git Tree（目录对象）═══════════
+// Git Tree = 目录索引，指向Blob或其它Tree
+// 对话场景：一个Commit对应一个Tree，Tree下的每个entry是一条消息（Blob）
+model GitTree {
+  id          Int              @id @default(autoincrement())
+  repo        GitRepo          @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId      Int
+  sha256      String           @unique
+  entryCount  Int              @default(0)
+
+  entries     GitTreeEntry[]
+  commits     GitCommit[]      @relation("CommitTree")
+
+  // stash引用
+  stashStagedRef    GitStash[] @relation("StashStaged")
+  stashWorkingRef   GitStash[] @relation("StashWorking")
+  stashUntrackedRef GitStash[] @relation("StashUntracked")
+
+  // tree entry反查
+  parentEntries GitTreeEntry[] @relation("GitTreeSubtree")
+
+  createdAt   DateTime         @default(now())
+
+  @@index([repoId])
+}
+
+// Tree中的条目
+model GitTreeEntry {
+  id       Int        @id @default(autoincrement())
+  tree     GitTree    @relation(fields: [treeId], references: [id], onDelete: Cascade)
+  treeId   Int
+  mode     String     // 100644=文件(normal), 100755=可执行, 040000=目录, 120000=软链
+  name     String     // 文件名/路径 如 "turns/001/user.msg"
+  type     GitObjectType // BLOB 或 TREE
+  blob     GitBlob?   @relation(fields: [blobId], references: [id], onDelete: SetNull)
+  blobId   Int?
+  subtree  GitTree?   @relation("GitTreeSubtree", fields: [subtreeId], references: [id], onDelete: SetNull)
+  subtreeId Int?
+
+  // 对话消息关联
+  message  Message?   @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  messageId Int?
+
+  // 顺序（保证Tree的确定性hash）
+  sortKey  String     // 规范化的路径排序键
+
+  @@unique([treeId, sortKey])
+  @@index([treeId])
+  @@index([blobId])
+}
+
+// ═══════════ Git Commit（提交对象）═══════════
+model GitCommit {
+  id               Int              @id @default(autoincrement())
+  repo             GitRepo          @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId           Int
+  sha256           String           @unique  // commit hash
+
+  // 提交指向的目录树
+  tree             GitTree          @relation("CommitTree", fields: [treeId], references: [id], onDelete: Cascade)
+  treeId           Int
+
+  // 父提交关联（通过中间表）
+  parentLinks      GitCommitParent[] @relation("CommitParents")
+  childLinks       GitCommitParent[] @relation("CommitChildren")
+  parentCount      Int              @default(0)
+
+  // 作者（谁写的代码/内容）
+  authorName       String
+  authorEmail      String
+  authorUserId     Int?             // 关联用户（如果是平台用户）
+  authoredAt       DateTime
+
+  // 提交者（谁执行的commit操作，可能和作者不同，如cherry-pick）
+  committerName    String
+  committerEmail   String
+  committerUserId  Int?
+  committedAt      DateTime
+
+  // 提交信息
+  messageBlob      GitBlob?         @relation("CommitMessageBlob", fields: [messageBlobId], references: [id], onDelete: SetNull)
+  messageBlobId    Int?
+  subject          String           @db.Text  // 提交标题（第一行）
+  body             String?          @db.LongText // 提交正文
+
+  // 变更统计
+  additions        Int              @default(0)  // 新增行数
+  deletions        Int              @default(0)  // 删除行数
+  changedFiles     Int              @default(0)  // 变更文件数
+
+  // 语义标签（对话场景）
+  changeType       String?          // INIT / NEW_TURN / EDIT_TURN / DELETE_TURN / MERGE / REBASE / REVERT / CHERRY_PICK / TAG
+  turnIndex        Int?             // 关联的对话轮次
+  nodeId           String?          // 关联的消息nodeId
+
+  // 签名与验证
+  isSigned         Boolean          @default(false)
+  signatureType    String?          // GPG / SSH / SAML
+  isVerified       Boolean          @default(false)
+
+  // 分支反向引用（一对多）
+  branchesRef      GitBranch[]      @relation("GitBranchHeadCommit")
+
+  // 引用到分支的多对多
+  onRefs           GitCommitRef[]
+
+  // 标签引用
+  tagRefs          GitTag[]
+
+  // stash引用
+  stashBase        GitStash[]       @relation("StashBase")
+  stashStaged      GitStash[]       @relation("StashStaged")
+  stashWorking     GitStash[]       @relation("StashWorking")
+  stashUntracked   GitStash[]       @relation("StashUntracked")
+
+  createdAt        DateTime         @default(now())
+
+  @@index([repoId])
+  @@index([treeId])
+  @@index([authorUserId])
+  @@index([committedAt])
+  @@index([changeType])
+}
+
+// 提交父关联表（自引用多对多）
+model GitCommitParent {
+  id          Int       @id @default(autoincrement())
+  commitId    Int
+  parentId    Int
+  parentOrder Int       // 第几个父（merge commit: 1=当前分支, 2=被合并分支）
+  commit      GitCommit @relation("CommitParents", fields: [commitId], references: [id], onDelete: Cascade)
+  parent      GitCommit @relation("CommitChildren", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([commitId, parentId])
+  @@index([commitId])
+  @@index([parentId])
+}
+
+// ═══════════ Git Commit Ref（提交出现在哪些分支上）═══════════
+model GitCommitRef {
+  id        Int       @id @default(autoincrement())
+  repo      GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId    Int
+  commit    GitCommit @relation(fields: [commitId], references: [id], onDelete: Cascade)
+  commitId  Int
+  branch    GitBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId  Int?
+  branchName String?  // 冗余，便于查询
+  refType   String    // BRANCH / TAG / STASH
+  // 在该ref上的拓扑序号（越小越早）
+  depth     Int       @default(0)
+
+  createdAt DateTime  @default(now())
+
+  @@unique([commitId, branchId])
+  @@index([repoId, branchId])
+  @@index([commitId])
+}
+
+// ═══════════ Git 标签（Tag）═══════════
+model GitTag {
+  id          Int              @id @default(autoincrement())
+  repo        GitRepo          @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId      Int
+  name        String           // v1.0.0, release-2024, etc.
+  isAnnotated Boolean          @default(false)
+  type        GitObjectType    @default(COMMIT)  // 通常tag指向commit
+
+  // 指向的对象（大多数情况下是commit）
+  commit      GitCommit?       @relation(fields: [commitId], references: [id], onDelete: SetNull)
+  commitId    Int?
+  targetSha   String           // 目标sha
+
+  // 带注释tag的元数据
+  taggerName  String?
+  taggerEmail String?
+  taggerUserId Int?
+  taggedAt    DateTime?
+  message     String?          @db.Text
+
+  // 签名
+  isSigned    Boolean          @default(false)
+  isVerified  Boolean          @default(false)
+
+  // 版本语义
+  semverMajor Int?
+  semverMinor Int?
+  semverPatch Int?
+  semverPrerelease String?
+
+  createdAt   DateTime         @default(now())
+
+  @@unique([repoId, name])
+  @@index([repoId])
+  @@index([commitId])
+}
+
+// ═══════════ Git Stash（暂存区）═══════════
+model GitStash {
+  id              Int       @id @default(autoincrement())
+  repo            GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId          Int
+  branch          GitBranch @relation("StashBranch", fields: [branchId], references: [id], onDelete: Cascade)
+  branchId        Int
+  index           Int       // stash@{0} stash@{1}
+  name            String?   // 用户自定义名称
+  message         String?   @db.Text
+  baseCommit      GitCommit @relation("StashBase", fields: [baseCommitId], references: [id], onDelete: Cascade)
+  baseCommitId    Int
+  stagedTree      GitTree   @relation("StashStaged", fields: [stagedTreeId], references: [id], onDelete: Cascade)
+  stagedTreeId    Int
+  workingTree     GitTree   @relation("StashWorking", fields: [workingTreeId], references: [id], onDelete: Cascade)
+  workingTreeId   Int
+  untrackedTree   GitTree?  @relation("StashUntracked", fields: [untrackedTreeId], references: [id], onDelete: SetNull)
+  untrackedTreeId Int?
+  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdById     Int
+  createdAt       DateTime  @default(now())
+
+  @@unique([repoId, index])
+  @@index([repoId])
+  @@index([branchId])
+}
+
+// ═══════════ Git Reflog（引用变更日志，用于恢复操作）═══════════
+model GitReflog {
+  id           Int       @id @default(autoincrement())
+  repo         GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId       Int
+  refName      String    // refs/heads/main, HEAD, etc.
+  oldSha       String?   // 变更前sha
+  newSha       String    // 变更后sha
+  action       String    // commit, merge, rebase, reset, checkout, cherry-pick, revert, branch.create, branch.delete
+  actorName    String
+  actorEmail   String
+  actorUserId  Int?
+  reason       String?   @db.Text  // 详细原因
+  timestamp    DateTime  @default(now())
+
+  @@index([repoId])
+  @@index([refName])
+  @@index([timestamp])
+  @@index([actorUserId])
+}
+
+// ═══════════ Pull Request / Merge Request ═══════════
+model PullRequest {
+  id            Int                @id @default(autoincrement())
+  number        Int                // 仓库内PR编号，从1开始
+  repo          GitRepo            @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId        Int
+  title         String             @db.Text
+  description   String?            @db.LongText
+
+  // 源分支（合并来源）
+  headBranch    GitBranch          @relation("PRHead", fields: [headBranchId], references: [id], onDelete: Cascade)
+  headBranchId  Int
+  headRepo      GitRepo            @relation("PRHeadRepo", fields: [headRepoId], references: [id], onDelete: Cascade)
+  headRepoId    Int                // 支持跨仓库PR（fork场景）
+  headCommitSha String             // PR当前HEAD commit sha
+
+  // 目标分支（合入目标）
+  baseBranch    GitBranch          @relation("PRBase", fields: [baseBranchId], references: [id], onDelete: Cascade)
+  baseBranchId  Int
+  baseCommitSha String             // PR创建时base的sha
+
+  // 创建者和参与者
+  author        User               @relation("PRAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId      Int
+  assignees     RepoCollaborator[] @relation("PRAssignees")
+  reviewers     RepoCollaborator[] @relation("PRReviewers")
+
+  // 状态
+  status        PullRequestStatus  @default(OPEN)
+  isDraft       Boolean            @default(false)
+
+  // 合并配置
+  mergeStrategy MergeStrategy      @default(MERGE_COMMIT)
+  mergeCommitId Int?               // 合并后的commit id
+
+  // 审查
+  approvalCount Int                @default(0)
+  requestedApprovals Int           @default(0)
+
+  // CI状态
+  ciStatus      String?            // PENDING / SUCCESS / FAILURE / SKIPPED
+  checksPassed  Boolean?
+
+  // 冲突检测
+  hasConflicts  Boolean            @default(false)
+  mergeable     Boolean?
+
+  // 计数
+  commentCount  Int                @default(0)
+  commitCount   Int                @default(0)
+  additions     Int                @default(0)
+  deletions     Int                @default(0)
+  changedFiles  Int                @default(0)
+
+  // 时间轴
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  closedAt      DateTime?
+  mergedAt      DateTime?
+  mergedById    Int?
+
+  labels        PRLabel[]
+  reviews       PRReview[]
+  comments      PRComment[]
+  activities    PRActivity[]
+
+  @@unique([repoId, number])
+  @@index([repoId])
+  @@index([authorId])
+  @@index([status])
+  @@index([headBranchId])
+  @@index([baseBranchId])
+  @@index([createdAt])
+}
+
+// PR标签
+model PRLabel {
+  id    Int       @id @default(autoincrement())
+  name  String
+  color String?
+  repo  GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId Int
+  prs   PullRequest[]
+
+  @@unique([repoId, name])
+}
+
+// PR审查
+model PRReview {
+  id         Int                @id @default(autoincrement())
+  pr         PullRequest        @relation(fields: [prId], references: [id], onDelete: Cascade)
+  prId       Int
+  reviewer   RepoCollaborator   @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId Int
+  state      String             // APPROVED / CHANGES_REQUESTED / COMMENTED / DISMISSED / PENDING
+  body       String?            @db.LongText
+  commitSha  String?            // 审查时的commit sha
+  submittedAt DateTime?
+  createdAt  DateTime           @default(now())
+
+  @@index([prId])
+  @@index([reviewerId])
+}
+
+// PR评论（支持行内评论）
+model PRComment {
+  id           Int          @id @default(autoincrement())
+  pr           PullRequest  @relation(fields: [prId], references: [id], onDelete: Cascade)
+  prId         Int
+  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId     Int
+  body         String       @db.LongText
+
+  // 行内评论定位
+  isInline     Boolean      @default(false)
+  filePath     String?
+  oldLineNo    Int?
+  newLineNo    Int?
+  blobSha      String?
+  side         String?      // LEFT / RIGHT (diff sides)
+  lineContent  String?      @db.Text
+
+  // 线程
+  threadId     Int?         // 同一线程的评论共享id
+
+  // 回复
+  parentId     Int?
+  replyToId    Int?         // 回复的评论id
+
+  // 解决状态（行内评论）
+  isResolved   Boolean      @default(false)
+  resolvedById Int?
+  resolvedAt   DateTime?
+
+  reactions    Json         // 表情反应 {"👍": [userId1, userId2], "❤️": [...]}
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  editedAt     DateTime?
+
+  @@index([prId])
+  @@index([authorId])
+  @@index([filePath])
+  @@index([threadId])
+}
+
+// PR活动日志
+model PRActivity {
+  id        Int         @id @default(autoincrement())
+  pr        PullRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
+  prId      Int
+  actorId   Int?
+  actorName String
+  action    String      // OPENED / CLOSED / MERGED / REOPENED / REVIEW_REQUESTED / REVIEWED / APPROVED / CHANGES_REQUESTED / LABELED / UNLABELED / ASSIGNED / UNASSIGNED / MILESTONED / EDIT_TITLE / EDIT_BODY / HEAD_FORCE_PUSH / HEAD_UPDATED / CONFLICTED / RESOLVED / CHECK_PASSED / CHECK_FAILED
+  detail    Json?       // 附加信息
+  createdAt DateTime    @default(now())
+
+  @@index([prId])
+  @@index([createdAt])
+}
+
+// ═══════════ 仓库Issue（轻量级，用于任务跟踪）═══════════
+model RepoIssue {
+  id          Int       @id @default(autoincrement())
+  number      Int       // 仓库内issue编号，从1开始，与PR共享编号池
+  repo        GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId      Int
+  title       String    @db.Text
+  description String?   @db.LongText
+  state       String    @default("OPEN") // OPEN / CLOSED / REOPENED
+  author      User      @relation("IssueAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    Int
+  assignees   Int[]     // userId数组
+  labels      Json      // 标签数组
+  milestone   String?
+  linkedPRId  Int?      // 关联的PR id
+  commentCount Int      @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  closedAt    DateTime?
+  closedById  Int?
+
+  @@unique([repoId, number])
+  @@index([repoId])
+  @@index([authorId])
+  @@index([state])
+}
+
+// ═══════════ Webhook（事件通知）═══════════
+model RepoWebhook {
+  id         Int       @id @default(autoincrement())
+  repo       GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId     Int
+  url        String    @db.Text
+  secret     String?   @db.Text  // HMAC签名密钥
+  events     Json      // ["push", "pull_request.created", ...]
+  isActive   Boolean   @default(true)
+  sslVerify  Boolean   @default(true)
+  contentType String   @default("json") // json / form
+  createdBy  Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastTriggeredAt DateTime?
+  lastDeliveryStatus String? // SUCCESS / FAILURE / TIMEOUT
+
+  @@index([repoId])
+  @@index([isActive])
+}
+
+// ═══════════ 推送事件日志（Push Event / Audit Log）═══════════
+model GitPushEvent {
+  id            Int       @id @default(autoincrement())
+  repo          GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repoId        Int
+  pusherId      Int
+  pusherName    String
+  pusherEmail   String
+  refName       String    // refs/heads/main
+  refType       String    // BRANCH / TAG
+  oldSha        String
+  newSha        String
+  isCreate      Boolean   @default(false)
+  isDelete      Boolean   @default(false)
+  isForce       Boolean   @default(false)
+  commitCount   Int       @default(0)
+  commitsBefore Int       // 之前此分支的commit数
+  commitsAfter  Int       // 之后此分支的commit数
+  additions     Int       @default(0)
+  deletions     Int       @default(0)
+  changedFiles  Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([repoId])
+  @@index([pusherId])
+  @@index([refName])
+  @@index([createdAt])
+}
