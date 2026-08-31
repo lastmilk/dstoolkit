@@ -85,6 +85,15 @@ model User {
   oauthCodes       OAuthCode[]
   oauthTokens      OAuthToken[]
 
+  // Git 相关反向引用
+  gitStashes       GitStash[]
+  pullRequestsAuthored PullRequest[] @relation("PRAuthor")
+  prComments       PRComment[]
+  issuesAuthored   RepoIssue[]     @relation("IssueAuthor")
+  ownedRepos       GitRepo[]
+  repoCollaborations RepoCollaborator[]
+  branchesCreated  GitBranch[]
+
   @@index([role])
   @@index([tier])
   @@index([referralCode])
@@ -126,6 +135,9 @@ model Conversation {
   // 文件夹/标签关联
   folderItems     ConversationTag[]
 
+  // Git 仓库镜像（一对一；独立仓库不关联对话）
+  gitRepo         GitRepo?
+
   @@unique([configId, deepseekConvId])
   @@index([configId])
   @@index([insertedAt])
@@ -144,6 +156,9 @@ model Message {
   turnIndex       Int?
   versionIndex    Int?
   subTurnIndex    Int?
+
+  // GitTreeEntry 反向引用
+  treeEntries     GitTreeEntry[]
 
   @@index([conversationId])
   @@index([role])
@@ -515,12 +530,16 @@ model GitRepo {
   tags              GitTag[]
   blobs             GitBlob[]
   trees             GitTree[]
-  pullRequests      PullRequest[]
+  pullRequests      PullRequest[]    @relation("PRRepo")
+  headPullRequests  PullRequest[]    @relation("PRHeadRepo")
   collaborators     RepoCollaborator[]
   commitsOnRefs     GitCommitRef[]
   stashes           GitStash[]
   reflogs           GitReflog[]
+  labels            PRLabel[]
   issues            RepoIssue[]
+  webhooks          RepoWebhook[]
+  pushEvents        GitPushEvent[]
 
   @@unique([ownerId, name])
   @@index([ownerId])
@@ -534,11 +553,16 @@ model RepoCollaborator {
   id         Int       @id @default(autoincrement())
   repo       GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
   repoId     Int
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "RepoCollaborator_userId_fkey")
   userId     Int
   permission String    // OWNER / MAINTAINER / WRITE / READ / TRIAGE
   invitedBy  Int?      // 邀请人userId
   joinedAt   DateTime  @default(now())
+
+  // PR 相关反向引用
+  assignedPRs  PullRequest[]    @relation("PRAssignees")
+  reviewingPRs PullRequest[]    @relation("PRReviewers")
+  reviews      PRReview[]
 
   @@unique([repoId, userId])
   @@index([repoId])
@@ -696,7 +720,7 @@ model GitCommit {
 
   // 提交信息
   messageBlob      GitBlob?         @relation("CommitMessageBlob", fields: [messageBlobId], references: [id], onDelete: SetNull)
-  messageBlobId    Int?
+  messageBlobId    Int?             @unique
   subject          String           @db.Text  // 提交标题（第一行）
   body             String?          @db.LongText // 提交正文
 
@@ -724,11 +748,8 @@ model GitCommit {
   // 标签引用
   tagRefs          GitTag[]
 
-  // stash引用
+  // stash引用（只有baseCommit指向GitCommit，其余3个tree指向GitTree）
   stashBase        GitStash[]       @relation("StashBase")
-  stashStaged      GitStash[]       @relation("StashStaged")
-  stashWorking     GitStash[]       @relation("StashWorking")
-  stashUntracked   GitStash[]       @relation("StashUntracked")
 
   createdAt        DateTime         @default(now())
 
@@ -815,22 +836,22 @@ model GitTag {
 // ═══════════ Git Stash（暂存区）═══════════
 model GitStash {
   id              Int       @id @default(autoincrement())
-  repo            GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repo            GitRepo   @relation(fields: [repoId], references: [id], onDelete: Cascade, map: "GitStash_repoId_fkey")
   repoId          Int
-  branch          GitBranch @relation("StashBranch", fields: [branchId], references: [id], onDelete: Cascade)
+  branch          GitBranch @relation("StashBranch", fields: [branchId], references: [id], onDelete: Cascade, map: "GitStash_branchId_fkey")
   branchId        Int
   index           Int       // stash@{0} stash@{1}
   name            String?   // 用户自定义名称
   message         String?   @db.Text
-  baseCommit      GitCommit @relation("StashBase", fields: [baseCommitId], references: [id], onDelete: Cascade)
+  baseCommit      GitCommit @relation("StashBase", fields: [baseCommitId], references: [id], onDelete: Cascade, map: "GitStash_baseCommitId_fkey")
   baseCommitId    Int
-  stagedTree      GitTree   @relation("StashStaged", fields: [stagedTreeId], references: [id], onDelete: Cascade)
+  stagedTree      GitTree   @relation("StashStaged", fields: [stagedTreeId], references: [id], onDelete: Cascade, map: "GitStash_stagedTreeId_fkey")
   stagedTreeId    Int
-  workingTree     GitTree   @relation("StashWorking", fields: [workingTreeId], references: [id], onDelete: Cascade)
+  workingTree     GitTree   @relation("StashWorking", fields: [workingTreeId], references: [id], onDelete: Cascade, map: "GitStash_workingTreeId_fkey")
   workingTreeId   Int
-  untrackedTree   GitTree?  @relation("StashUntracked", fields: [untrackedTreeId], references: [id], onDelete: SetNull)
+  untrackedTree   GitTree?  @relation("StashUntracked", fields: [untrackedTreeId], references: [id], onDelete: SetNull, map: "GitStash_untrackedTreeId_fkey")
   untrackedTreeId Int?
-  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy       User      @relation(fields: [createdById], references: [id], onDelete: Cascade, map: "GitStash_createdById_fkey")
   createdById     Int
   createdAt       DateTime  @default(now())
 
@@ -864,7 +885,7 @@ model GitReflog {
 model PullRequest {
   id            Int                @id @default(autoincrement())
   number        Int                // 仓库内PR编号，从1开始
-  repo          GitRepo            @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  repo          GitRepo            @relation("PRRepo", fields: [repoId], references: [id], onDelete: Cascade)
   repoId        Int
   title         String             @db.Text
   description   String?            @db.LongText
@@ -882,7 +903,7 @@ model PullRequest {
   baseCommitSha String             // PR创建时base的sha
 
   // 创建者和参与者
-  author        User               @relation("PRAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  author        User               @relation("PRAuthor", fields: [authorId], references: [id], onDelete: Cascade, map: "PullRequest_authorId_fkey")
   authorId      Int
   assignees     RepoCollaborator[] @relation("PRAssignees")
   reviewers     RepoCollaborator[] @relation("PRReviewers")
@@ -950,9 +971,9 @@ model PRLabel {
 // PR审查
 model PRReview {
   id         Int                @id @default(autoincrement())
-  pr         PullRequest        @relation(fields: [prId], references: [id], onDelete: Cascade)
+  pr         PullRequest        @relation(fields: [prId], references: [id], onDelete: Cascade, map: "PRReview_prId_fkey")
   prId       Int
-  reviewer   RepoCollaborator   @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewer   RepoCollaborator   @relation(fields: [reviewerId], references: [id], onDelete: Cascade, map: "PRReview_reviewerId_fkey")
   reviewerId Int
   state      String             // APPROVED / CHANGES_REQUESTED / COMMENTED / DISMISSED / PENDING
   body       String?            @db.LongText
@@ -1032,7 +1053,7 @@ model RepoIssue {
   state       String    @default("OPEN") // OPEN / CLOSED / REOPENED
   author      User      @relation("IssueAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   authorId    Int
-  assignees   Int[]     // userId数组
+  assignees   Json      // userId数组（MySQL不支持Int[]）
   labels      Json      // 标签数组
   milestone   String?
   linkedPRId  Int?      // 关联的PR id

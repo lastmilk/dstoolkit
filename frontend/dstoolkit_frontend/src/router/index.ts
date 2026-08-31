@@ -52,6 +52,11 @@ const router = createRouter({
         { path: 'pricing', name: 'pricing', component: () => import('@/views/pricing/Pricing.vue') },
         { path: 'market', name: 'market', component: () => import('@/views/market/Market.vue') },
         { path: 'profile', name: 'profile', component: () => import('@/views/profile/Profile.vue') },
+        // ========== Git 体系路由（GitHub 风格的核心功能） ==========
+        { path: 'git/repos', name: 'git-repos', component: () => import('@/git/views/GitReposList.vue') },
+        { path: 'git/repos/:repoId(\\d+)', name: 'git-repo', component: () => import('@/git/views/GitRepoPage.vue') },
+        { path: 'git/repos/:repoId(\\d+)/prs/:number(\\d+)', name: 'git-repo-pr', component: () => import('@/git/views/GitRepoPage.vue') },
+        { path: 'git/conversations/:convId(\\d+)', name: 'git-conv-repo', component: () => import('@/git/views/GitRepoPage.vue') },
       ],
     },
   ],

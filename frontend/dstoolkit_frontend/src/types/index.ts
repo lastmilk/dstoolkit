@@ -40,6 +40,7 @@ export interface Turn {
 }
 
 export interface ParsedConversation {
+  id?: number  // 云端 DB 主键（用于绑定 Git 仓库；前端本地 IndexedDB 模式下可能缺）
   deepseekConvId: string
   title: string
   insertedAt: string
@@ -49,6 +50,7 @@ export interface ParsedConversation {
   turns?: Turn[]
   turnCount?: number  // 云端 lite 模式下来自 DB 的轮次数（turns 为空时用于树标签）
   configId?: number  // 云端 lite 模式下用于按需加载 messages
+  gitRepo?: { id: number; name: string; visibility: string; defaultBranch: string; commitCount?: number } | null
 }
 
 export interface UploadResult {

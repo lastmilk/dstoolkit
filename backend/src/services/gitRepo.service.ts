@@ -24,6 +24,16 @@ export interface CreateRepoInput {
   forkedFromId?: number
 }
 
+export interface MergeResult {
+  commit?: GitCommit
+  strategy: string
+  hasConflicts: boolean
+  conflicts?: Array<{ path: string; conflictCount?: number; reason?: string }>
+  mergedFiles?: number
+  additions?: number
+  deletions?: number
+}
+
 export class GitRepoService {
   constructor(
     private readonly prisma: PrismaClient,
@@ -498,16 +508,6 @@ export class GitRepoService {
   // ══════════════════════════════════════════════
   // 合并操作（四种策略）
   // ══════════════════════════════════════════════
-
-  public interface MergeResult {
-    commit?: GitCommit
-    strategy: string
-    hasConflicts: boolean
-    conflicts?: Array<{ path: string; conflictCount?: number; reason?: string }>
-    mergedFiles?: number
-    additions?: number
-    deletions?: number
-  }
 
   async merge(params: {
     repoId: number

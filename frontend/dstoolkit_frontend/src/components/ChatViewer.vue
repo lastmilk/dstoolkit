@@ -20,10 +20,12 @@ import {
   CloseOutline,
   SendOutline,
   ChevronDownOutline,
+  GitBranchOutline,
 } from '@vicons/ionicons5'
 import { useAuthStore } from '@/stores/auth'
 import { message } from '@/utils/naive'
 import MarkdownView from './MarkdownView.vue'
+import GitFloatingPanel from '@/git/components/GitFloatingPanel.vue'
 import type { ParsedConversation, ParsedMessage } from '@/types'
 
 const props = defineProps<{
@@ -41,6 +43,7 @@ const streaming = ref(false)
 const streamingContent = ref('')
 const editingIndex = ref<number | null>(null)
 const editText = ref('')
+const showGitPanel = ref(false)
 
 const bottomRef = ref<HTMLElement | null>(null)
 
@@ -257,6 +260,22 @@ const canSend = computed(
             </div>
           </div>
         </div>
+        <div class="chat-header-actions">
+          <NButton
+            v-if="conversation.id != null"
+            size="small"
+            ghost
+            type="primary"
+            :title="showGitPanel ? '关闭Git面板' : '打开Git面板'"
+            @click="showGitPanel = !showGitPanel"
+          >
+            <template #icon><NIcon size="14"><GitBranchOutline /></NIcon></template>
+            Git
+            <NTag v-if="conversation.gitRepo?.commitCount" size="small" round type="success" :bordered="false" style="margin-left: 4px;">
+              {{ conversation.gitRepo.commitCount }}
+            </NTag>
+          </NButton>
+        </div>
       </div>
 
       <!-- 消息流 -->
@@ -421,6 +440,14 @@ const canSend = computed(
           <span>请先在下拉框中选择一个 API Key，才能继续对话</span>
         </div>
       </div>
+
+      <!-- Git 浮动面板：仅在 convId 存在（云端模式）时可用 -->
+      <GitFloatingPanel
+        v-if="showGitPanel && conversation?.id != null"
+        :conv-id="conversation.id"
+        :conversation="conversation"
+        class="git-floating-wrap"
+      />
     </template>
   </div>
 </template>
@@ -841,10 +868,37 @@ const canSend = computed(
   padding: 0 4px;
 }
 
+/* ============ Git 面板集成 ============ */
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.git-floating-wrap {
+  position: absolute;
+  top: 68px;
+  right: 16px;
+  z-index: 50;
+  max-width: min(460px, 42vw);
+  max-height: calc(100% - 88px);
+}
+.chat-viewer {
+  position: relative;
+}
+
 @media (max-width: 640px) {
   .chat-thread { padding: 16px 12px; gap: 18px; }
   .chat-header { padding: 12px 16px; }
   .chat-input-area { padding: 12px 14px 16px; }
   .msg-bubble { max-width: 88%; padding: 10px 14px; }
+  .git-floating-wrap {
+    top: auto;
+    right: 8px;
+    left: 8px;
+    bottom: 16px;
+    max-width: none;
+    max-height: 62vh;
+  }
 }
 </style>

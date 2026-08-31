@@ -7,6 +7,7 @@ import '../../../data/models/models.dart';
 import '../../../widgets/chat_bubble.dart';
 import '../../../widgets/turn_tree.dart';
 import '../../auth/auth_controller.dart';
+import '../../git/widgets/git_floating_panel.dart' show GitFloatingPanel;
 
 /// 对话详情：Turn/Version/SubTurn 树渲染 + Markdown 气泡 + 离线缓存
 class ConversationDetailPage extends ConsumerStatefulWidget {
@@ -124,6 +125,8 @@ class _ConversationDetailPageState
   @override
   Widget build(BuildContext context) {
     final neu = NeuColors.of(context);
+    final isWide = MediaQuery.sizeOf(context).width >= 720;
+    final convId = _detail?.id;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -132,6 +135,12 @@ class _ConversationDetailPageState
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
+          if (convId != null)
+            IconButton(
+              tooltip: 'Git 版本面板',
+              icon: const Icon(Icons.merge_type_rounded),
+              onPressed: () => _openGitPanel(context, isWide),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: _load,
@@ -140,6 +149,45 @@ class _ConversationDetailPageState
       ),
       body: _buildBody(neu),
     );
+  }
+
+  void _openGitPanel(BuildContext context, bool isWide) {
+    final detail = _detail;
+    if (detail == null) return;
+    if (isWide) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => Dialog(
+          insetPadding: const EdgeInsets.fromLTRB(40, 24, 40, 24),
+          child: SizedBox(
+            width: 520,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: GitFloatingPanel(
+                convId: detail.id,
+                convTitle: detail.title,
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (ctx) => DraggableScrollableSheet(
+          initialChildSize: 0.78,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, scroll) => GitFloatingPanel(
+            convId: detail.id,
+            convTitle: detail.title,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildBody(NeuColors neu) {

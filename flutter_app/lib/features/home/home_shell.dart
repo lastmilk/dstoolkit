@@ -33,6 +33,12 @@ class HomeShell extends StatelessWidget {
             selectedIcon: Icon(Icons.insights_rounded),
             label: '统计',
           ),
+          // Git 仓库中心 Tab — GitHub 风格核心
+          NavigationDestination(
+            icon: Icon(Icons.account_tree_outlined),
+            selectedIcon: Icon(Icons.account_tree_rounded),
+            label: 'Git 仓库',
+          ),
           NavigationDestination(
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),

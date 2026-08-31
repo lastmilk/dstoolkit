@@ -13,6 +13,7 @@ import {
 import { indexDocuments, deleteDocuments, type MeiliDoc } from '../services/meilisearch.js'
 import { parsePaging } from '../utils/paging.js'
 import { aggregateTurnsFromMessages } from '../services/turns.js'
+import { gitConversationHooks } from '../services/gitConversationHook.service.js'
 
 const router = Router()
 const upload = multer({
@@ -71,6 +72,8 @@ async function upsertConversations(userId: number, configId: number, convs: Pars
     select: { id: true, deepseekConvId: true, updatedAt: true },
   })
   const existingMap = new Map(existingConvs.map((c) => [c.deepseekConvId, c]))
+  // Git hook：收集本次真正变更/新增的 conversation id，后台异步生成自动 commit
+  const changedConvIds: number[] = []
 
   for (const c of convs) {
     const existing = existingMap.get(c.deepseekConvId)
@@ -105,6 +108,7 @@ async function upsertConversations(userId: number, configId: number, convs: Pars
             messages: { deleteMany: {}, create: messageData },
           },
         })
+        changedConvIds.push(existing.id)
         // 同步 Meilisearch：删旧 msg 文档（title 文档由 addDocuments 覆盖即可）
         try {
           await deleteDocuments(userId, oldDocIds)
@@ -114,7 +118,7 @@ async function upsertConversations(userId: number, configId: number, convs: Pars
         allNewDocs.push(...buildMeiliDocs(userId, configId, c))
       }
     } else {
-      await prisma.conversation.create({
+      const created = await prisma.conversation.create({
         data: {
           configId,
           deepseekConvId: c.deepseekConvId,
@@ -125,7 +129,9 @@ async function upsertConversations(userId: number, configId: number, convs: Pars
           rawMapping: c.mapping as any,
           messages: { create: messageData },
         },
+        select: { id: true },
       })
+      changedConvIds.push(created.id)
       allNewDocs.push(...buildMeiliDocs(userId, configId, c))
     }
   }
@@ -135,6 +141,16 @@ async function upsertConversations(userId: number, configId: number, convs: Pars
       indexDocuments(userId, allNewDocs).catch((e) =>
         console.warn('[meilisearch] background indexDocuments failed', e),
       )
+    })
+  }
+  // Git Hook：后台异步为每个变更的对话生成自动 commit（非阻塞，失败降级）
+  if (changedConvIds.length > 0) {
+    setImmediate(() => {
+      for (const convId of changedConvIds) {
+        gitConversationHooks.afterConversationUpserted(userId, convId).catch((e) => {
+          console.warn(`[GitHook] auto commit for convId=${convId} failed:`, e)
+        })
+      }
     })
   }
 }

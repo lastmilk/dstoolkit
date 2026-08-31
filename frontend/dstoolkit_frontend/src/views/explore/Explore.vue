@@ -359,12 +359,13 @@ function onSelectSubturn(payload: {
   if (conv.configId && conv.messages.length === 0) {
     detailLoading.value = true
     loadConversationDetail(conv.configId, conv.deepseekConvId)
-      .then(({ messages, turns }) => {
+      .then(({ id, messages, turns }) => {
         conv.messages = messages
         conv.turns = turns
+        if (typeof id === 'number') conv.id = id
         const idx = conversations.value.findIndex((c) => c.deepseekConvId === conv.deepseekConvId)
         if (idx >= 0) {
-          const updated = { ...conv, messages, turns }
+          const updated = { ...conv, messages, turns, ...(typeof id === 'number' ? { id } : {}) }
           conversations.value = [...conversations.value.slice(0, idx), updated, ...conversations.value.slice(idx + 1)]
           activeConv.value = updated
         }

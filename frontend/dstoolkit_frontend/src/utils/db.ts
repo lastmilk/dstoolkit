@@ -619,11 +619,13 @@ export async function loadConversationsPage(opts: {
     })) as any
     const list = (res.conversations ?? []) as any[]
     const conversations: ParsedConversation[] = list.map((c) => ({
+      id: typeof c.id === 'number' ? c.id : undefined,
       deepseekConvId: c.deepseekConvId,
       title: c.title,
       insertedAt: c.insertedAt,
       updatedAt: c.updatedAt,
       mapping: {},
+      gitRepo: c.gitRepo ?? null,
       messages: withMessages
         ? (c.messages ?? []).map((m: any) => ({
             nodeId: m.nodeId,
@@ -670,11 +672,12 @@ export async function loadConversationsPage(opts: {
 export async function loadConversationDetail(
   configId: number,
   deepseekConvId: string,
-): Promise<{ messages: ParsedMessage[]; turns: any[] }> {
+): Promise<{ id?: number; messages: ParsedMessage[]; turns: any[] }> {
   const data = (await request.get(
     `/configs/${configId}/conversations/${encodeURIComponent(deepseekConvId)}`,
   )) as any
   return {
+    id: typeof data.id === 'number' ? data.id : undefined,
     messages: (data.messages as any[]).map((m) => ({
       nodeId: m.nodeId,
       parentId: m.parentId,

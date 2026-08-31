@@ -13,6 +13,22 @@ import { computeGitHash, sha256 } from '../utils/gitHash.js'
 import type { DiffFileResult } from '../utils/gitDiff.js'
 import { computeFileDiff, toUnifiedDiff } from '../utils/gitDiff.js'
 
+export interface TreeDiffSummary {
+  files: DiffFileResult[]
+  totalAdditions: number
+  totalDeletions: number
+  changedFiles: number
+}
+
+export interface BuildEntryInput {
+  path: string             // 相对路径，用 / 分隔；也允许空
+  mode?: string            // 默认 100644
+  content?: string         // 如果提供则自动 writeBlob
+  blobId?: number          // 或直接指定已有blob
+  mimeType?: string
+  associateMessage?: Message // 关联对话消息
+}
+
 export class GitObjectService {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -86,20 +102,6 @@ export class GitObjectService {
   // ══════════════════════════════════════════════
   // Tree 操作
   // ══════════════════════════════════════════════
-
-  /**
-   * Tree 输入条目
-   * 路径式: path="turns/001/user.msg" + blobId 或 subtree entries[]
-   * 本函数内部会把路径拆分 / 递归构建嵌套Tree
-   */
-  public interface BuildEntryInput {
-    path: string             // 相对路径，用 / 分隔；也允许空
-    mode?: string            // 默认 100644
-    content?: string         // 如果提供则自动 writeBlob
-    blobId?: number          // 或直接指定已有blob
-    mimeType?: string
-    associateMessage?: Message // 关联对话消息
-  }
 
   /**
    * 构建不可变的Tree对象
@@ -362,13 +364,6 @@ export class GitObjectService {
   // ══════════════════════════════════════════════
   // Tree 对比（git diff treeA treeB）
   // ══════════════════════════════════════════════
-
-  public interface TreeDiffSummary {
-    files: DiffFileResult[]
-    totalAdditions: number
-    totalDeletions: number
-    changedFiles: number
-  }
 
   async diffTrees(oldTreeId: number | null, newTreeId: number): Promise<TreeDiffSummary> {
     const [oldFiles, newFiles] = await Promise.all([
